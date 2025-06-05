@@ -1,6 +1,9 @@
 <script setup>
 import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 const account = ref('')
 const password = ref('')
@@ -10,14 +13,23 @@ const togglePassword = () => {
   showPassword.value = !showPassword.value
 }
 
-const handleLogin = () => {
+const handleLogin = async () => {
   console.log(useAuthStore);
-  useAuthStore().login({
+  const result = await useAuthStore().login({
     credential: account.value,
     password: password.value
   })
+
+  console.log(result);
+  if(result.success) {
+    console.log('登入成功');
+    await router.push('/')
+  } else {
+    console.error('登入失敗', result.message);
+    // 可以在這裡顯示錯誤訊息
+
+  }
   
-  console.log('登入', { account: account.value, password: password.value })
 }
 
 const handleRegister = () => {
@@ -67,6 +79,7 @@ const handleForgotPassword = () => {
               :type="showPassword ? 'text' : 'password'"
               placeholder="請輸入密碼"
               class="form-input"
+              @keyup.enter="handleLogin"
             >
             <button 
               type="button" 
@@ -87,6 +100,7 @@ const handleForgotPassword = () => {
         
         <button 
           @click="handleLogin"
+          
           class="login-btn"
         >
           登入
