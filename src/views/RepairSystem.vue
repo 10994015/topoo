@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, reactive, onMounted } from 'vue'
+import { ref, computed, reactive, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useRepairStore } from '@/stores/repair'
 import { useAuthStore } from '@/stores/auth'
@@ -10,12 +10,12 @@ const authStore = useAuthStore()
 const repairStore = useRepairStore()
 // 搜尋表單
 const searchForm = reactive({
-  keyword: '',
-  category: '',
-  reason: '',
-  status: '',
-  startDate: '2025-05-01',
-  endDate: '2025-05-30'
+  title: '',
+  repairCategoryId: '',
+  repairReasonId: '',
+  repairStatusId: '',
+  startAt: '',
+  endAt: ''
 })
 
 const categories = ref([]);
@@ -28,79 +28,14 @@ const pageSize = ref(10)
 const sortColumn = ref('')
 const sortDirection = ref('asc')
 
+// 載入狀態
+const isLoading = ref(true)
+const isSearching = ref(false)
+
 // 模擬資料
-const mockData = ref([
-  {
-    id: 1,
-    title: '電腦無法開機',
-    category: '硬體故障',
-    reason: '電源問題',
-    reporter: '張三',
-    reportTime: '2025-05-01 09:30',
-    status: 'pending'
-  },
-  {
-    id: 2,
-    title: '印表機列印模糊',
-    category: '硬體故障',
-    reason: '設備老化',
-    reporter: '李四',
-    reportTime: '2025-05-02 14:20',
-    status: 'processing'
-  },
-  {
-    id: 3,
-    title: '網路連線不穩定',
-    category: '網路問題',
-    reason: '網路設定',
-    reporter: '王五',
-    reportTime: '2025-05-03 11:15',
-    status: 'completed'
-  },
-  {
-    id: 4,
-    title: '軟體當機',
-    category: '軟體問題',
-    reason: '系統錯誤',
-    reporter: '趙六',
-    reportTime: '2025-05-04 16:45',
-    status: 'pending'
-  },
-  {
-    id: 5,
-    title: '螢幕顯示異常',
-    category: '硬體故障',
-    reason: '硬體故障',
-    reporter: '孫七',
-    reportTime: '2025-05-05 08:20',
-    status: 'processing'
-  }
-])
-
-// 計算屬性
-const filteredData = computed(() => {
-  return mockData.value.filter(item => {
-    const matchKeyword = !searchForm.keyword || 
-      item.title.includes(searchForm.keyword)
-    const matchCategory = !searchForm.category || 
-      item.category === searchForm.category
-    const matchreason = !searchForm.reason || 
-      item.reason === searchForm.reason
-    const matchStatus = !searchForm.status || 
-      item.status === searchForm.status
-    
-    return matchKeyword && matchCategory && matchreason && matchStatus
-  })
-})
-
-const totalItems = computed(() => filteredData.value.length)
-const totalPages = computed(() => Math.ceil(totalItems.value / pageSize.value))
-
-const paginatedData = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  const end = start + pageSize.value
-  return filteredData.value.slice(start, end)
-})
+const repairData = ref([]);
+const totalItems = ref(0)
+const totalPages = ref(0)
 
 const startItem = computed(() => {
   return totalItems.value === 0 ? 0 : (currentPage.value - 1) * pageSize.value + 1
@@ -144,40 +79,51 @@ const showEllipsis = computed(() => {
 })
 
 // 方法
-const handleSearch = () => {
+const handleSearch = async () => {
   currentPage.value = 1
+  
   console.log('執行搜尋:', searchForm)
+  
+  // 模擬搜尋延遲
+  await getRepairData(searchForm, sortColumn.value, sortDirection.value, pageSize.value, currentPage.value);
+  
 }
 
-const sortBy = (column) => {
+// watch pageSize
+watch(pageSize, async (newSize) => {
+  console.log('分頁大小變更:', newSize)
+  currentPage.value = 1
+  await getRepairData(searchForm, sortColumn.value, sortDirection.value, newSize, currentPage.value);
+})
+
+const handleReset = () => {
+  searchForm.title = ''
+  searchForm.repairCategoryId = ''
+  searchForm.repairReasonId = ''
+  searchForm.repairStatusId = ''
+  searchForm.startAt = ''
+  searchForm.endAt = ''
+  currentPage.value = 1
+}
+
+const sortBy = async (column) => {
   if (sortColumn.value === column) {
     sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
   } else {
     sortColumn.value = column
     sortDirection.value = 'asc'
   }
+  await getRepairData(searchForm, sortColumn.value, sortDirection.value, pageSize.value, currentPage.value);
   console.log('排序:', column, sortDirection.value)
 }
 
-const goToPage = (page) => {
+const goToPage = async (page) => {
+  console.log(page);
+  await getRepairData(searchForm, sortColumn.value, sortDirection.value, pageSize.value, page);
   if (page >= 1 && page <= totalPages.value) {
     currentPage.value = page
   }
 }
-
-const openNewRepair = () => {
-  console.log('開啟新增報修表單')
-}
-
-const getStatusClass = (status) => {
-  const statusMap = {
-    'pending': 'status-pending',
-    'processing': 'status-processing', 
-    'completed': 'status-completed'
-  }
-  return statusMap[status] || ''
-}
-
 const getStatusText = (status) => {
   const statusMap = {
     'pending': '待處理',
@@ -186,19 +132,40 @@ const getStatusText = (status) => {
   }
   return statusMap[status] || status
 }
+const getRepairData = async(searchForm, column="repair_time", sortDirection="asc", limit=10, page=1) => {
+  console.log(searchForm, column, sortDirection);
+  isSearching.value = true
+  await repairStore.fetchRepairs(searchForm, column, sortDirection, limit, page);
+  console.log(repairStore.repairs);
+  
+  repairData.value = repairStore.repairs.data;
+  totalPages.value = repairStore.repairs.data.totalPages;
+  totalItems.value = repairStore.repairs.data.total;
 
+  console.log(totalItems.value, totalPages.value);
+  
+  isSearching.value = false
+}
 onMounted(async ()=>{
-  if(!repairStore.categories) {
+  console.log('onMounted: RepairSystem');
+  try {
     await repairStore.fetchCategories()
     await repairStore.fetchReasons()
     await repairStore.fetchStatuses()
+    await getRepairData(searchForm, "repair_time", "asc", pageSize.value, currentPage.value);
 
     categories.value = repairStore.categories.data
     reasons.value = repairStore.reasons.data
     statuses.value = repairStore.statuses.data
+
+    // repairData.value = repairStore.repairs.data
     
+  } catch (error) {
+    console.error('載入資料失敗:', error)
+  } finally {
+    isLoading.value = false
   }
-  
+ 
 })
 </script>
 
@@ -210,30 +177,34 @@ onMounted(async ()=>{
         <div class="search-field">
           <input 
             type="text" 
-            v-model="searchForm.keyword"
+            v-model="searchForm.title"
             placeholder="輸入案件標題"
             class="search-input"
             @keyup.enter="handleSearch"
+            :disabled="isLoading"
           />
-          <button class="search-btn" @click="handleSearch">🔍</button>
+          <button class="search-btn" @click="handleSearch" :disabled="isLoading || isSearching">
+            <span v-if="isSearching" class="loading-spinner">⟳</span>
+            <span v-else>🔍</span>
+          </button>
         </div>
         
         <div class="select-field">
-          <select v-model="searchForm.category" class="search-select">
+          <select v-model="searchForm.repairCategoryId" class="search-select" :disabled="isLoading">
             <option value="">全部</option>
             <option v-for="category in categories" :key="category.id" :value="category.id">{{ category.name }}</option>
           </select>
         </div>
         
         <div class="select-field">
-          <select v-model="searchForm.reason" class="search-select">
+          <select v-model="searchForm.repairReasonId" class="search-select" :disabled="isLoading">
             <option value="">全部</option>
             <option v-for="reason in reasons" :key="reason.id" :value="reason.id">{{ reason.name }}</option>
           </select>
         </div>
         
         <div class="select-field">
-          <select v-model="searchForm.status" class="search-select">
+          <select v-model="searchForm.repairStatusId" class="search-select" :disabled="isLoading">
             <option value="">全部</option>
             <option v-for="status in statuses" :key="status.id" :value="status.id">{{ status.name }}</option>
           </select>
@@ -245,20 +216,25 @@ onMounted(async ()=>{
           <label>報修時間</label>
           <input 
             type="date" 
-            v-model="searchForm.startDate"
+            v-model="searchForm.startAt"
             class="date-input"
+            :disabled="isLoading"
           />
           <span class="date-separator">-</span>
           <input 
             type="date" 
-            v-model="searchForm.endDate"
+            v-model="searchForm.endAt"
             class="date-input"
+            :disabled="isLoading"
           />
         </div>
         
         <div class="action-buttons">
-          <button class="query-btn" @click="handleSearch">查詢</button>
-          <button class="reset-btn" @click="handleReset">重置</button>
+          <button class="query-btn" @click="handleSearch" :disabled="isLoading || isSearching">
+            <span v-if="isSearching" class="loading-spinner">⟳</span>
+            <span v-else>查詢</span>
+          </button>
+          <button class="reset-btn" @click="handleReset" :disabled="isLoading">重置</button>
         </div>
       </div>
     </section>
@@ -267,14 +243,16 @@ onMounted(async ()=>{
     <section class="table-section">
       <div class="table-controls">
         <div class="pagination-control">
-          <select v-model="pageSize" class="page-size-select">
+          <select v-model="pageSize" class="page-size-select" :disabled="isLoading">
             <option value="10">10筆/頁</option>
             <option value="20">20筆/頁</option>
             <option value="50">50筆/頁</option>
           </select>
         </div>
         
-        <button class="new-repair-btn" @click="openNewRepair">新增報修</button>
+        <router-link class="new-repair-btn" to="/create-repair" :class="{ disabled: isLoading }">
+          新增報修
+        </router-link>
       </div>
 
       <!-- 資料表格 -->
@@ -282,72 +260,91 @@ onMounted(async ()=>{
         <table class="data-table">
           <thead>
             <tr>
-              <th class="sortable" @click="sortBy('id')">
+              <th class="sortable" @click="!isLoading && sortBy('id')">
                 項次 
                 <span class="sort-icon" :class="{ 
                   'sort-asc': sortColumn === 'id' && sortDirection === 'asc',
                   'sort-desc': sortColumn === 'id' && sortDirection === 'desc'
                 }">⇅</span>
               </th>
-              <th class="sortable" @click="sortBy('title')">
+              <th class="sortable" @click="!isLoading && sortBy('title')">
                 案件標題 
                 <span class="sort-icon" :class="{ 
                   'sort-asc': sortColumn === 'title' && sortDirection === 'asc',
                   'sort-desc': sortColumn === 'title' && sortDirection === 'desc'
                 }">⇅</span>
               </th>
-              <th class="sortable" @click="sortBy('category')">
+              <th class="sortable" @click="!isLoading && sortBy('repair_category_id')">
                 故障類別 
                 <span class="sort-icon" :class="{ 
-                  'sort-asc': sortColumn === 'category' && sortDirection === 'asc',
-                  'sort-desc': sortColumn === 'category' && sortDirection === 'desc'
+                  'sort-asc': sortColumn === 'repair_category_id' && sortDirection === 'asc',
+                  'sort-desc': sortColumn === 'repair_category_id' && sortDirection === 'desc'
                 }">⇅</span>
               </th>
-              <th class="sortable" @click="sortBy('reason')">
+              <th class="sortable" @click="!isLoading && sortBy('repair_reason_id')">
                 故障原因 
                 <span class="sort-icon" :class="{ 
-                  'sort-asc': sortColumn === 'reason' && sortDirection === 'asc',
-                  'sort-desc': sortColumn === 'reason' && sortDirection === 'desc'
+                  'sort-asc': sortColumn === 'repair_reason_id' && sortDirection === 'asc',
+                  'sort-desc': sortColumn === 'repair_reason_id' && sortDirection === 'desc'
                 }">⇅</span>
               </th>
-              <th class="sortable" @click="sortBy('reporter')">
+              <th class="sortable" @click="!isLoading && sortBy('user_id')">
                 報修人員 
                 <span class="sort-icon" :class="{ 
-                  'sort-asc': sortColumn === 'reporter' && sortDirection === 'asc',
-                  'sort-desc': sortColumn === 'reporter' && sortDirection === 'desc'
+                  'sort-asc': sortColumn === 'user_id' && sortDirection === 'asc',
+                  'sort-desc': sortColumn === 'user_id' && sortDirection === 'desc'
                 }">⇅</span>
               </th>
-              <th class="sortable" @click="sortBy('reportTime')">
+              <th class="sortable" @click="!isLoading && sortBy('repair_time')">
                 報修時間 
                 <span class="sort-icon" :class="{ 
-                  'sort-asc': sortColumn === 'reportTime' && sortDirection === 'asc',
-                  'sort-desc': sortColumn === 'reportTime' && sortDirection === 'desc'
+                  'sort-asc': sortColumn === 'repair_time' && sortDirection === 'asc',
+                  'sort-desc': sortColumn === 'repair_time' && sortDirection === 'desc'
                 }">⇅</span>
               </th>
-              <th class="sortable" @click="sortBy('status')">
+              <th class="sortable" @click="!isLoading && sortBy('repair_status_id')">
                 處理狀態 
                 <span class="sort-icon" :class="{ 
-                  'sort-asc': sortColumn === 'status' && sortDirection === 'asc',
-                  'sort-desc': sortColumn === 'status' && sortDirection === 'desc'
+                  'sort-asc': sortColumn === 'repair_status_id' && sortDirection === 'asc',
+                  'sort-desc': sortColumn === 'repair_status_id' && sortDirection === 'desc'
                 }">⇅</span>
               </th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="item in paginatedData" :key="item.id" class="table-row">
-              <td>{{ item.id }}</td>
-              <td>{{ item.title }}</td>
-              <td>{{ item.category }}</td>
-              <td>{{ item.reason }}</td>
-              <td>{{ item.reporter }}</td>
-              <td>{{ item.reportTime }}</td>
-              <td>
-                <span :class="['status-badge', getStatusClass(item.status)]">
-                  {{ getStatusText(item.status) }}
-                </span>
+            <!-- Loading 狀態 -->
+            <tr v-if="isLoading" class="loading-row">
+              <td colspan="7" class="loading-cell">
+                <div class="loading-container">
+                  <div class="loading-spinner large">⟳</div>
+                  <div class="loading-text">資料載入中...</div>
+                </div>
               </td>
             </tr>
-            <tr v-if="paginatedData.length === 0">
+            
+            <!-- 搜尋中狀態 -->
+            <tr v-else-if="isSearching" class="loading-row">
+              <td colspan="7" class="loading-cell">
+                <div class="loading-container">
+                  <div class="loading-spinner large">⟳</div>
+                  <div class="loading-text">搜尋中...</div>
+                </div>
+              </td>
+            </tr>
+            
+            <!-- 正常資料顯示 -->
+            <tr v-else v-for="item in repairData.data" :key="item.id" class="table-row">
+              <td>{{ item.id }}</td>
+              <td>{{ item.title }}</td>
+              <td>{{ item.repair_category }}</td>
+              <td>{{ item.repair_reason }}</td>
+              <td>{{ item.repair_name }}</td>
+              <td>{{ item.repair_time }}</td>
+              <td>{{ item.repair_status }}</td>
+            </tr>
+            
+            <!-- 無資料狀態 -->
+            <tr v-if="!isLoading && !isSearching && repairData.data.length === 0">
               <td colspan="7" class="no-data">暫無資料</td>
             </tr>
           </tbody>
@@ -355,15 +352,16 @@ onMounted(async ()=>{
       </div>
 
       <!-- 分頁控制 -->
-      <div class="pagination-section">
+      <div class="pagination-section" :class="{ disabled: isLoading }">
         <div class="pagination-info">
-          顯示第 {{ startItem }} 到 {{ endItem }} 筆結果 共 {{ totalItems }} 項
+          <span v-if="isLoading">載入中...</span>
+          <span v-else>顯示第 {{ startItem }} 到 {{ endItem }} 筆結果 共 {{ totalItems }} 項</span>
         </div>
         
         <div class="pagination-controls">
           <button 
             class="page-btn" 
-            :disabled="currentPage === 1"
+            :disabled="currentPage === 1 || isLoading"
             @click="goToPage(currentPage - 1)"
           >
             ‹
@@ -373,6 +371,7 @@ onMounted(async ()=>{
             v-for="page in visiblePages" 
             :key="page"
             :class="['page-btn', { active: page === currentPage }]"
+            :disabled="isLoading"
             @click="goToPage(page)"
           >
             {{ page }}
@@ -383,6 +382,7 @@ onMounted(async ()=>{
           <button 
             v-if="totalPages > 5"
             :class="['page-btn', { active: totalPages === currentPage }]"
+            :disabled="isLoading"
             @click="goToPage(totalPages)"
           >
             {{ totalPages }}
@@ -390,7 +390,7 @@ onMounted(async ()=>{
           
           <button 
             class="page-btn" 
-            :disabled="currentPage === totalPages"
+            :disabled="currentPage === totalPages || isLoading"
             @click="goToPage(currentPage + 1)"
           >
             ›
@@ -406,6 +406,43 @@ onMounted(async ()=>{
   padding: 20px;
   background-color: #f5f5f5;
   min-height: 100vh;
+}
+
+// Loading 動畫
+.loading-spinner {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+  
+  &.large {
+    font-size: 24px;
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: #666;
+}
+
+.loading-text {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #666;
+}
+
+.loading-row {
+  .loading-cell {
+    border: none;
+    background: #f8f9fa;
+  }
 }
 
 // 搜尋區域
@@ -444,6 +481,12 @@ onMounted(async ()=>{
         border-color: #6c5ce7;
         box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.1);
       }
+
+      &:disabled {
+        background-color: #f8f9fa;
+        color: #999;
+        cursor: not-allowed;
+      }
     }
 
     .search-btn {
@@ -458,8 +501,13 @@ onMounted(async ()=>{
       color: #666;
       transition: color 0.3s;
 
-      &:hover {
+      &:hover:not(:disabled) {
         color: #6c5ce7;
+      }
+
+      &:disabled {
+        color: #ccc;
+        cursor: not-allowed;
       }
     }
   }
@@ -478,6 +526,12 @@ onMounted(async ()=>{
         outline: none;
         border-color: #6c5ce7;
         box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.1);
+      }
+
+      &:disabled {
+        background-color: #f8f9fa;
+        color: #999;
+        cursor: not-allowed;
       }
     }
   }
@@ -506,6 +560,12 @@ onMounted(async ()=>{
         border-color: #6c5ce7;
         box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.1);
       }
+
+      &:disabled {
+        background-color: #f8f9fa;
+        color: #999;
+        cursor: not-allowed;
+      }
     }
 
     .date-separator {
@@ -528,10 +588,19 @@ onMounted(async ()=>{
       font-weight: 500;
       cursor: pointer;
       transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
 
-      &:hover {
+      &:hover:not(:disabled) {
         background: #5b4bcf;
         transform: translateY(-1px);
+      }
+
+      &:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        transform: none;
       }
     }
 
@@ -546,10 +615,16 @@ onMounted(async ()=>{
       cursor: pointer;
       transition: all 0.3s;
 
-      &:hover {
+      &:hover:not(:disabled) {
         background: #f8f9fa;
         border-color: #6c5ce7;
         color: #6c5ce7;
+      }
+
+      &:disabled {
+        background: #f8f9fa;
+        color: #ccc;
+        cursor: not-allowed;
       }
     }
   }
@@ -574,6 +649,12 @@ onMounted(async ()=>{
       border: 1px solid #ddd;
       border-radius: 4px;
       font-size: 14px;
+
+      &:disabled {
+        background-color: #f8f9fa;
+        color: #999;
+        cursor: not-allowed;
+      }
     }
 
     .new-repair-btn {
@@ -586,10 +667,18 @@ onMounted(async ()=>{
       font-weight: 500;
       cursor: pointer;
       transition: all 0.3s;
+      text-decoration: none;
 
-      &:hover {
+      &:hover:not(.disabled) {
         background: #5b4bcf;
         transform: translateY(-1px);
+      }
+
+      &.disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        transform: none;
+        pointer-events: none;
       }
     }
   }
@@ -698,6 +787,11 @@ onMounted(async ()=>{
   align-items: center;
   padding: 20px 25px;
   border-top: 1px solid #f0f0f0;
+
+  &.disabled {
+    opacity: 0.6;
+    pointer-events: none;
+  }
 
   .pagination-info {
     font-size: 14px;

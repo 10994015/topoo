@@ -27,22 +27,18 @@ const handleLogin = async () => {
   } else {
     console.error('登入失敗', result.message);
     // 可以在這裡顯示錯誤訊息
-
+    alert(result.message || '登入失敗，請檢查帳號或密碼')
   }
-  
 }
 
 const handleRegister = () => {
-  console.log('註冊')
+  router.push('/register')
 }
 
 const handleGoogleLogin = () => {
   console.log('Google登入')
 }
 
-const handleForgotPassword = () => {
-  console.log('忘記密碼')
-}
 </script>
 
 <template>
@@ -91,12 +87,12 @@ const handleForgotPassword = () => {
           </div>
         </div>
         
-        <button 
-          @click="handleForgotPassword"
+        <router-link 
+          to="/forgot-password" 
           class="forgot-password"
         >
           忘記密碼?
-        </button>
+        </router-link>
         
         <button 
           @click="handleLogin"
@@ -286,7 +282,6 @@ const handleForgotPassword = () => {
   cursor: pointer;
   margin-bottom: 1.5rem;
   text-decoration: none;
-  
   &:hover {
     text-decoration: underline;
   }
@@ -304,7 +299,7 @@ const handleForgotPassword = () => {
   cursor: pointer;
   margin-bottom: 1.5rem;
   transition: all 0.3s ease;
-  
+  margin-top: 1rem;
   &:hover {
     transform: translateY(-1px);
     box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
@@ -372,7 +367,8 @@ const handleForgotPassword = () => {
 
 .right-panel {
   flex: 1;
-  background: linear-gradient(135deg, #3730a3, #1e1b4b);
+  // background: linear-gradient(135deg, #3730a3, #1e1b4b);
+  background-image: url('/images/login-bg.svg');
   position: relative;
   overflow: hidden;
   display: flex;

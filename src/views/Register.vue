@@ -245,7 +245,9 @@ export default {
         // 模擬 API 調用
         if(result.success) {
           console.log('註冊成功:', result.data)
-          goToLogin()
+        //   goToLogin()
+        localStorage.setItem('registeredEmail', formData.email)
+        router.push('/email-verification')
 
         } else {
           throw new Error(result.message || '註冊失敗')
@@ -269,7 +271,7 @@ export default {
 
     const goToLogin = () => {
       // 使用 router 導航到登入頁
-      // router.push('/login')
+      router.push('/login')
       console.log('導向登入頁')
     }
 

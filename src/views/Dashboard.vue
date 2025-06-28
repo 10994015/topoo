@@ -8,6 +8,8 @@ import { useAuthStore } from '@/stores/auth'
 const router = useRouter()
 const authStore = useAuthStore()
 
+authStore.getPermissions()
+console.log(authStore.permissions);
 
 onMounted(() => {
   

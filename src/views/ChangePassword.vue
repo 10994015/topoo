@@ -136,7 +136,6 @@ const changePassword = async () => {
   isLoading.value = true
   
   try {
-    // 這裡調用 API 修改密碼
     console.log('修改密碼請求:', {
       currentPassword: passwordForm.currentPassword,
       newPassword: passwordForm.newPassword,
@@ -144,7 +143,10 @@ const changePassword = async () => {
     })
     
     // 模擬 API 調用
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    const result = await authStore.updatePassword({
+      ...passwordForm
+    })
+    console.log(result);
     
     // 清空表單
     Object.assign(passwordForm, {
@@ -155,7 +157,16 @@ const changePassword = async () => {
     
     passwordStrength.value = 0
     
-    alert('密碼修改成功！')
+    if(result.response.status === 200) {
+      alert('密碼修改成功！')
+      console.log('密碼修改成功');
+    } else {
+      console.log(result);
+      
+      const errorMessage = result.error.message || '密碼修改失敗'
+      throw new Error(errorMessage)
+
+    }
     
     // 可以選擇是否自動登出
     // await authStore.logout()
@@ -166,7 +177,7 @@ const changePassword = async () => {
     if (error.response?.status === 400) {
       errors.currentPassword = '目前密碼不正確'
     } else {
-      alert('密碼修改失敗，請重試')
+      alert('原始密碼不正確！請重新操作')
     }
   } finally {
     isLoading.value = false

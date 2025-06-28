@@ -7,6 +7,7 @@ export const useRepairStore = defineStore('repair', () => {
     const categories = ref(null); // 報修分類
     const reasons = ref(null); // 報修原因
     const statuses = ref(null); // 狀態
+    const repairs = ref(null); // 報修列表
     const isLoading = ref(false)
     const isInitialized = ref(false) // 標記是否已初始化檢查
 
@@ -43,15 +44,118 @@ export const useRepairStore = defineStore('repair', () => {
         }
     }
 
+    const fetchRepairs = async (searchForm={
+        title: '',
+        repairCategoryId: '',
+        repairStatusId: '',
+        repairReasonId: '',
+        startAt: '',
+        endAt: ''
+    }, column="repair_time", sortDirection="asc", limit=10, page=1) => {
+        try {
+            console.log(searchForm);
+            console.log(searchForm.startAt, searchForm.endAt);
+            
+            const params = {};
+            
+            // 只添加有值的參數
+            if (searchForm.title) params.title = searchForm.title;
+            if (searchForm.repairCategoryId) params.repairCategoryId = searchForm.repairCategoryId;
+            if (searchForm.repairStatusId) params.repairStatusId = searchForm.repairStatusId;
+            if (searchForm.repairReasonId) params.repairReasonId = searchForm.repairReasonId;
+            if (searchForm.startAt) params.startAt = searchForm.startAt;
+            if (searchForm.endAt) params.endAt = searchForm.endAt;
+            
+            params.sortBy = column; // 排序欄位
+            params.sortOrder = sortDirection.toUpperCase(); // 排序方向
+            params.pageSize = limit; // 每頁數量
+            params.page = page; // 偏移量
+            console.log(params);
+            
+            const response = await axiosClient.get('/repair', { params });
+            console.log(response.data);
+            repairs.value = response.data;
+        } catch (error) {
+            console.error('獲取報修列表失敗:', error);
+        }
+    }
+
+    const createRepair = async (repairData) => {
+        console.log('repairData 物件類型:', repairData.constructor.name);
+        
+        
+        try {
+            const response = await axiosClient.post('/repair', repairData, {
+                headers: {
+                    
+                }
+            })
+            console.log('API 回應:', response.data);
+            
+            return response.data
+        } catch (error) {
+            console.error('創建報修失敗:', error);
+            
+            // 更詳細的錯誤資訊
+            if (error.response) {
+                console.error('錯誤狀態:', error.response.status);
+                console.error('錯誤資料:', error.response.data);
+            }
+            throw error; 
+        }
+    }
+
+    const saveRepairFiles = async (formData) => {
+        try {
+            console.log(formData);
+            
+            const response = await axiosClient.post('/repair/file', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            })
+            console.log('檔案上傳回應:', response.data);
+            
+            return {
+                success: true,
+                data: response.data.data || response.data,
+                message: response.data.message
+            }
+        } catch (error) {
+            console.error('檔案上傳失敗:', error);
+            throw error
+        }
+    }
+
+    const removeRepairFile = async (fileId) => {
+        try {
+            const response = await axiosClient.delete(`/repair/file/${fileId}`)
+            console.log('檔案刪除回應:', response.data);
+            
+            return {
+                success: true,
+                message: response.data.message
+            }
+        } catch (error) {
+            console.error('檔案刪除失敗:', error);
+            throw error
+        }
+    }
+
     return {
         categories,
         reasons,
         statuses,
         isLoading,
         isInitialized,
+        repairs,
         fetchCategories,
         fetchReasons,
-        fetchStatuses
+        fetchStatuses,
+        createRepair,
+        fetchRepairs,
+        saveRepairFiles,
+        removeRepairFile
     }
 
 
