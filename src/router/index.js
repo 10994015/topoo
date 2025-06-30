@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { PERMISSIONS } from '@/utils/permissions' // 引入權限常數
 import Login from '@/views/Login.vue'
 import Dashboard from '@/views/Dashboard.vue'
 import { useAuthStore } from '../stores/auth'
@@ -73,7 +74,7 @@ const router = createRouter({
               { text: '首頁', to: '/' },
               { text: '線上報修', to: null },
             ],
-            permission: '報修管理',
+            permission: PERMISSIONS.REPAIR_MANAGEMENT,
             permissionMode: 'Readonly' // 讀取權限即可訪問
           }
         },
@@ -88,7 +89,7 @@ const router = createRouter({
               { text: '線上報修', to: '/repair-system' },
               { text: '新增報修', to: null },
             ],
-            permission: '報修管理',
+            permission: PERMISSIONS.REPAIR_MANAGEMENT,
             permissionMode: 'Full' // 需要完整權限
           }
         },
@@ -124,7 +125,7 @@ const router = createRouter({
               { text: '首頁', to: '/' },
               { text: '帳號管理', to: null },
             ],
-            permission: '帳號管理',
+            permission: PERMISSIONS.ACCOUNT_MANAGEMENT,
             permissionMode: 'Readonly' // 讀取權限即可查看列表
           }
         },
@@ -139,7 +140,7 @@ const router = createRouter({
               { text: '帳號管理', to: '/settings/account-management' },
               { text: '檢視帳號', to: null },
             ],
-            permission: '帳號管理',
+            permission: PERMISSIONS.ACCOUNT_MANAGEMENT,
             permissionMode: 'Readonly' // 讀取權限即可查看詳情
           }
         },
@@ -154,7 +155,7 @@ const router = createRouter({
               { text: '帳號管理', to: '/settings/account-management' },
               { text: '新建帳號', to: null },
             ],
-            permission: '帳號管理',
+            permission: PERMISSIONS.ACCOUNT_MANAGEMENT,
             permissionMode: 'Full' // 需要完整權限才能新增
           }
         },
@@ -169,7 +170,7 @@ const router = createRouter({
               { text: '帳號管理', to: '/settings/account-management' },
               { text: '編輯帳號', to: null },
             ],
-            permission: '帳號管理',
+            permission: PERMISSIONS.ACCOUNT_MANAGEMENT,
             permissionMode: 'Full' // 需要完整權限才能編輯
           }
         },
@@ -183,7 +184,7 @@ const router = createRouter({
               { text: '首頁', to: '/' },
               { text: '權限管理', to: null },
             ],
-            permission: '權限角色管理',
+            permission: PERMISSIONS.PERMISSION_ROLE_MANAGEMENT,
             permissionMode: 'Readonly' // 讀取權限即可查看
           }
         },
@@ -198,7 +199,7 @@ const router = createRouter({
               { text: '權限管理', to: '/settings/permission-management' },
               { text: '新增權限群組', to: null },
             ],
-            permission: '權限角色管理',
+            permission: PERMISSIONS.PERMISSION_ROLE_MANAGEMENT,
             permissionMode: 'Full' // 需要完整權限才能新增
           }
         },
@@ -214,7 +215,7 @@ const router = createRouter({
               { text: '編輯權限群組', to: null },
             ],
             permission: '權限角色管理',
-            permissionMode: 'Full' // 需要完整權限才能編輯
+            permissionMode: 'Readonly' // 需要完整權限才能編輯
           }
         },
         {
@@ -229,8 +230,8 @@ const router = createRouter({
               { text: '編輯權限群組', to: '/settings/permission-group/edit/:id' },
               { text: '權限成員編輯', to: null },
             ],
-            permission: '權限角色成員管理',
-            permissionMode: 'Full' // 需要完整權限才能管理成員
+            permission: PERMISSIONS.PERMISSION_ROLE_MEMBER_MANAGEMENT,
+            permissionMode: 'Readonly' // 需要完整權限才能管理成員
           }
         },
         {
@@ -256,7 +257,7 @@ const router = createRouter({
               { text: '參數管理', to: '/settings/parameter-management' },
               { text: '寄信管理', to: null },
             ],
-            permission: '寄信管理',
+            permission: PERMISSIONS.MAIL_MANAGEMENT,
             permissionMode: 'Readonly' 
           },
         },
@@ -272,7 +273,7 @@ const router = createRouter({
               { text: '寄信管理', to: '/settings/parameter/mail-management' },
               { text: '新增信箱', to: null },
             ],
-            permission: '寄信管理',
+            permission: PERMISSIONS.MAIL_MANAGEMENT,
             permissionMode: 'Full' 
           },
         },
@@ -288,8 +289,8 @@ const router = createRouter({
               { text: '寄信管理', to: '/settings/parameter/mail-management' },
               { text: '編輯信箱', to: null },
             ],
-            permission: '寄信管理',
-            permissionMode: 'Full' 
+            permission: PERMISSIONS.MAIL_MANAGEMENT,
+            permissionMode: 'Readonly' 
           },
         },
       ]

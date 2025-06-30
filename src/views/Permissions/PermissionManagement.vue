@@ -1,11 +1,15 @@
 <script setup>
 import { ref, computed, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { PERMISSIONS, checkPermission } from '@/utils/permissions'
 import { usePermissionStore } from '@/stores/permission'
 
+const authStore = useAuthStore()
 const router = useRouter()
 const permissionStore = usePermissionStore()
 
+const hasFullPermission = computed(() => authStore.canModify(PERMISSIONS.PERMISSION_ROLE_MANAGEMENT));
 
 // 搜尋表單
 const searchForm = reactive({
@@ -184,6 +188,10 @@ const goToPage = async (page) => {
 }
 
 const createNewPermission = () => {
+  if (!hasFullPermission.value) {
+    console.warn('沒有權限新增權限群組')
+    return
+  }
   console.log('新增權限群組')
   router.push('/settings/permission-group/create')
 }
@@ -264,7 +272,7 @@ onMounted(() => {
       </div>
       
       <div class="right-controls">
-        <button class="control-btn create-btn" @click="createNewPermission">
+        <button class="control-btn create-btn" v-if="hasFullPermission" @click="createNewPermission">
           新增權限群組
         </button>
       </div>

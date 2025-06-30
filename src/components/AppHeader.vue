@@ -172,11 +172,6 @@ onUnmounted(() => {
               <span>修改密碼</span>
             </router-link>
             
-            <a href="#" class="menu-item" @click.prevent="preferences">
-              <span class="menu-icon">⚙️</span>
-              <span>偏好設定</span>
-            </a>
-            
             <hr class="menu-divider">
             
             <!-- 登出按鈕 -->

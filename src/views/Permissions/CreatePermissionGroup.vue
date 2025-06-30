@@ -2,10 +2,19 @@
 import { ref, computed, reactive, onMounted } from 'vue'
 import { usePermissionStore } from '@/stores/permission'
 import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { PERMISSIONS, checkPermission } from '@/utils/permissions'
+
+const authStore = useAuthStore()
 const route = useRoute()
 const router = useRouter()
 
 const permissionStore = usePermissionStore()
+const hasFullPermission = computed(() => authStore.canModify(PERMISSIONS.PERMISSION_ROLE_MANAGEMENT));
+console.log(PERMISSIONS.PERMISSION_ROLE_MEMBER_MANAGEMENT);
+
+const hasFullMemberPermission = computed(() => authStore.canAccessPage(PERMISSIONS.PERMISSION_ROLE_MEMBER_MANAGEMENT));
+console.log(hasFullMemberPermission.value);
 
 // Loading狀態管理
 const loading = reactive({
@@ -128,14 +137,26 @@ const handleCancel = async () => {
 }
 
 const handleEdit = () => {
+  if (!hasFullPermission.value) {
+    alert('您沒有編輯權限！')
+    return
+  }
   currentMode.value = 'edit'
 }
 
 const selectMembers = () => {
+  if (!hasFullMemberPermission.value) {
+    alert('您沒有選取成員的權限！')
+    return
+  }
   router.push(`/settings/permission-group/${permissionId.value}/members`)
 }
 
 const handleDelete = async () => {
+  if (!hasFullPermission.value) {
+    alert('您沒有刪除權限！')
+    return
+  }
   if (confirm('確定要刪除此權限群組嗎？')) {
     loading.delete = true
     try {
@@ -270,7 +291,7 @@ console.log(permissions);
               <button 
                 @click="selectMembers()"
                 class="btn btn-primary"
-                :disabled="loading.save || loading.delete || loading.cancel"
+                :disabled="loading.save || loading.delete || loading.cancel || !hasFullMemberPermission"
               >
                 選取成員
               </button>
@@ -286,6 +307,7 @@ console.log(permissions);
           <!-- 檢視模式 -->
           <template v-if="isViewMode">
             <button 
+              v-if="hasFullPermission"
               class="btn btn-primary" 
               @click="handleEdit"
               :disabled="loading.save || loading.delete || loading.cancel"
@@ -293,6 +315,7 @@ console.log(permissions);
               編輯群組
             </button>
             <button 
+              v-if="hasFullPermission"
               class="btn btn-danger" 
               @click="handleDelete"
               :disabled="loading.save || loading.delete || loading.cancel"
@@ -372,7 +395,7 @@ console.log(permissions);
                   <select 
                     v-model="formData.permissions.find(p => p.id === permission.id).mode"
                     class="category-select"
-                    :disabled="isViewMode || loading.save || loading.delete || loading.cancel"
+                    :disabled="isViewMode || loading.save || loading.delete || loading.cancel || !hasFullPermission"
                   >
                     <option value="">無權限</option>
                     <option v-for="item in permission.mode" :value="item"> {{ permissionModes[item] ?? '無權限' }} </option>

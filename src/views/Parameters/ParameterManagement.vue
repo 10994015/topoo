@@ -1,6 +1,11 @@
 <script setup>
 import router from '@/router'
 import { ref, computed, reactive, onMounted } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+import { PERMISSIONS, checkPermission } from '@/utils/permissions'
+
+const authStore = useAuthStore()
+const hasReadMailPermission = computed(() => authStore.canAccessPage(PERMISSIONS.MAIL_MANAGEMENT)); //信箱
 
 // 搜尋表單
 const searchForm = reactive({
@@ -20,17 +25,20 @@ const parameterData = ref([
   {
     id: 1,
     parameterName: '故障類別',
-    url:''
+    url:'',
+    read: true
   },
   {
     id: 2,
     parameterName: '維修狀態',
-    url:''
+    url:'',
+    read: true
   },
   {
     id: 3,
     parameterName: '系統信箱',
-    url:'/settings/parameter/mail-management'
+    url:'/settings/parameter/mail-management',
+    read: hasReadMailPermission.value
   }
 ])
 
@@ -193,7 +201,7 @@ onMounted(() => {
             </tr>
             
             <!-- 正常資料顯示 -->
-            <tr v-else v-for="(item, index) in parameterData" :key="item.id" class="table-row cursor-pointer" @click="editParameter(item.url)">
+            <tr v-else v-for="(item, index) in parameterData.filter(item => item.read)" :key="item.id" class="table-row cursor-pointer" @click="editParameter(item.url)">
               <td class="id-cell">{{ item.id }}</td>
               <td class="name-cell">{{ item.parameterName }}</td>
             </tr>

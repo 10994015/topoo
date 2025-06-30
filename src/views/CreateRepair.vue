@@ -1,4 +1,3 @@
-
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
@@ -8,6 +7,22 @@ import { useAuthStore } from '@/stores/auth'
 const router = useRouter()
 const repairStore = useRepairStore()
 const authStore = useAuthStore()
+
+// 文件限制配置
+const FILE_LIMITS = {
+  maxSize: 100 * 1024 * 1024, // 100MB
+  maxFiles: 5,
+  allowedTypes: {
+    'image/jpeg': ['.jpg', '.jpeg'],
+    'image/png': ['.png'],
+    'application/msword': ['.doc'],
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+    'application/vnd.ms-powerpoint': ['.ppt'],
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
+    'application/pdf': ['.pdf'],
+    'video/mp4': ['.mp4']
+  }
+}
 
 // 表單資料
 const repairForm = reactive({
@@ -57,6 +72,27 @@ const initializeDateTime = () => {
   repairForm.repairTime = `${year}-${month}-${day}T${hours}:${minutes}`
 }
 
+// 檢查文件類型是否允許
+const isFileTypeAllowed = (file) => {
+  const fileType = file.type.toLowerCase()
+  const fileName = file.name.toLowerCase()
+  const fileExtension = '.' + fileName.split('.').pop()
+  
+  // 檢查 MIME 類型
+  if (FILE_LIMITS.allowedTypes[fileType]) {
+    return FILE_LIMITS.allowedTypes[fileType].includes(fileExtension)
+  }
+  
+  // 如果 MIME 類型檢查失敗，檢查副檔名
+  for (const [mimeType, extensions] of Object.entries(FILE_LIMITS.allowedTypes)) {
+    if (extensions.includes(fileExtension)) {
+      return true
+    }
+  }
+  
+  return false
+}
+
 // 觸發檔案選擇
 const triggerFileInput = () => {
   fileInput.value?.click()
@@ -66,41 +102,74 @@ const triggerFileInput = () => {
 const handleFileUpload = async (event) => {
   const files = Array.from(event.target.files)
   
+  // 檢查文件數量限制
+  if (uploadedFiles.value.length + files.length > FILE_LIMITS.maxFiles) {
+    alert(`最多只能上傳 ${FILE_LIMITS.maxFiles} 個檔案！目前已有 ${uploadedFiles.value.length} 個檔案。`)
+    event.target.value = ''
+    return
+  }
+  
+  // 檢查每個文件
+  const invalidFiles = []
+  const oversizedFiles = []
+  const validFiles = []
+  
+  files.forEach(file => {
+    if (!isFileTypeAllowed(file)) {
+      invalidFiles.push(file.name)
+    } else if (file.size > FILE_LIMITS.maxSize) {
+      oversizedFiles.push(file.name)
+    } else {
+      validFiles.push(file)
+    }
+  })
+  
+  // 顯示錯誤訊息
+  if (invalidFiles.length > 0) {
+    alert(`以下檔案格式不支援：\n${invalidFiles.join('\n')}\n\n支援格式：\n圖片：JPG、PNG\n文件：DOC、DOCX、PPT、PPTX、PDF\n影片：MP4`)
+  }
+  
+  if (oversizedFiles.length > 0) {
+    alert(`以下檔案超過 100MB 限制：\n${oversizedFiles.join('\n')}`)
+  }
+  
+  if (validFiles.length === 0) {
+    event.target.value = ''
+    return
+  }
+  
   isUploading.value = true
   
   try {
-    for (const file of files) {
-      if (file.size <= 30 * 1024 * 1024) { // 30MB 限制
-        try {
-          // 立即上傳檔案到後端
-          const formData = new FormData()
-          formData.append('file', file)
-          
-          console.log('開始上傳檔案:', file.name)
-          
-          // 呼叫 store 的上傳方法
-          const result = await repairStore.saveRepairFiles(formData)
-          
-          console.log('上傳結果:', result)
-          
-          // 將檔案資訊加入列表（包含後端回傳的檔案 ID）
-          const fileInfo = {
-            id: result.data?.id || result.data, // 後端回傳的檔案 ID
-            name: file.name,
-            size: file.size,
-            originalFile: file,
-            uploadedAt: new Date().toISOString()
-          }
-          
-          uploadedFiles.value.push(fileInfo)
-          console.log('檔案上傳成功:', fileInfo)
-          
-        } catch (error) {
-          console.error('檔案上傳失敗:', error)
-          alert(`檔案 ${file.name} 上傳失敗：${error.message || '未知錯誤'}`)
+    for (const file of validFiles) {
+      try {
+        // 立即上傳檔案到後端
+        const formData = new FormData()
+        formData.append('file', file)
+        
+        console.log('開始上傳檔案:', file.name)
+        
+        // 呼叫 store 的上傳方法
+        const result = await repairStore.saveRepairFiles(formData)
+        
+        console.log('上傳結果:', result)
+        
+        // 將檔案資訊加入列表（包含後端回傳的檔案 ID）
+        const fileInfo = {
+          id: result.data?.id || result.data, // 後端回傳的檔案 ID
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          originalFile: file,
+          uploadedAt: new Date().toISOString()
         }
-      } else {
-        alert(`檔案 ${file.name} 超過 30MB 限制`)
+        
+        uploadedFiles.value.push(fileInfo)
+        console.log('檔案上傳成功:', fileInfo)
+        
+      } catch (error) {
+        console.error('檔案上傳失敗:', error)
+        alert(`檔案 ${file.name} 上傳失敗：${error.message || '未知錯誤'}`)
       }
     }
   } finally {
@@ -112,7 +181,9 @@ const handleFileUpload = async (event) => {
 // 移除檔案
 const removeFile = async (index) => {
   const fileToRemove = uploadedFiles.value[index]
-  const fileId = fileToRemove.id // 直接取得 ID
+  
+  const fileId = fileToRemove.id[0].id // 直接取得 ID
+  console.log(fileId);
   
   // 開始刪除 loading
   deletingFileId.value = fileId
@@ -138,7 +209,6 @@ const removeFile = async (index) => {
     // 清理 loading 狀態
     deletingFileId.value = null
   }
-
 }
 
 // 格式化檔案大小
@@ -157,12 +227,12 @@ const getFileIconClass = (fileName) => {
     'pdf': 'file-pdf',
     'doc': 'file-word',
     'docx': 'file-word',
+    'ppt': 'file-powerpoint',
+    'pptx': 'file-powerpoint',
     'jpg': 'file-image',
     'jpeg': 'file-image',
     'png': 'file-image',
-    'gif': 'file-image',
-    'mp4': 'file-video',
-    'txt': 'file-text'
+    'mp4': 'file-video'
   }
   return iconMap[extension] || 'file-default'
 }
@@ -243,19 +313,13 @@ const handleSubmit = async () => {
       fileIds: fileIds
     }
     
-    // // 移除空值欄位（可選）
-    // Object.keys(submitData).forEach(key => {
-    //   if (!submitData[key] && submitData[key] !== 0) {
-    //     delete submitData[key]
-    //   }
-    // })
-    
     console.log('準備提交的資料:', submitData)
     
     const result = await repairStore.createRepair(submitData)
 
     console.log("result:", result)
     alert('報修申請提交成功！')
+    router.push('/repair-system') // 跳轉到報修列表頁面
     
   } catch (error) {
     console.error('提交失敗:', error)
@@ -281,6 +345,8 @@ onMounted(async () => {
     await repairStore.fetchReasons()
     
     categories.value = repairStore.categories?.data || []
+    console.log(categories.value);
+    
     reasons.value = repairStore.reasons?.data || []
   } catch (error) {
     console.error('載入枚舉資料失敗:', error)
@@ -302,100 +368,97 @@ onMounted(async () => {
 
       <!-- 報修表單 -->
       <form @submit.prevent="handleSubmit" class="repair-form">
-        <div class="form-row">
-          <!-- 案件標題 -->
-          <div class="form-group required">
-            <label class="form-label">案件標題</label>
-            <input
-              type="text"
-              v-model="repairForm.title"
-              placeholder="請輸入案件標題"
-              class="form-input"
-              :class="{ error: errors.title }"
-            />
-            <span v-if="errors.title" class="error-message">{{ errors.title }}</span>
-          </div>
-
-          <!-- 設備位置 -->
-          <div class="form-group">
-            <label class="form-label">設備位置</label>
-            <input
-              type="text"
-              v-model="repairForm.deviceLocation"
-              placeholder="請輸入故障設備位置"
-              class="form-input"
-            />
-          </div>
-        </div>
-
-        <div class="form-row">
-          <!-- 故障類別 -->
-          <div class="form-group required">
-            <label class="form-label">故障類別</label>
-            <select 
-              v-model="repairForm.repairCategoryId"
-              class="form-select"
-              :class="{ error: errors.repairCategoryId }"
-            >
-              <option value="">選擇故障類別</option>
-              <option 
-                v-for="category in categories" 
-                :key="category.id" 
-                :value="category.id"
+        <div class="form-container">
+          <div class="form-row">
+            <!-- 案件標題 -->
+              <div class="form-group required">
+                <label class="form-label">案件標題</label>
+                <input
+                  type="text"
+                  v-model="repairForm.title"
+                  placeholder="請輸入案件標題"
+                  class="form-input"
+                  :class="{ error: errors.title }"
+                />
+                <span v-if="errors.title" class="error-message">{{ errors.title }}</span>
+              </div>
+              <!-- 故障類別 -->
+              <div class="form-group required">
+                <label class="form-label">故障類別</label>
+                <select 
+                  v-model="repairForm.repairCategoryId"
+                  class="form-select"
+                  :class="{ error: errors.repairCategoryId }"
+                >
+                  <option value="">選擇故障類別</option>
+                  <option 
+                    v-for="category in categories" 
+                    :key="category.id" 
+                    :value="category.id"
+                  >
+                    {{ category.name }}
+                  </option>
+                </select>
+                <span v-if="errors.repairCategoryId" class="error-message">{{ errors.repairCategoryId }}</span>
+              </div>
+              <!-- 故障原因 -->
+              <div class="form-group required">
+              <label class="form-label">故障原因</label>
+              <select 
+                v-model="repairForm.repairReasonId"
+                class="form-select"
+                :class="{ error: errors.repairReasonId }"
               >
-                {{ category.name }}
-              </option>
-            </select>
-            <span v-if="errors.repairCategoryId" class="error-message">{{ errors.repairCategoryId }}</span>
+                <option value="">選擇故障原因</option>
+                <option 
+                  v-for="reason in reasons" 
+                  :key="reason.id" 
+                  :value="reason.id"
+                >
+                  {{ reason.name }}
+                </option>
+              </select>
+              <span v-if="errors.repairReasonId" class="error-message">{{ errors.repairReasonId }}</span>
+              </div>
           </div>
-
-          <!-- 報修時間 -->
-          <div class="form-group required">
-            <label class="form-label">報修時間</label>
-            <input
-              type="datetime-local"
-              v-model="repairForm.repairTime"
-              class="form-input"
-              :class="{ error: errors.repairTime }"
-            />
-            <span v-if="errors.repairTime" class="error-message">{{ errors.repairTime }}</span>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <!-- 故障原因 -->
-          <div class="form-group required">
-            <label class="form-label">故障原因</label>
-            <select 
-              v-model="repairForm.repairReasonId"
-              class="form-select"
-              :class="{ error: errors.repairReasonId }"
-            >
-              <option value="">選擇故障原因</option>
-              <option 
-                v-for="reason in reasons" 
-                :key="reason.id" 
-                :value="reason.id"
-              >
-                {{ reason.name }}
-              </option>
-            </select>
-            <span v-if="errors.repairReasonId" class="error-message">{{ errors.repairReasonId }}</span>
-          </div>
-
-          <!-- 報修人員 -->
-          <div class="form-group">
-            <label class="form-label">報修人員</label>
-            <div class="reporter-info">
-              <span class="reporter-name">{{ currentUser?.name || '系統用戶' }}</span>
-              <span class="reporter-detail">{{ currentUser?.department || 'OO科技公司-資訊部-專案管理課-第一OO' }}</span>
+          <div class="form-row">
+            <!-- 設備位置 -->
+            <div class="form-group" v-if="repairForm.repairCategoryId!=='f81422d7-61ad-41c7-a36e-89e9b2176a4d'">
+              <label class="form-label">設備位置</label>
+              <input
+                type="text"
+                v-model="repairForm.deviceLocation"
+                placeholder="請輸入故障設備位置"
+                class="form-input"
+              />
             </div>
+
+            <!-- 報修時間 -->
+            <div class="form-group required">
+              <label class="form-label">報修時間</label>
+              <input
+                type="datetime-local"
+                v-model="repairForm.repairTime"
+                class="form-input"
+                :class="{ error: errors.repairTime }"
+              />
+              <span v-if="errors.repairTime" class="error-message">{{ errors.repairTime }}</span>
+            </div>
+            <!-- 報修人員 -->
+            <div class="form-group">
+              <label class="form-label">報修人員</label>
+              <div class="reporter-info">
+                <span class="reporter-name">{{ currentUser?.name || '系統用戶' }}</span>
+                <span class="reporter-detail">{{ currentUser?.department || 'OO科技公司-資訊部-專案管理課-第一OO' }}</span>
+              </div>
+            </div>
+
           </div>
         </div>
 
         <!-- 設備項目 -->
         <div class="form-group">
-          <label class="form-label">設備項目</label>
+          <label class="form-label">{{ repairForm.repairCategoryId==='f81422d7-61ad-41c7-a36e-89e9b2176a4d' ? '功能項目' : '設備項目' }}</label>
           <input
             type="text"
             v-model="repairForm.repairItem"
@@ -421,19 +484,21 @@ onMounted(async () => {
 
         <!-- 檔案上傳區域 -->
         <div class="form-group">
-          <label class="form-label">檔案上傳</label>
-          <div class="upload-area" @click="triggerFileInput" :class="{ uploading: isUploading }">
+          <label class="form-label">檔案上傳 ({{ uploadedFiles.length }}/{{ FILE_LIMITS.maxFiles }})</label>
+          <div class="upload-area" @click="triggerFileInput" :class="{ uploading: isUploading, disabled: uploadedFiles.length >= FILE_LIMITS.maxFiles }">
             <div class="upload-content">
               <div class="upload-icon">
                 <span v-if="isUploading">⏳</span>
+                <span v-else-if="uploadedFiles.length >= FILE_LIMITS.maxFiles">🚫</span>
                 <span v-else>📁</span>
               </div>
               <div class="upload-text">
                 <p class="upload-main">
                   <span v-if="isUploading">正在上傳檔案...</span>
+                  <span v-else-if="uploadedFiles.length >= FILE_LIMITS.maxFiles">已達到檔案數量上限</span>
                   <span v-else>將檔案拖曳至此處或點擊選擇上傳的檔案</span>
                 </p>
-                <p class="upload-sub">上傳檔案須小於30MB，支援30MB</p>
+                <p class="upload-sub">上傳檔案須小於100MB，最多5個檔案，支援 JPG/PNG/DOC/DOCX/PPT/PPTX/PDF/MP4 格式</p>
               </div>
             </div>
             <input
@@ -442,8 +507,8 @@ onMounted(async () => {
               multiple
               @change="handleFileUpload"
               class="file-input"
-              accept=".doc,.docx,.pdf,.jpg,.jpeg,.png,.gif,.mp4,.txt"
-              :disabled="isUploading"
+              accept=".jpg,.jpeg,.png,.doc,.docx,.ppt,.pptx,.pdf,.mp4"
+              :disabled="isUploading || uploadedFiles.length >= FILE_LIMITS.maxFiles"
             />
           </div>
 
@@ -489,7 +554,6 @@ onMounted(async () => {
     </div>
   </div>
 </template>
-
 
 <style lang="scss" scoped>
 .new-repair-page {
@@ -542,12 +606,22 @@ onMounted(async () => {
 
 .repair-form {
   padding: 30px;
-
-  .form-row {
+  .form-container{
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 50% 50%;
+    justify-content: center;
+    gap: 20px;
+    width: 100%;
+  }
+  .form-row {
+    width: 100%;
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: .3fr .3fr .3fr;
     gap: 25px;
     margin-bottom: 25px;
+    
 
     &:last-child {
       margin-bottom: 0;
@@ -652,7 +726,7 @@ onMounted(async () => {
   transition: all 0.3s;
   background: #fafafa;
 
-  &:hover:not(.uploading) {
+  &:hover:not(.uploading):not(.disabled) {
     border-color: #6c5ce7;
     background: #f8f7ff;
   }
@@ -661,6 +735,13 @@ onMounted(async () => {
     border-color: #f39c12;
     background: #fef9e7;
     cursor: not-allowed;
+  }
+
+  &.disabled {
+    border-color: #ccc;
+    background: #f5f5f5;
+    cursor: not-allowed;
+    opacity: 0.6;
   }
 
   .upload-content {
@@ -854,8 +935,12 @@ onMounted(async () => {
   .repair-form {
     padding: 20px;
 
-    .form-row {
+    .form-container {
       grid-template-columns: 1fr;
+    }
+
+    .form-row {
+      grid-template-rows: auto auto auto;
       gap: 20px;
     }
   }
@@ -874,6 +959,7 @@ onMounted(async () => {
 .file-icon {
   &.file-pdf { color: #e74c3c; }
   &.file-word { color: #2980b9; }
+  &.file-powerpoint { color: #d35400; }
   &.file-image { color: #27ae60; }
   &.file-video { color: #8e44ad; }
   &.file-text { color: #34495e; }

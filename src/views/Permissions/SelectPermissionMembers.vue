@@ -2,14 +2,14 @@
 import { ref, computed, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePermissionStore } from '@/stores/permission'
-import { useAccountStore } from '@/stores/account'
-
+import { useAuthStore } from '@/stores/auth'
+import { PERMISSIONS, checkPermission } from '@/utils/permissions'
 // 引入權限狀態管理
-
-const accountStore = useAccountStore()
+const authStore = useAuthStore()
 const permissionStore = usePermissionStore()
 const route = useRoute()
 const router = useRouter()
+const hasFullPermission = computed(() => authStore.canModify(PERMISSIONS.PERMISSION_ROLE_MEMBER_MANAGEMENT));
 
 // 權限群組ID
 const groupId = computed(() => route.params.id)
@@ -204,6 +204,10 @@ const handleUserSelect = (user, checked) => {
 
 // 儲存
 const handleSave = async () => {
+  if(!hasFullPermission.value){
+    alert('您沒有權限進行此操作！')
+    return
+  }
   loading.save = true
   
   const patchUsers = users.value.filter(user => user.isSelected).map(user => (user.id))
@@ -358,6 +362,7 @@ onMounted(async () => {
         
         <div class="right-controls">
           <button 
+            v-if="hasFullPermission"
             class="btn btn-primary" 
             @click="handleSave"
             :disabled="loading.save || loading.table"
@@ -390,7 +395,7 @@ onMounted(async () => {
           <table class="data-table">
             <thead>
               <tr>
-                <th class="checkbox-column">
+                <th class="checkbox-column" v-if="hasFullPermission">
                   <input 
                     type="checkbox" 
                     :checked="isAllSelected"
@@ -452,7 +457,7 @@ onMounted(async () => {
             </thead>
             <tbody>
               <tr v-for="(user, index) in users" :key="user.id" class="table-row">
-                <td class="checkbox-cell">
+                <td class="checkbox-cell" v-if="hasFullPermission">
                   <input 
                     type="checkbox" 
                     :checked="user.isSelected"

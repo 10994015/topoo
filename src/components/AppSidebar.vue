@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
@@ -8,6 +8,56 @@ const authStore = useAuthStore()
 
 // 展開狀態管理
 const expandedMenus = ref(['settings']) // 預設展開系統管理
+
+// 側邊欄收合狀態（手機版用）
+const isSidebarOpen = ref(false)
+const isMobile = ref(false)
+
+// 檢測螢幕尺寸
+const checkScreenSize = () => {
+  isMobile.value = window.innerWidth <= 768
+  // 桌面版自動展開側邊欄
+  if (!isMobile.value) {
+    isSidebarOpen.value = true
+  }
+}
+
+// 切換側邊欄狀態
+const toggleSidebar = () => {
+  isSidebarOpen.value = !isSidebarOpen.value
+}
+
+// 關閉側邊欄（點擊連結後）
+const closeSidebar = () => {
+  if (isMobile.value) {
+    isSidebarOpen.value = false
+  }
+}
+
+// 點擊外部關閉側邊欄
+const handleOutsideClick = (event) => {
+  if (!isMobile.value) return
+  
+  const sidebar = document.querySelector('.sidebar')
+  const toggleBtn = document.querySelector('.sidebar-toggle')
+  
+  if (sidebar && !sidebar.contains(event.target) && 
+      toggleBtn && !toggleBtn.contains(event.target) && 
+      isSidebarOpen.value) {
+    isSidebarOpen.value = false
+  }
+}
+
+onMounted(() => {
+  checkScreenSize()
+  window.addEventListener('resize', checkScreenSize)
+  document.addEventListener('click', handleOutsideClick)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', checkScreenSize)
+  document.removeEventListener('click', handleOutsideClick)
+})
 
 const menuItems = [
   {
@@ -22,7 +72,7 @@ const menuItems = [
     icon: '🔔',
     path: '/repair-system',
     permission: '報修管理',
-    permissionMode: 'Readonly' // 只需要讀取權限
+    permissionMode: 'Readonly'
   },
   {
     name: 'settings',
@@ -36,14 +86,14 @@ const menuItems = [
         label: '帳號管理',
         path: '/settings/account-management',
         permission: '帳號管理',
-        permissionMode: 'Readonly' // 只需要讀取權限就能看到選單
+        permissionMode: 'Readonly'
       },
       {
         name: 'permission-management',
         label: '權限管理',
         path: '/settings/permission-management',
         permission: '權限角色管理',
-        permissionMode: 'Readonly' // 只需要讀取權限就能看到選單
+        permissionMode: 'Readonly'
       },
       {
         name: 'workflow-management',
@@ -86,17 +136,12 @@ const menuItems = [
 const filteredMenuItems = computed(() => {
   return menuItems.map(item => {
     if (item.hasSubmenu && item.submenu) {
-      // 過濾子選單
       const filteredSubmenu = item.submenu.filter(subItem => {
-        // 如果沒有設定權限要求，就顯示
         if (!subItem.permission) return true
-        
-        // 檢查權限，使用指定的權限模式，預設為 Readonly
         const requiredMode = subItem.permissionMode || 'Readonly'
         return authStore.hasPermission(subItem.permission, requiredMode)
       })
       
-      // 如果有可顯示的子選單，才顯示父選單
       if (filteredSubmenu.length > 0) {
         return {
           ...item,
@@ -106,14 +151,13 @@ const filteredMenuItems = computed(() => {
       return null
     }
     
-    // 一般選單項目，檢查權限
     if (item.permission) {
       const requiredMode = item.permissionMode || 'Readonly'
       return authStore.hasPermission(item.permission, requiredMode) ? item : null
     }
     
     return item
-  }).filter(Boolean) // 移除 null 項目
+  }).filter(Boolean)
 })
 
 const isActiveRoute = (path) => {
@@ -136,65 +180,183 @@ const toggleMenu = (menuName) => {
   }
 }
 
-// 檢查父選單是否有子項目被激活
 const hasActiveSubmenu = (item) => {
   if (!item.submenu) return false
   return item.submenu.some(subItem => isActiveRoute(subItem.path))
 }
+
+// 處理選單項目點擊
+const handleMenuClick = (item) => {
+  if (item.hasSubmenu) {
+    toggleMenu(item.name)
+  } else {
+    closeSidebar()
+  }
+}
+
+// 處理子選單項目點擊
+const handleSubmenuClick = () => {
+  closeSidebar()
+}
 </script>
 
 <template>
-  <aside class="sidebar">
-    <div class="logo-section">
-      <h1 class="logo">TOPOO</h1>
-      <p class="system-name">線上報修系統</p>
-    </div>
-    
-    <nav class="nav-menu">
-      <template v-for="item in filteredMenuItems" :key="item.name">
-        <!-- 主選單項目 -->
-        <div class="nav-item-wrapper">
-          <component
-            :is="item.hasSubmenu ? 'button' : 'router-link'"
-            :to="!item.hasSubmenu ? item.path : undefined"
-            @click="item.hasSubmenu ? toggleMenu(item.name) : undefined"
-            class="nav-item"
-            :class="{ 
-              active: !item.hasSubmenu && isActiveRoute(item.path),
-              'has-submenu': item.hasSubmenu,
-              'parent-active': item.hasSubmenu && (hasActiveSubmenu(item) || isMenuExpanded(item.name))
-            }"
-          >
-            <span class="nav-icon">{{ item.icon }}</span>
-            <span class="nav-label">{{ item.label }}</span>
-            <span v-if="item.hasSubmenu" class="expand-icon" :class="{ expanded: isMenuExpanded(item.name) }">
-              ▼
-            </span>
-          </component>
-          
-          <!-- 子選單 -->
-          <div 
-            v-if="item.hasSubmenu" 
-            class="submenu"
-            :class="{ expanded: isMenuExpanded(item.name) }"
-          >
-            <router-link
-              v-for="subItem in item.submenu"
-              :key="subItem.name"
-              :to="subItem.path"
-              class="submenu-item"
-              :class="{ active: isActiveRoute(subItem.path) }"
+  <div>
+    <!-- 手機版漢堡選單按鈕 -->
+    <button 
+      v-if="isMobile"
+      @click="toggleSidebar"
+      class="sidebar-toggle"
+      :class="{ active: isSidebarOpen }"
+      aria-label="切換選單"
+    >
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+    </button>
+
+    <!-- 手機版遮罩層 -->
+    <div 
+      v-if="isMobile && isSidebarOpen"
+      class="sidebar-overlay"
+      @click="closeSidebar"
+    ></div>
+
+    <!-- 側邊欄 -->
+    <aside 
+      class="sidebar"
+      :class="{ 
+        'mobile-open': isMobile && isSidebarOpen,
+        'mobile-closed': isMobile && !isSidebarOpen 
+      }"
+    >
+      <div class="logo-section">
+        <h1 class="logo">TOPOO</h1>
+        <p class="system-name">線上報修系統</p>
+        
+        <!-- 手機版關閉按鈕 -->
+        <button 
+          v-if="isMobile"
+          @click="closeSidebar"
+          class="close-btn"
+          aria-label="關閉選單"
+        >
+          ✕
+        </button>
+      </div>
+      
+      <nav class="nav-menu">
+        <template v-for="item in filteredMenuItems" :key="item.name">
+          <div class="nav-item-wrapper">
+            <component
+              :is="item.hasSubmenu ? 'button' : 'router-link'"
+              :to="!item.hasSubmenu ? item.path : undefined"
+              @click="handleMenuClick(item)"
+              class="nav-item"
+              :class="{ 
+                active: !item.hasSubmenu && isActiveRoute(item.path),
+                'has-submenu': item.hasSubmenu,
+                'parent-active': item.hasSubmenu && (hasActiveSubmenu(item) || isMenuExpanded(item.name))
+              }"
             >
-              <span class="submenu-label">{{ subItem.label }}</span>
-            </router-link>
+              <span class="nav-icon">{{ item.icon }}</span>
+              <span class="nav-label">{{ item.label }}</span>
+              <span v-if="item.hasSubmenu" class="expand-icon" :class="{ expanded: isMenuExpanded(item.name) }">
+                ▼
+              </span>
+            </component>
+            
+            <div 
+              v-if="item.hasSubmenu" 
+              class="submenu"
+              :class="{ expanded: isMenuExpanded(item.name) }"
+            >
+              <router-link
+                v-for="subItem in item.submenu"
+                :key="subItem.name"
+                :to="subItem.path"
+                @click="handleSubmenuClick"
+                class="submenu-item"
+                :class="{ active: isActiveRoute(subItem.path) }"
+              >
+                <span class="submenu-label">{{ subItem.label }}</span>
+              </router-link>
+            </div>
           </div>
-        </div>
-      </template>
-    </nav>
-  </aside>
+        </template>
+      </nav>
+    </aside>
+  </div>
 </template>
 
 <style scoped lang="scss">
+// 漢堡選單按鈕
+.sidebar-toggle {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 1002;
+  width: 44px;
+  height: 44px;
+  background: #6c5ce7;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: #5b4bcf;
+    transform: scale(1.05);
+  }
+
+  &.active {
+    background: #5b4bcf;
+    
+    .hamburger-line {
+      &:nth-child(1) {
+        transform: rotate(45deg) translate(6px, 6px);
+      }
+      &:nth-child(2) {
+        opacity: 0;
+      }
+      &:nth-child(3) {
+        transform: rotate(-45deg) translate(6px, -6px);
+      }
+    }
+  }
+
+  .hamburger-line {
+    width: 22px;
+    height: 2px;
+    background: white;
+    border-radius: 1px;
+    transition: all 0.3s ease;
+  }
+}
+
+// 遮罩層
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 .sidebar {
   width: 240px;
   background: linear-gradient(180deg, #6c5ce7 0%, #5b4bcf 100%);
@@ -203,10 +365,12 @@ const hasActiveSubmenu = (item) => {
   flex-direction: column;
   box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
   height: auto;
-
+  transition: transform 0.3s ease;
+  height: 100%;
   .logo-section {
     padding: 30px 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    position: relative;
 
     .logo {
       font-size: 28px;
@@ -220,6 +384,29 @@ const hasActiveSubmenu = (item) => {
       opacity: 0.9;
       margin: 0;
       font-weight: 300;
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: white;
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: scale(1.1);
+      }
     }
   }
 
@@ -309,7 +496,6 @@ const hasActiveSubmenu = (item) => {
       }
     }
 
-    // 子選單樣式
     .submenu {
       max-height: 0;
       overflow: hidden;
@@ -364,29 +550,31 @@ const hasActiveSubmenu = (item) => {
   }
 }
 
-// 圖示彈跳動畫
-@keyframes bounce {
-  0%, 20%, 60%, 100% {
-    transform: translateY(0);
-  }
-  40% {
-    transform: translateY(-3px);
-  }
-  80% {
-    transform: translateY(-1px);
-  }
-}
-
-// 響應式設計
+// 手機版樣式
 @media (max-width: 768px) {
   .sidebar {
-    width: 100%;
-    height: auto;
-    position: relative;
-    
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 280px;
+    z-index: 1000;
+    height: 100vh;
+    overflow-y: auto;
+    transform: translateX(-100%);
+
+    &.mobile-open {
+      transform: translateX(0);
+      animation: slideIn 0.3s ease;
+    }
+
+    &.mobile-closed {
+      transform: translateX(-100%);
+    }
+
     .logo-section {
+      padding: 70px 20px 30px 20px; // 增加頂部間距避免與按鈕重疊
       text-align: center;
-      padding: 20px;
     }
     
     .nav-menu {
@@ -453,6 +641,28 @@ const hasActiveSubmenu = (item) => {
         }
       }
     }
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+// 圖示彈跳動畫
+@keyframes bounce {
+  0%, 20%, 60%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-3px);
+  }
+  80% {
+    transform: translateY(-1px);
   }
 }
 
@@ -546,46 +756,11 @@ const hasActiveSubmenu = (item) => {
   }
 }
 
-// 深色模式支援
-@media (prefers-color-scheme: dark) {
-  .sidebar {
-    background: linear-gradient(180deg, #4c1d95 0%, #3b1a6b 100%);
-    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
-  }
-}
-
-// 高對比模式支援
-@media (prefers-contrast: high) {
-  .sidebar {
-    .nav-item {
-      &.active,
-      &.parent-active {
-        background-color: rgba(255, 255, 255, 0.3);
-        border-right-color: #fff;
-      }
-      
-      &:hover {
-        background-color: rgba(255, 255, 255, 0.2);
-      }
-    }
-
-    .submenu {
-      .submenu-item {
-        &.active {
-          background-color: rgba(255, 255, 255, 0.2);
-        }
-        
-        &:hover {
-          background-color: rgba(255, 255, 255, 0.15);
-        }
-      }
-    }
-  }
-}
-
 // 減少動畫模式
 @media (prefers-reduced-motion: reduce) {
   .sidebar {
+    transition: none;
+    
     .nav-item {
       transition: none;
       
@@ -619,6 +794,22 @@ const hasActiveSubmenu = (item) => {
         transition: none;
       }
     }
+  }
+
+  .sidebar-toggle {
+    transition: none;
+    
+    &:hover {
+      transform: none;
+    }
+    
+    .hamburger-line {
+      transition: none;
+    }
+  }
+
+  .sidebar-overlay {
+    animation: none;
   }
 }
 </style>

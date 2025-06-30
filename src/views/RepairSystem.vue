@@ -3,9 +3,11 @@ import { ref, computed, reactive, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useRepairStore } from '@/stores/repair'
 import { useAuthStore } from '@/stores/auth'
+import { PERMISSIONS, checkPermission } from '@/utils/permissions'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const hasFullPermission = computed(() => authStore.canModify(PERMISSIONS.REPAIR_MANAGEMENT));
 
 const repairStore = useRepairStore()
 // 搜尋表單
@@ -250,7 +252,7 @@ onMounted(async ()=>{
           </select>
         </div>
         
-        <router-link class="new-repair-btn" to="/create-repair" :class="{ disabled: isLoading }">
+        <router-link class="new-repair-btn" to="/create-repair" :class="{ disabled: isLoading }" v-if="hasFullPermission">
           新增報修
         </router-link>
       </div>

@@ -34,7 +34,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     // 檢查是否有頁面訪問權限
     const canAccessPage = (permissionName) => {
-        return hasPermission(permissionName, 'Readonly')
+        return hasPermission(permissionName, 'Readonly') || hasPermission(permissionName, 'Full')
     }
 
     // 檢查是否有操作權限（新增、編輯、刪除）

@@ -2,9 +2,15 @@
 import { ref, computed, reactive, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAccountStore } from '@/stores/account'
+import { useAuthStore } from '@/stores/auth'
+import { PERMISSIONS, checkPermission } from '@/utils/permissions'
 
+const authStore = useAuthStore()
 const router = useRouter()
 const accountStore = useAccountStore()
+
+const hasFullPermission = computed(() => authStore.canModify(PERMISSIONS.ACCOUNT_MANAGEMENT));
+
 
 // 搜尋表單
 const searchForm = reactive({
@@ -52,7 +58,7 @@ const loginSources = ref([
 
 // 分頁設定
 const currentPage = ref(1)
-const pageSize = ref(1)
+const pageSize = ref(10)
 const totalItems = ref(0)
 
 // 載入狀態
@@ -463,13 +469,13 @@ onMounted(() => {
       </div>
       
       <div class="right-controls">
-        <button class="control-btn template-btn" @click="downloadTemplate">
+        <button class="control-btn template-btn" @click="downloadTemplate" v-if="hasFullPermission">
           下載帳號匯入範本
         </button>
-        <button class="control-btn import-btn" @click="batchImport">
+        <button class="control-btn import-btn" @click="batchImport" v-if="hasFullPermission">
           批次匯入帳號
         </button>
-        <button class="control-btn create-btn" @click="createNewAccount">
+        <button class="control-btn create-btn" @click="createNewAccount" v-if="hasFullPermission">
           新增帳號
         </button>
       </div>

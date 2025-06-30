@@ -2,10 +2,15 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAccountStore } from '@/stores/account'
+import { useAuthStore } from '@/stores/auth'
+import { PERMISSIONS, checkPermission } from '@/utils/permissions'
 
+const authStore = useAuthStore()
 const route = useRoute()
 const router = useRouter()
 const accountStore = useAccountStore()
+
+const hasFullPermission = computed(() => authStore.canModify(PERMISSIONS.ACCOUNT_MANAGEMENT));
 
 // 載入狀態
 const isLoading = ref(false)
@@ -73,6 +78,10 @@ const loadAccountData = async () => {
 
 // 編輯帳號
 const handleEdit = () => {
+  if(!hasFullPermission.value) {
+    alert('您沒有權限編輯帳號')
+    return;
+  }
   isEditing.value = true
   // 複製當前資料到編輯表單
   editFormData.value = { ...accountData.value }
@@ -88,6 +97,10 @@ const handleCancelEdit = () => {
 
 // 儲存編輯
 const handleSaveEdit = async () => {
+  if(!hasFullPermission.value) {
+    alert('您沒有權限編輯帳號')
+    return;
+  }
   // 表單驗證
   if (!editFormData.value.name?.trim()) {
     alert('姓名為必填欄位')
@@ -114,6 +127,10 @@ const handleSaveEdit = async () => {
 
 // 刪除帳號
 const handleDelete = async () => {
+  if(!hasFullPermission.value) {
+    alert('您沒有權限刪除帳號')
+    return;
+  }
   if (!confirm(`確定要刪除帳號 "${accountData.value.credential}" 嗎？此操作無法復原。`)) {
     return
   }
@@ -163,6 +180,7 @@ onMounted(() => {
       <div class="action-buttons">
         <template v-if="!isEditing">
           <button 
+            v-if="hasFullPermission"
             class="btn btn-primary" 
             @click="handleEdit"
             :disabled="isDeleting"
@@ -170,6 +188,7 @@ onMounted(() => {
             編輯帳號
           </button>
           <button 
+            v-if="hasFullPermission"
             class="btn btn-danger" 
             @click="handleDelete"
             :disabled="isDeleting"
@@ -188,6 +207,7 @@ onMounted(() => {
         
         <template v-else>
           <button 
+            v-if="hasFullPermission"
             class="btn btn-primary" 
             @click="handleSaveEdit"
             :disabled="isSaving"

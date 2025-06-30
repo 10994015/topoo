@@ -2,9 +2,13 @@
 import { ref, computed, reactive, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMailStore } from '@/stores/mail'
+import { useAuthStore } from '@/stores/auth'
+import { PERMISSIONS, checkPermission } from '@/utils/permissions'
 
+const authStore = useAuthStore()
 const router = useRouter()
 const mailStore = useMailStore()
+const hasFullPermission = computed(() => authStore.canModify(PERMISSIONS.MAIL_MANAGEMENT));
 
 // 搜尋表單
 const searchForm = reactive({
@@ -186,6 +190,10 @@ const getSortClass = (field) => {
 
 // 新增信箱
 const addMailbox = () => {
+    if (!hasFullPermission.value) {
+        alert('您沒有權限新增系統信箱')
+        return
+    }
   console.log('新增系統信箱')
   // 可以導航到新增頁面或開啟彈窗
   router.push('/settings/parameter/mail-management/create')
@@ -267,7 +275,7 @@ onMounted(() => {
 
       <!-- 右側按鈕 -->
       <div class="right-controls">
-        <button class="add-btn" @click="addMailbox">
+        <button class="add-btn" @click="addMailbox" v-if="hasFullPermission">
           新增系統信箱
         </button>
       </div>
