@@ -84,7 +84,7 @@ export const useRepairStore = defineStore('repair', () => {
     const createRepair = async (repairData) => {
         console.log('repairData 物件類型:', repairData.constructor.name);
         
-        
+        repairData.repairTime = new Date(repairData.repairTime).toISOString(); // 確保 repairTime 有值
         try {
             const response = await axiosClient.post('/repair', repairData, {
                 headers: {

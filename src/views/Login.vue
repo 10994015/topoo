@@ -156,12 +156,6 @@ const handleGoogleError = (error) => {
             使用Google 帳號登入
           </template>
         </GoogleSignInButton>
-        <button 
-          class="google-btn"
-        >
-          <span class="google-icon">G</span>
-          使用Google 帳號登入
-        </button>
       </div>
     </div>
     
