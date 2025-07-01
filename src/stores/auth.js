@@ -130,6 +130,96 @@ export const useAuthStore = defineStore('auth', () => {
             }
         }
     }
+    const googleLogin = async (credential) => {
+        try {
+            console.log(credential);
+            
+            // 根據後端API規格發送請求
+            const response = await axiosClient.post('/login/google', {
+                token: credential
+            })
+            
+            console.log('Google登入API回應:', response);
+
+            // 處理首次登入（狀態碼202）
+            if(response.status === 202){
+                return {
+                    success: true, 
+                    data: response.data.data, // 包含用戶資料
+                    statusCode: response.status,
+                };
+            }
+            
+            // 處理正常登入（狀態碼200）
+            if (response.status === 200) {
+            try {
+                await fetchUser()
+                // 登入成功後獲取權限
+                await getPermissions()
+                console.log('Google登入用戶資料獲取成功:', user.value)
+            } catch (fetchError) {
+                console.warn('獲取用戶資料失敗:', fetchError)
+                user.value = { username: 'Google用戶' } // 設定預設值
+            }
+            return { success: true, statusCode: response.status }
+            }
+        } catch (error) {
+            console.log('Google登入錯誤詳情:', error.response);
+            
+            // 檢查是否有 response（後端有回應）
+            if (error.response) {
+            const statusCode = error.response.status;
+            const responseData = error.response.data;
+            
+            console.log('HTTP 狀態碼:', statusCode);
+            console.log('回應資料:', responseData);
+            
+            const backendStatusCode = responseData?.statusCode;
+            const message = responseData?.message;
+            const timestamp = responseData?.timestamp;
+            
+            // 處理特定的狀態碼（與一般登入相同的錯誤處理）
+            switch (statusCode) {
+                case 407:
+                return { 
+                    success: false, 
+                    error: message || '帳號未審核',
+                    statusCode: statusCode,
+                    backendStatusCode: backendStatusCode,
+                    timestamp: timestamp
+                };
+                case 401:
+                return { 
+                    success: false, 
+                    error: message || 'Google登入驗證失敗',
+                    statusCode: statusCode,
+                    backendStatusCode: backendStatusCode
+                };
+                default:
+                return { 
+                    success: false, 
+                    error: message || `伺服器錯誤 (${statusCode})`,
+                    statusCode: statusCode,
+                    backendStatusCode: backendStatusCode
+                };
+            }
+            } else if (error.request) {
+            // 請求已發送但沒有收到回應
+            return { 
+                statusCode: 500,
+                success: false, 
+                error: '網路連線錯誤，請檢查網路狀態'
+            };
+            } else {
+            // 其他錯誤
+            return { 
+                statusCode: 500,
+                success: false, 
+                error: error.message || '未知錯誤'
+            };
+            }
+        }
+    }
 
     // 檢查登入狀態
     const checkAuth = async () => {
@@ -333,6 +423,7 @@ export const useAuthStore = defineStore('auth', () => {
         updateUser,
         updatePassword,
         sendResetPasswordEmail,
-        changePassword,changePassword
+        changePassword,changePassword,
+        googleLogin,
     }
 })

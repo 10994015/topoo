@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
-
+import { GoogleSignInButton } from "vue3-google-signin"
 const router = useRouter()
 
 const account = ref('')
@@ -40,10 +40,35 @@ const handleLogin = async () => {
 const handleRegister = () => {
   router.push('/register')
 }
-
-const handleGoogleLogin = () => {
-  console.log('Google登入')
+const handleGoogleSuccess = async (response) => {
+  console.log("Google登入成功，收到credential:", response)
+  
+  try {
+    // 使用後端提供的API格式
+    const result = await useAuthStore().googleLogin(response.credential)
+    
+    if (result.success) {
+      if(result.statusCode === 202 && result.data.firstLogin) {
+        alert('首次登入需重設密碼！')
+        router.push(`/init-password/${result.data.changePwToken}`);
+        return;
+      }
+      console.log('Google登入成功');
+      router.push('/')
+    } else {
+      console.error('Google登入失敗', result.error);
+      alert(result.error || 'Google登入失敗')
+    }
+  } catch (error) {
+    console.error('Google登入處理失敗:', error)
+    alert('Google登入失敗，請稍後再試')
+  }
 }
+const handleGoogleError = (error) => {
+  console.error("Google登入錯誤:", error)
+  alert('Google登入失敗，請稍後再試')
+}
+
 
 </script>
 
@@ -118,9 +143,20 @@ const handleGoogleLogin = () => {
         >
           註冊
         </button>
-        
+        <GoogleSignInButton 
+          @success="handleGoogleSuccess"
+          @error="handleGoogleError"
+          text="使用Google 帳號登入"
+          theme="filled_blue"
+          size="large"
+          class="google-btn"
+        >
+          <template #default>
+            <span class="google-icon">G</span>
+            使用Google 帳號登入
+          </template>
+        </GoogleSignInButton>
         <button 
-          @click="handleGoogleLogin"
           class="google-btn"
         >
           <span class="google-icon">G</span>

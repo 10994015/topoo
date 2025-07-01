@@ -283,27 +283,27 @@ onMounted(async () => {
               :key="index"
               class="timeline-item"
               :class="{ 
-                'completed': record.status === '已完成',
-                'processing': record.status === '處理中',
-                'assigned': record.status === '指派中'
+                'completed': record.repair_status === '已完成',
+                'processing': record.repair_status === '承辦中',
+                'assigned': record.repair_status === '指派中'
               }"
             >
               <div class="timeline-icon">
-                <span v-if="record.status === '已完成'">✓</span>
-                <span v-else-if="record.status === '處理中'">⚡</span>
+                <span v-if="record.repair_status === '已完成'">✓</span>
+                <span v-else-if="record.repair_status === '承辦中'">⚡</span>
                 <span v-else>⏳</span>
               </div>
               
               <div class="timeline-content">
                 <div class="timeline-header">
-                  <span class="timeline-time">{{ record.timestamp }}</span>
-                  <span class="timeline-status">{{ record.status }}</span>
+                  <span class="timeline-time">{{ formatDateTime(record.created_at) }}</span>
+                  <span class="timeline-status">{{ record.repair_status }}</span>
                 </div>
                 
-                <div class="timeline-user">{{ record.user }} 回覆</div>
+                <div class="timeline-user">{{ record.repair_record_name }} 回覆</div>
                 
-                <div v-if="record.comment" class="timeline-comment">
-                  {{ record.comment }}
+                <div v-if="record.content" class="timeline-comment">
+                  {{ record.content }}
                 </div>
               </div>
             </div>
