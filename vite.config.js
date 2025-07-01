@@ -16,6 +16,13 @@ export default defineConfig({
     },
   },
   server: {
+    host: '0.0.0.0', // 允許外部存取
+    allowedHosts: [
+      '.ngrok-free.app',  // 允許所有 ngrok-free.app 子網域
+      '.ngrok.io',        // 允許所有 ngrok.io 子網域
+      'localhost',        // 本地開發
+      '127.0.0.1'         // 本地 IP
+    ],
     proxy: {
       '/api': {
         target: `https://orrsystem.test.angke.com.tw`,

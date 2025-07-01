@@ -50,6 +50,15 @@ export const useAuthStore = defineStore('auth', () => {
         try {
             const response = await axiosClient.post(`/login`, credentials)
             console.log(response);
+
+            //首次登入改密碼
+            if(response.status === 202){
+                return {
+                    success: true, 
+                    data: response.data.data, // 包含用戶資料
+                    statusCode: response.status,
+                };
+            }
             
             if (response.status === 200) {
                 try {
@@ -61,11 +70,10 @@ export const useAuthStore = defineStore('auth', () => {
                     console.warn('獲取用戶資料失敗:', fetchError)
                     user.value = { username: credentials.username }
                 }
-                return { success: true }
+                return { success: true, statusCode: response.status }
             }
         } catch (error) {
-            console.log('錯誤詳情:', error);
-            
+            console.log('錯誤詳情:', error.response);
             // 檢查是否有 response（後端有回應）
             if (error.response) {
                 const statusCode = error.response.status;
@@ -80,6 +88,7 @@ export const useAuthStore = defineStore('auth', () => {
                 const timestamp = responseData?.timestamp; // 時間戳記
                 
                 // 處理特定的狀態碼
+                
                 switch (statusCode) { // 或者使用 backendStatusCode
                     case 407:
                         return { 
@@ -107,12 +116,14 @@ export const useAuthStore = defineStore('auth', () => {
             } else if (error.request) {
                 // 請求已發送但沒有收到回應
                 return { 
+                    statusCode: 500,
                     success: false, 
                     error: '網路連線錯誤，請檢查網路狀態'
                 };
             } else {
                 // 其他錯誤
                 return { 
+                    statusCode: 500,
                     success: false, 
                     error: error.message || '未知錯誤'
                 };
@@ -187,6 +198,29 @@ export const useAuthStore = defineStore('auth', () => {
             user.value = null
             permissions.value = []
             isInitialized.value = false
+        }
+    }
+
+    const changePassword = async ({certificationId, password, confirmPassword}) => {
+        try {
+            console.log(certificationId, password, confirmPassword);
+            
+            const hashedNewPassword = await hashSHA256(password);
+            const hashedConfirmPassword = await hashSHA256(confirmPassword);
+            const response = await axiosClient.patch('/change-password', {
+                certificationId: certificationId,
+                password: hashedNewPassword,
+                confirmPassword: hashedConfirmPassword
+            });
+            console.log(response);
+            
+            if (response.status === 200) {
+                return { success: true }
+            } else {
+                return { success: false, error: response.data.message }
+            }
+        } catch (error) {
+            return { success: false, error: error.message }
         }
     }
 
@@ -299,5 +333,6 @@ export const useAuthStore = defineStore('auth', () => {
         updateUser,
         updatePassword,
         sendResetPasswordEmail,
+        changePassword,changePassword
     }
 })

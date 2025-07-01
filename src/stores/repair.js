@@ -10,7 +10,8 @@ export const useRepairStore = defineStore('repair', () => {
     const repairs = ref(null); // 報修列表
     const isLoading = ref(false)
     const isInitialized = ref(false) // 標記是否已初始化檢查
-
+    const repairDetail = ref(null); // 單一報修詳細資料
+    const repairProgress = ref(null); // 報修進度記錄
     const fetchCategories = async () => {
         try {
             const response = await axiosClient.get('/enum/repair-category')
@@ -141,7 +142,36 @@ export const useRepairStore = defineStore('repair', () => {
             throw error
         }
     }
+    
+    // 獲取單一報修詳細資料
+    const fetchRepairDetail = async (repairId) => {
+    try {
+        console.log(repairId);
+        
+        const response = await axiosClient.get(`/repair/${repairId}`)
+        console.log(response);
+        repairDetail.value = response.data.data
+        return response.data.statusCode
+    } catch (error) {
+        console.error('獲取報修詳細資料失敗:', error)
+        throw error
+    }
+    }
 
+    // 獲取報修進度記錄  
+    const fetchRepairProgress = async (repairId) => {
+    try {
+        const response = await axiosClient.get(`/repair/${repairId}/record`)
+        console.log(response);
+        repairProgress.value = response.data.data
+        console.log(repairProgress.value);
+        
+        return response.data.data
+    } catch (error) {
+        console.error('獲取進度記錄失敗:', error)
+        throw error
+    }
+    }
     return {
         categories,
         reasons,
@@ -149,13 +179,17 @@ export const useRepairStore = defineStore('repair', () => {
         isLoading,
         isInitialized,
         repairs,
+        repairDetail,
+        repairProgress,
         fetchCategories,
         fetchReasons,
         fetchStatuses,
         createRepair,
         fetchRepairs,
         saveRepairFiles,
-        removeRepairFile
+        removeRepairFile,
+        fetchRepairDetail,
+        fetchRepairProgress
     }
 
 

@@ -4,6 +4,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { usePermissionStore } from '@/stores/permission'
 import { useAuthStore } from '@/stores/auth'
 import { PERMISSIONS, checkPermission } from '@/utils/permissions'
+import { formatDate, formatDateTime } from '@/utils/dateUtils'
+
 // 引入權限狀態管理
 const authStore = useAuthStore()
 const permissionStore = usePermissionStore()
@@ -406,12 +408,8 @@ onMounted(async () => {
                   />
                 </th>
                 <th 
-                  class="sortable-header" 
-                  :class="[getSortClass('id'), { 'disabled': loading.table }]"
-                  @click="!loading.table && handleSort('id')"
                 >
                   項次
-                  <span class="sort-icon">{{ getSortIcon('id') }}</span>
                 </th>
                 <th 
                   class="sortable-header" 
@@ -472,12 +470,12 @@ onMounted(async () => {
                     ]"
                   />
                 </td>
-                <td>{{ user.id}}</td>
+                <td>{{ index+1}}</td>
                 <td>{{ user.credential }}</td>
                 <td>{{ user.name }}</td>
                 <td>{{ user.nickName }}</td>
-                <td>{{ user.repairUnit }}</td>
-                <td>{{ user.userJoinTime }}</td>
+                <td>{{ user.repairUnit || '-' }}</td>
+                <td>{{ formatDateTime(user.userJoinTime) }}</td>
               </tr>
               
               <!-- 無資料狀態 -->

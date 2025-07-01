@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useMailStore } from '@/stores/mail'
 import { useAuthStore } from '@/stores/auth'
 import { PERMISSIONS, checkPermission } from '@/utils/permissions'
+import { formatDate, formatDateTime } from '@/utils/dateUtils'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -226,9 +227,15 @@ const testMailConnection = async (item) => {
   try {
     const result = await mailStore.testMailConnection(item.id)
     console.log('測試結果:', result)
+    if(result.statusCode === 202){
+      alert(result.message)
+    }else{
+      alert('測試失敗: ' + result.message)
+    }
     // 可以在這裡顯示測試結果
   } catch (error) {
     console.error('測試失敗:', error)
+    alert('測試信箱連接失敗')
   }
 }
 
@@ -331,7 +338,7 @@ onMounted(() => {
             <tr v-else v-for="(item, index) in mailboxData" :key="item.id" class="table-row">
               <td class="id-cell">{{ (currentPage - 1) * pageSize + index + 1 }}</td>
               <td class="email-cell">{{ item.email }}</td>
-              <td class="time-cell">{{ item.updated_at || item.updateTime }}</td>
+              <td class="time-cell">{{ formatDateTime(item.updated_at) || formatDateTime(item.created_at) }}</td>
               <td class="action-cell">
                 <div class="action-buttons">
                   <button 

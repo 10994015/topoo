@@ -33,12 +33,34 @@ const userInfo = reactive({
   email: ''
 })
 
+// 密碼驗證規則
+const validatePassword = (password) => {
+  const validations = {
+    length: password.length >= 8 && password.length <= 20,
+    hasNumber: /[0-9]/.test(password),
+    hasUppercase: /[A-Z]/.test(password),
+    hasLowercase: /[a-z]/.test(password),
+    hasSpecialChar: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
+  }
+  
+  return {
+    ...validations,
+    isValid: Object.values(validations).every(Boolean)
+  }
+}
+
 // 計算屬性
 const isFormValid = computed(() => {
   return passwordForm.currentPassword &&
          passwordForm.newPassword &&
          passwordForm.confirmPassword &&
-         passwordForm.newPassword === passwordForm.confirmPassword 
+         passwordForm.newPassword === passwordForm.confirmPassword &&
+         validatePassword(passwordForm.newPassword).isValid
+})
+
+const passwordValidation = computed(() => {
+  if (!passwordForm.newPassword) return null
+  return validatePassword(passwordForm.newPassword)
 })
 
 const passwordStrengthText = computed(() => {
@@ -81,12 +103,12 @@ const loadUserInfo = async () => {
 const checkPasswordStrength = (password) => {
   let strength = 0
   
-  if (password.length >= 6) strength++
   if (password.length >= 8) strength++
+  if (password.length >= 12) strength++
   if (/[A-Z]/.test(password)) strength++
   if (/[a-z]/.test(password)) strength++
   if (/[0-9]/.test(password)) strength++
-  if (/[^A-Za-z0-9]/.test(password)) strength++
+  if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) strength++
   
   passwordStrength.value = Math.min(strength, 4)
 }
@@ -97,19 +119,31 @@ const validateForm = () => {
   // 驗證目前密碼
   if (!passwordForm.currentPassword) {
     errors.currentPassword = '請輸入目前密碼'
-  }else{
+  } else {
     errors.currentPassword = ''
   }
   
   // 驗證新密碼
   if (!passwordForm.newPassword) {
     errors.newPassword = '請輸入新密碼'
-  } else if (passwordForm.newPassword.length < 6) {
-    // errors.newPassword = '密碼至少需要6個字元'
-  } else if (passwordForm.newPassword === passwordForm.currentPassword) {
-    errors.newPassword = '新密碼不能與目前密碼相同'
-  }else{
-    errors.newPassword = ''
+  } else {
+    const validation = validatePassword(passwordForm.newPassword)
+    
+    if (!validation.length) {
+      errors.newPassword = '密碼長度須介於8至20字元之間'
+    } else if (!validation.hasNumber) {
+      errors.newPassword = '密碼必須包含至少一個數字'
+    } else if (!validation.hasUppercase) {
+      errors.newPassword = '密碼必須包含至少一個英文大寫字母'
+    } else if (!validation.hasLowercase) {
+      errors.newPassword = '密碼必須包含至少一個英文小寫字母'
+    } else if (!validation.hasSpecialChar) {
+      errors.newPassword = '密碼必須包含至少一個特殊符號'
+    } else if (passwordForm.newPassword === passwordForm.currentPassword) {
+      errors.newPassword = '新密碼不能與目前密碼相同'
+    } else {
+      errors.newPassword = ''
+    }
   }
   
   // 驗證確認密碼
@@ -117,11 +151,11 @@ const validateForm = () => {
     errors.confirmPassword = '請確認新密碼'
   } else if (passwordForm.newPassword !== passwordForm.confirmPassword) {
     errors.confirmPassword = '密碼不一致'
-  }else{
+  } else {
     errors.confirmPassword = ''
   }
   
-  return Object.keys(errors).length === 0
+  return Object.keys(errors).filter(key => errors[key]).length === 0
 }
 
 const handleNewPasswordChange = () => {
@@ -131,7 +165,7 @@ const handleNewPasswordChange = () => {
 }
 
 const changePassword = async () => {
-  // if (!validateForm()) return
+  if (!validateForm()) return
   
   isLoading.value = true
   
@@ -165,7 +199,6 @@ const changePassword = async () => {
       
       const errorMessage = result.error.message || '密碼修改失敗'
       throw new Error(errorMessage)
-
     }
     
     // 可以選擇是否自動登出
@@ -242,7 +275,7 @@ onMounted(() => {
           <h3 class="table-title">密碼設定</h3>
           <div class="security-notice">
             <span class="notice-icon">🔒</span>
-            為了您的帳戶安全，請定期更換密碼
+            密碼設定須符合以下複雜度要求
           </div>
         </div>
         
@@ -287,7 +320,7 @@ onMounted(() => {
                     @blur="validateForm"
                     class="form-input"
                     :class="{ error: errors.newPassword }"
-                    placeholder="請輸入新密碼（至少6個字元）"
+                    placeholder="請輸入新密碼（8-20字元）"
                     autocomplete="new-password"
                   />
                   <button 
@@ -319,12 +352,23 @@ onMounted(() => {
                 
                 <!-- 密碼建議 -->
                 <div class="password-tips">
-                  <p class="tips-title">密碼建議：</p>
+                  <p class="tips-title">密碼複雜度要求：</p>
                   <ul class="tips-list">
-                    <li :class="{ completed: passwordForm.newPassword.length >= 6 }">至少6個字元</li>
-                    <li :class="{ completed: /[A-Z]/.test(passwordForm.newPassword) }">包含大寫字母</li>
-                    <li :class="{ completed: /[0-9]/.test(passwordForm.newPassword) }">包含數字</li>
-                    <li :class="{ completed: /[^A-Za-z0-9]/.test(passwordForm.newPassword) }">包含特殊字元</li>
+                    <li :class="{ completed: passwordValidation?.length }">
+                      長度介於8至20字元之間
+                    </li>
+                    <li :class="{ completed: passwordValidation?.hasNumber }">
+                      包含至少一個數字
+                    </li>
+                    <li :class="{ completed: passwordValidation?.hasUppercase }">
+                      包含至少一個英文大寫字母
+                    </li>
+                    <li :class="{ completed: passwordValidation?.hasLowercase }">
+                      包含至少一個英文小寫字母
+                    </li>
+                    <li :class="{ completed: passwordValidation?.hasSpecialChar }">
+                      包含至少一個特殊符號（如：!@#$%^&*等）
+                    </li>
                   </ul>
                 </div>
               </td>
@@ -342,7 +386,7 @@ onMounted(() => {
                     class="form-input"
                     :class="{ 
                       error: errors.confirmPassword,
-                      success: passwordForm.confirmPassword && passwordForm.newPassword === passwordForm.confirmPassword
+                      success: passwordForm.confirmPassword && passwordForm.newPassword === passwordForm.confirmPassword && !errors.confirmPassword
                     }"
                     placeholder="請再次輸入新密碼"
                     autocomplete="new-password"
@@ -355,7 +399,7 @@ onMounted(() => {
                     {{ showConfirmPassword ? '🙈' : '👁️' }}
                   </button>
                 </div>
-                <div v-if="passwordForm.confirmPassword && !errors.confirmPassword" class="success-message">
+                <div v-if="passwordForm.confirmPassword && !errors.confirmPassword && passwordForm.newPassword === passwordForm.confirmPassword" class="success-message">
                   ✓ 密碼一致
                 </div>
                 <div v-if="errors.confirmPassword" class="error-message">

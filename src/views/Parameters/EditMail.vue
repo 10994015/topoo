@@ -4,6 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useMailStore } from '@/stores/mail'
 import { useAuthStore } from '@/stores/auth'
 import { PERMISSIONS, checkPermission } from '@/utils/permissions'
+import { formatDate, formatDateTime } from '@/utils/dateUtils'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -245,7 +246,7 @@ const testConnection = async () => {
     const result = await mailStore.testMailConnection(mailId.value)
     
     testResult.value = {
-      success: result.success || false,
+      success: result.statusCode === 202 || false,
       message: result.message || '測試完成'
     }
     
@@ -573,7 +574,7 @@ onMounted(() => {
                 >
                   <td class="id-cell">{{ (currentPage - 1) * pageSize + index + 1 }}</td>
                   <td class="email-cell">{{ item.email }}</td>
-                  <td class="time-cell">{{ item.updated_at || item.updateTime }}</td>
+                  <td class="time-cell">{{ formatDateTime(item.updated_at) || formatDateTime(item.created_at) }}</td>
                   <td class="action-cell" v-if="hasFullPermission">
                     <button 
                       class="delete-btn"

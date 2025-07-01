@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useAccountStore } from '@/stores/account'
 import { useAuthStore } from '@/stores/auth'
 import { PERMISSIONS, checkPermission } from '@/utils/permissions'
+import { formatDate, formatDateTime } from '@/utils/dateUtils'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -39,7 +40,7 @@ const enumStatus = {
 
 // 帳號狀態選項
 const accountStatuses = ref([
-  { value: '', label: '全部' },
+  { value: '', label: '全部狀態' },
   { value: 'Open', label: '開放' },
   { value: 'UnderReview', label: '未審核' },
   { value: 'ReviewFailed', label: '審核未通過' },
@@ -405,7 +406,7 @@ onMounted(() => {
           <input 
             type="text" 
             v-model="searchForm.keyword"
-            placeholder="輸入帳號、姓名及信箱"
+            placeholder="輸入帳號、姓名及暱稱"
             class="search-input"
             @keyup.enter="handleSearch"
           />
@@ -488,12 +489,8 @@ onMounted(() => {
           <thead>
             <tr>
               <th 
-                class="sortable-header" 
-                :class="getSortClass('id')"
-                @click="handleSort('id')"
               >
-                ID
-                <span class="sort-icon">{{ getSortIcon('id') }}</span>
+                項次
               </th>
               <th 
                 class="sortable-header" 
@@ -552,7 +549,7 @@ onMounted(() => {
             
             <!-- 正常資料顯示 -->
             <tr v-else v-for="(item, index) in accountData" :key="item.id" class="table-row">
-              <td>{{ item.id }}</td>
+              <td>{{ index + 1 }}</td>
               <td>{{ item.credential }}</td>
               <td>{{ item.name }}</td>
               <td>{{ item.nick_name }}</td>
@@ -561,8 +558,8 @@ onMounted(() => {
                   {{ enumStatus[item.status] || item.status }}
                 </span>
               </td>
-              <td>{{ item.created_at }}</td>
-              <td>{{ item.provider }}</td>
+              <td>{{ formatDateTime(item.created_at) }}</td>
+              <td>{{ item.provider ?? '系統登入' }}</td>
               <td class="action-cell">
                 <div class="action-buttons">
                   <button 

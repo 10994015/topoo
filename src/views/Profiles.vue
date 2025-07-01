@@ -6,6 +6,11 @@ import { useAuthStore } from '@/stores/auth'
 // 使用 router 和認證 store
 const router = useRouter()
 const authStore = useAuthStore()
+authStore.getPermissions()
+console.log(authStore.permissions);
+
+const isManager =  computed(() => authStore.permissions.length > 0)
+console.log(isManager.value);
 
 // 響應式資料
 const isLoading = ref(false)
@@ -109,20 +114,28 @@ const saveProfile = async () => {
   try {
     // 這裡調用 API 更新用戶資料
     console.log('更新用戶資料:', editForm)
-    // 模擬 API 調用
-    await authStore.updateUser({
+    const params= {
       nickname: editForm.nickname,
-      status: editForm.status
-    })
-    
-    // 更新本地資料 (只更新可編輯的欄位)
-    userProfile.nickname = editForm.nickname
-    userProfile.status = editForm.status
-    
-    // 關閉編輯模式
-    isEditing.value = false
-    
-    alert('個人資料更新成功！')
+    }
+    if(isManager.value){
+      params.status = editForm.status
+    }
+    // 模擬 API 調用
+    const response = await authStore.updateUser(params)
+    console.log(response);
+    if(response.success){
+      // 更新本地資料 (只更新可編輯的欄位)
+      userProfile.nickname = editForm.nickname
+      userProfile.status = editForm.status
+      
+      // 關閉編輯模式
+      isEditing.value = false
+      
+      alert('個人資料更新成功！')
+    }else{
+      alert('更新失敗，權限不足或資料錯誤')
+    }
+   
   } catch (error) {
     console.error('更新失敗:', error)
     alert('更新失敗，請重試')
@@ -225,15 +238,22 @@ onMounted(() => {
                 </span>
               </template>
               <template v-else>
-                <select v-model="editForm.status" class="form-select">
-                  <option 
-                    v-for="option in statusOptions" 
-                    :key="option.value"
-                    :value="option.value"
-                  >
-                    {{ option.label }}
-                  </option>
-                </select>
+                  <template v-if="isManager">
+                    <select v-model="editForm.status" class="form-select" >
+                      <option 
+                        v-for="option in statusOptions" 
+                        :key="option.value"
+                        :value="option.value"
+                      >
+                        {{ option.label }}
+                      </option>
+                    </select>
+                  </template>
+                  <template v-else>
+                    <span class="status-badge" :class="userProfile.status">
+                      {{ userProfile.status }}
+                    </span>
+                  </template>
               </template>
             </td>
           </tr>

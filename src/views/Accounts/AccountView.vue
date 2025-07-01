@@ -38,10 +38,10 @@ const getStatusLabel = (status) => {
     'Open': '啟用',
     'UnderReview': '審核中',
     'ReviewFailed': '審核失敗',
-    'Invalid': '無效',
-    'Lock': '鎖定',
+    'Invalid': '停用',
+    'Lock': '封鎖',
     'Inconvenient': '不便',
-    'Leave': '離職'
+    'Leave': '請假'
   }
   return statusMap[status] || status
 }
@@ -273,10 +273,10 @@ onMounted(() => {
                 <option value="Open">啟用</option>
                 <option value="UnderReview">審核中</option>
                 <option value="ReviewFailed">審核失敗</option>
-                <option value="Invalid">無效</option>
-                <option value="Lock">鎖定</option>
+                <option value="Invalid">停用</option>
+                <option value="Lock">封鎖</option>
                 <option value="Inconvenient">不便</option>
-                <option value="Leave">離職</option>
+                <option value="Leave">請假</option>
               </select>
             </div>
           </div>
@@ -284,23 +284,23 @@ onMounted(() => {
           <div class="detail-row">
             <div class="detail-label">Email 信箱</div>
             <div class="detail-value">
-              <a href="`mailto:${accountData.email}`" class="email-link">
+              <span >
                 {{ accountData.email }}
-              </a>
+              </span>
             </div>
           </div>
           
           <div class="detail-row">
             <div class="detail-label">單位</div>
             <div class="detail-value">
-              <span>{{ accountData.department || '-' }}</span>
+              <span>{{ accountData.repair_unit || '-' }}</span>
             </div>
           </div>
           
           <div class="detail-row">
-            <div class="detail-label">帳號建立方式</div>
+            <div class="detail-label">登入來源</div>
             <div class="detail-value">
-              <span class="readonly-field">{{ accountData.provider || '-' }}</span>
+              <span class="readonly-field">{{ accountData.provider || '系統登入' }}</span>
             </div>
           </div>
           
@@ -318,20 +318,7 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- 備註欄位 -->
-          <div v-if="accountData.remark || isEditing" class="detail-row full-width">
-            <div class="detail-label">備註</div>
-            <div class="detail-value">
-              <span v-if="!isEditing" class="remark-text">{{ accountData.remark || '-' }}</span>
-              <textarea 
-                v-else 
-                v-model="editFormData.remark"
-                class="edit-textarea"
-                rows="3"
-                placeholder="請輸入備註"
-              ></textarea>
-            </div>
-          </div>
+          
         </div>
       </div>
     </div>

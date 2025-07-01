@@ -285,12 +285,8 @@ onMounted(() => {
           <thead>
             <tr>
               <th 
-                class="sortable-header" 
-                :class="getSortClass('role_id')"
-                @click="handleSort('role_id')"
               >
-                ID
-                <span class="sort-icon">{{ getSortIcon('role_id') }}</span>
+                項次
               </th>
               <th 
                 class="sortable-header" 
@@ -326,7 +322,7 @@ onMounted(() => {
             
             <!-- 正常資料顯示 -->
             <tr v-else v-for="(item, index) in permissionData" :key="item.id" class="table-row">
-              <td>{{ item.role_id}}</td>
+              <td>{{ index + 1}}</td>
               <td class="permission-name">{{ item.role_name }}</td>
               <td>
                 <span class="status-badge" :class="getStatusClass(item.role_status)">

@@ -21,13 +21,19 @@ const handleLogin = async () => {
   })
 
   console.log(result);
+  
   if(result.success) {
+    if(result.statusCode === 202 && result.data.firstLogin) {
+      alert('首次登入需重設密碼！')
+      router.push(`/init-password/${result.data.changePwToken}`);
+      return;
+    }
     console.log('登入成功');
-    await router.push('/')
+    router.push('/')
   } else {
-    console.error('登入失敗', result.message);
+    console.error('登入失敗', result.error);
     // 可以在這裡顯示錯誤訊息
-    alert(result.message || '登入失敗，請檢查帳號或密碼')
+    alert(result.error || '登入失敗，請檢查帳號或密碼')
   }
 }
 

@@ -71,8 +71,6 @@ const menuItems = [
     label: '線上報修',
     icon: '🔔',
     path: '/repair-system',
-    permission: '報修管理',
-    permissionMode: 'Readonly'
   },
   {
     name: 'settings',

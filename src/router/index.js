@@ -21,6 +21,8 @@ import SelectPermissionMembers from '@/views/Permissions/SelectPermissionMembers
 import ParameterManagement from '@/views/Parameters/ParameterManagement.vue'
 import MailManagement from '@/views/Parameters/MailManagement.vue'
 import EditMail from '@/views/Parameters/EditMail.vue'
+import InitPassword from '@/views/InitPassword.vue'
+import RepairView from '@/views/RepairView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -74,8 +76,6 @@ const router = createRouter({
               { text: '首頁', to: '/' },
               { text: '線上報修', to: null },
             ],
-            permission: PERMISSIONS.REPAIR_MANAGEMENT,
-            permissionMode: 'Readonly' // 讀取權限即可訪問
           }
         },
         {
@@ -89,11 +89,21 @@ const router = createRouter({
               { text: '線上報修', to: '/repair-system' },
               { text: '新增報修', to: null },
             ],
-            permission: PERMISSIONS.REPAIR_MANAGEMENT,
-            permissionMode: 'Full' // 需要完整權限
           }
         },
-        
+        {
+          path: 'view-repair/:id',
+          name: 'app.view-repair',
+          component: RepairView,
+          meta: { 
+            title: '報修進度檢視',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '線上報修', to: '/repair-system' },
+              { text: '報修進度檢視', to: null },
+            ],
+          }
+        },
         // 在 AppLayout 內的 404 處理（已登入狀態下的未知路由）
         {
           path: ':pathMatch(.*)*',
@@ -326,6 +336,14 @@ const router = createRouter({
       component: EmailVerification,
       meta: {
         title: 'Email 驗證'
+      }
+    },
+    {
+      path: '/init-password/:token',
+      name: 'init-password',
+      component: InitPassword,
+      meta: {
+        title: '重設密碼'
       }
     },
     // 全域 404 處理（適用於未登入狀態或不在 AppLayout 內的路由）

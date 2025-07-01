@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useRepairStore } from '@/stores/repair'
 import { useAuthStore } from '@/stores/auth'
@@ -26,7 +26,7 @@ const FILE_LIMITS = {
 
 // 表單資料
 const repairForm = reactive({
-  repairNumber: 'C202505080001',
+  repairNumber: '',
   title: '',
   deviceLocation: '',
   repairCategoryId: '',
@@ -57,6 +57,11 @@ const isSubmitting = ref(false)
 const categories = ref([])
 const reasons = ref([])
 
+// 是否為軟硬體
+const isHardwareOrSoftware = ref({
+  value: false,
+  type: '',
+})
 // 當前用戶資訊
 const currentUser = computed(() => authStore.user)
 
@@ -335,7 +340,16 @@ const handleCancel = () => {
     router.go(-1)
   }
 }
+watch(() => repairForm.repairCategoryId, (newId) => {
+  const category = categories.value.find(cat => cat.id === newId)
+  const type = category?.name
+  const targetTypes = ['軟體', '硬體']
 
+  isHardwareOrSoftware.value = {
+    value: targetTypes.includes(type),
+    type: targetTypes.includes(type) ? type : ''
+  }
+})
 // 載入枚舉資料
 onMounted(async () => {
   initializeDateTime()
@@ -360,10 +374,6 @@ onMounted(async () => {
       <!-- 表單標題 -->
       <div class="form-header">
         <h2 class="form-title">新增報修</h2>
-        <div class="repair-number">
-          <span class="label">報修資訊</span>
-          <span class="number">{{ repairForm.repairNumber }}</span>
-        </div>
       </div>
 
       <!-- 報修表單 -->
@@ -423,7 +433,7 @@ onMounted(async () => {
           </div>
           <div class="form-row">
             <!-- 設備位置 -->
-            <div class="form-group" v-if="repairForm.repairCategoryId!=='f81422d7-61ad-41c7-a36e-89e9b2176a4d'">
+            <div class="form-group" v-if="isHardwareOrSoftware.value">
               <label class="form-label">設備位置</label>
               <input
                 type="text"
@@ -449,7 +459,7 @@ onMounted(async () => {
               <label class="form-label">報修人員</label>
               <div class="reporter-info">
                 <span class="reporter-name">{{ currentUser?.name || '系統用戶' }}</span>
-                <span class="reporter-detail">{{ currentUser?.department || 'OO科技公司-資訊部-專案管理課-第一OO' }}</span>
+                <span class="reporter-detail">{{ currentUser?.repair_unit || 'OO科技公司-資訊部-專案管理課-第一OO' }}</span>
               </div>
             </div>
 
@@ -457,8 +467,8 @@ onMounted(async () => {
         </div>
 
         <!-- 設備項目 -->
-        <div class="form-group">
-          <label class="form-label">{{ repairForm.repairCategoryId==='f81422d7-61ad-41c7-a36e-89e9b2176a4d' ? '功能項目' : '設備項目' }}</label>
+        <div class="form-group" v-if="isHardwareOrSoftware.value">
+          <label class="form-label">{{ isHardwareOrSoftware.type==='軟體' ? '功能項目' : '設備項目' }}</label>
           <input
             type="text"
             v-model="repairForm.repairItem"

@@ -2,12 +2,8 @@
 import { ref, computed, reactive, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useRepairStore } from '@/stores/repair'
-import { useAuthStore } from '@/stores/auth'
-import { PERMISSIONS, checkPermission } from '@/utils/permissions'
-
+import { formatDate, formatDateTime } from '@/utils/dateUtils'
 const router = useRouter()
-const authStore = useAuthStore()
-const hasFullPermission = computed(() => authStore.canModify(PERMISSIONS.REPAIR_MANAGEMENT));
 
 const repairStore = useRepairStore()
 // 搜尋表單
@@ -27,8 +23,8 @@ const statuses = ref([]);
 // 分頁設定
 const currentPage = ref(1)
 const pageSize = ref(10)
-const sortColumn = ref('')
-const sortDirection = ref('asc')
+const sortColumn = ref('repair_time')
+const sortDirection = ref('desc')
 
 // 載入狀態
 const isLoading = ref(true)
@@ -47,6 +43,10 @@ const endItem = computed(() => {
   const end = currentPage.value * pageSize.value
   return end > totalItems.value ? totalItems.value : end
 })
+const viewRepair = (id) => {
+  console.log('查看帳號詳情:', id)
+  router.push(`/view-repair/${id}`)
+}
 
 const visiblePages = computed(() => {
   const pages = []
@@ -154,7 +154,7 @@ onMounted(async ()=>{
     await repairStore.fetchCategories()
     await repairStore.fetchReasons()
     await repairStore.fetchStatuses()
-    await getRepairData(searchForm, "repair_time", "asc", pageSize.value, currentPage.value);
+    await getRepairData(searchForm, "repair_time", "desc", pageSize.value, currentPage.value);
 
     categories.value = repairStore.categories.data
     reasons.value = repairStore.reasons.data
@@ -193,21 +193,21 @@ onMounted(async ()=>{
         
         <div class="select-field">
           <select v-model="searchForm.repairCategoryId" class="search-select" :disabled="isLoading">
-            <option value="">全部</option>
+            <option value="">全部報修類別</option>
             <option v-for="category in categories" :key="category.id" :value="category.id">{{ category.name }}</option>
           </select>
         </div>
         
         <div class="select-field">
           <select v-model="searchForm.repairReasonId" class="search-select" :disabled="isLoading">
-            <option value="">全部</option>
+            <option value="">全部報修原因</option>
             <option v-for="reason in reasons" :key="reason.id" :value="reason.id">{{ reason.name }}</option>
           </select>
         </div>
         
         <div class="select-field">
           <select v-model="searchForm.repairStatusId" class="search-select" :disabled="isLoading">
-            <option value="">全部</option>
+            <option value="">全部報修狀態</option>
             <option v-for="status in statuses" :key="status.id" :value="status.id">{{ status.name }}</option>
           </select>
         </div>
@@ -252,7 +252,7 @@ onMounted(async ()=>{
           </select>
         </div>
         
-        <router-link class="new-repair-btn" to="/create-repair" :class="{ disabled: isLoading }" v-if="hasFullPermission">
+        <router-link class="new-repair-btn" to="/create-repair" :class="{ disabled: isLoading }">
           新增報修
         </router-link>
       </div>
@@ -262,61 +262,66 @@ onMounted(async ()=>{
         <table class="data-table">
           <thead>
             <tr>
-              <th class="sortable" @click="!isLoading && sortBy('id')">
+              <th>
                 項次 
-                <span class="sort-icon" :class="{ 
-                  'sort-asc': sortColumn === 'id' && sortDirection === 'asc',
-                  'sort-desc': sortColumn === 'id' && sortDirection === 'desc'
-                }">⇅</span>
               </th>
               <th class="sortable" @click="!isLoading && sortBy('title')">
                 案件標題 
-                <span class="sort-icon" :class="{ 
-                  'sort-asc': sortColumn === 'title' && sortDirection === 'asc',
-                  'sort-desc': sortColumn === 'title' && sortDirection === 'desc'
-                }">⇅</span>
+                <span class="sort-icon" v-if="sortColumn === 'title'">
+                  <span v-if="sortDirection === 'asc'">↑</span>
+                  <span v-else>↓</span>
+                </span>
+                <span class="sort-icon neutral" v-else>⇅</span>
               </th>
               <th class="sortable" @click="!isLoading && sortBy('repair_category_id')">
                 故障類別 
-                <span class="sort-icon" :class="{ 
-                  'sort-asc': sortColumn === 'repair_category_id' && sortDirection === 'asc',
-                  'sort-desc': sortColumn === 'repair_category_id' && sortDirection === 'desc'
-                }">⇅</span>
+                <span class="sort-icon" v-if="sortColumn === 'repair_category_id'">
+                  <span v-if="sortDirection === 'asc'">↑</span>
+                  <span v-else>↓</span>
+                </span>
+                <span class="sort-icon neutral" v-else>⇅</span>
               </th>
               <th class="sortable" @click="!isLoading && sortBy('repair_reason_id')">
                 故障原因 
-                <span class="sort-icon" :class="{ 
-                  'sort-asc': sortColumn === 'repair_reason_id' && sortDirection === 'asc',
-                  'sort-desc': sortColumn === 'repair_reason_id' && sortDirection === 'desc'
-                }">⇅</span>
+                <span class="sort-icon" v-if="sortColumn === 'repair_reason_id'">
+                  <span v-if="sortDirection === 'asc'">↑</span>
+                  <span v-else>↓</span>
+                </span>
+                <span class="sort-icon neutral" v-else>⇅</span>
               </th>
               <th class="sortable" @click="!isLoading && sortBy('user_id')">
                 報修人員 
-                <span class="sort-icon" :class="{ 
-                  'sort-asc': sortColumn === 'user_id' && sortDirection === 'asc',
-                  'sort-desc': sortColumn === 'user_id' && sortDirection === 'desc'
-                }">⇅</span>
+                <span class="sort-icon" v-if="sortColumn === 'user_id'">
+                  <span v-if="sortDirection === 'asc'">↑</span>
+                  <span v-else>↓</span>
+                </span>
+                <span class="sort-icon neutral" v-else>⇅</span>
               </th>
               <th class="sortable" @click="!isLoading && sortBy('repair_time')">
                 報修時間 
-                <span class="sort-icon" :class="{ 
-                  'sort-asc': sortColumn === 'repair_time' && sortDirection === 'asc',
-                  'sort-desc': sortColumn === 'repair_time' && sortDirection === 'desc'
-                }">⇅</span>
+                <span class="sort-icon" v-if="sortColumn === 'repair_time'">
+                  <span v-if="sortDirection === 'asc'">↑</span>
+                  <span v-else>↓</span>
+                </span>
+                <span class="sort-icon neutral" v-else>⇅</span>
               </th>
               <th class="sortable" @click="!isLoading && sortBy('repair_status_id')">
                 處理狀態 
-                <span class="sort-icon" :class="{ 
-                  'sort-asc': sortColumn === 'repair_status_id' && sortDirection === 'asc',
-                  'sort-desc': sortColumn === 'repair_status_id' && sortDirection === 'desc'
-                }">⇅</span>
+                <span class="sort-icon" v-if="sortColumn === 'repair_status_id'">
+                  <span v-if="sortDirection === 'asc'">↑</span>
+                  <span v-else>↓</span>
+                </span>
+                <span class="sort-icon neutral" v-else>⇅</span>
+              </th>
+              <th >
+                操作 
               </th>
             </tr>
           </thead>
           <tbody>
             <!-- Loading 狀態 -->
             <tr v-if="isLoading" class="loading-row">
-              <td colspan="7" class="loading-cell">
+              <td colspan="8" class="loading-cell">
                 <div class="loading-container">
                   <div class="loading-spinner large">⟳</div>
                   <div class="loading-text">資料載入中...</div>
@@ -326,7 +331,7 @@ onMounted(async ()=>{
             
             <!-- 搜尋中狀態 -->
             <tr v-else-if="isSearching" class="loading-row">
-              <td colspan="7" class="loading-cell">
+              <td colspan="8" class="loading-cell">
                 <div class="loading-container">
                   <div class="loading-spinner large">⟳</div>
                   <div class="loading-text">搜尋中...</div>
@@ -335,19 +340,28 @@ onMounted(async ()=>{
             </tr>
             
             <!-- 正常資料顯示 -->
-            <tr v-else v-for="item in repairData.data" :key="item.id" class="table-row">
-              <td>{{ item.id }}</td>
+            <tr v-else v-for="(item, index) in repairData.data" :key="item.id" class="table-row">
+              <td>{{ index + 1 }}</td>
               <td>{{ item.title }}</td>
               <td>{{ item.repair_category }}</td>
               <td>{{ item.repair_reason }}</td>
               <td>{{ item.repair_name }}</td>
-              <td>{{ item.repair_time }}</td>
+              <td>{{ formatDateTime(item.repair_time) }}</td>
               <td>{{ item.repair_status }}</td>
+              <td>
+                <button 
+                    class="action-btn view-btn" 
+                    @click="viewRepair(item.id)"
+                    title="查看詳情"
+                  >
+                    👁️
+                  </button>
+              </td>
             </tr>
             
             <!-- 無資料狀態 -->
             <tr v-if="!isLoading && !isSearching && repairData.data.length === 0">
-              <td colspan="7" class="no-data">暫無資料</td>
+              <td colspan="8" class="no-data">暫無資料</td>
             </tr>
           </tbody>
         </table>
@@ -714,18 +728,13 @@ onMounted(async ()=>{
 
             .sort-icon {
               margin-left: 8px;
-              opacity: 0.7;
+              opacity: 1;
               transition: all 0.3s;
-
-              &.sort-asc {
-                opacity: 1;
-                color: #fff;
-              }
-
-              &.sort-desc {
-                opacity: 1;
-                color: #fff;
-                transform: rotate(180deg);
+              color: #fff;
+              font-size: 14px;
+              
+              &.neutral {
+                opacity: 0.5;
               }
             }
           }
@@ -753,6 +762,32 @@ onMounted(async ()=>{
           padding: 40px;
           color: #999;
           font-style: italic;
+        }
+        .action-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 14px;
+          transition: all 0.2s;
+          background: #f8f9fa;
+          color: #666;
+
+          &:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          }
+
+          &.view-btn {
+            &:hover {
+              background: #e3f2fd;
+              color: #1976d2;
+            }
+          }
         }
       }
     }
