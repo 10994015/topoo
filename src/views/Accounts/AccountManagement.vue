@@ -41,7 +41,7 @@ const enumStatus = {
 // 帳號狀態選項
 const accountStatuses = ref([
   { value: '', label: '全部狀態' },
-  { value: 'Open', label: '開放' },
+  { value: 'Open', label: '啟用' },
   { value: 'UnderReview', label: '未審核' },
   { value: 'ReviewFailed', label: '審核未通過' },
   { value: 'Invalid', label: '停用' },
@@ -256,7 +256,7 @@ const handleFileSelect = (event) => {
     ]
     
     if (!allowedTypes.includes(file.type)) {
-      alert('請選擇有效的 Excel 檔案 (.xlsx 或 .xls)')
+      alert('請選擇有效的 Excel 檔案 (.xlsx)')
       event.target.value = ''
       return
     }
@@ -634,7 +634,7 @@ onMounted(() => {
             <h4>📋 匯入說明</h4>
             <ul>
               <li>請使用提供的範本格式進行資料準備</li>
-              <li>支援檔案格式：.xlsx、.xls</li>
+              <li>支援檔案格式：.xlsx</li>
               <li>檔案大小限制：5MB</li>
               <li>請確保必填欄位已完整填寫</li>
             </ul>
@@ -653,7 +653,7 @@ onMounted(() => {
               <input
                 id="import-file-input"
                 type="file"
-                accept=".xlsx,.xls"
+                accept=".xlsx"
                 style="display: none"
                 @change="handleFileSelect"
               />

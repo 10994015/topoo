@@ -24,7 +24,8 @@ const handleLogin = async () => {
   
   if(result.success) {
     if(result.statusCode === 202) {
-      alert('首次登入需重設密碼！')
+      const message = result.data.firstLogin ? '首次登入需重設密碼！' : '密碼已過期，請重新設定密碼！';
+      alert(message)
       router.push(`/init-password/${result.data.changePwToken}`);
       return;
     }
@@ -149,7 +150,7 @@ const handleGoogleError = (error) => {
           text="使用Google 帳號登入"
           theme="filled_blue"
           size="large"
-          class="google-btn"
+          style="display:block;"
         >
           <template #default>
             <span class="google-icon">G</span>
@@ -370,7 +371,7 @@ const handleGoogleError = (error) => {
 
 .google-btn {
   width: 100%;
-  background: white;
+  background: #1a73e8;
   border: 2px solid #e5e7eb;
   border-radius: 50px;
   padding: 0.875rem;

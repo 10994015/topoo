@@ -1,3 +1,208 @@
+<script setup>
+import { ref, reactive, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { User, Lock, Eye, EyeOff } from 'lucide-vue-next'
+import { useAuthStore } from '@/stores/auth'
+import { GoogleSignInButton } from "vue3-google-signin"
+
+const router = useRouter()
+
+const formData = reactive({
+  credential: '',
+  password: '',
+  confirmPassword: '',
+  name: '',
+  email: ''
+})
+
+const errors = reactive({
+  credential: '',
+  password: '',
+  confirmPassword: '',
+  name: '',
+  email: ''
+})
+
+const showPassword = ref(false)
+const showConfirmPassword = ref(false)
+const isLoading = ref(false)
+
+// 密碼複雜度驗證
+const passwordValidation = computed(() => {
+  const password = formData.password
+  return {
+    length: password.length >= 8 && password.length <= 20,
+    hasNumber: /\d/.test(password),
+    hasUpper: /[A-Z]/.test(password),
+    hasLower: /[a-z]/.test(password),
+    hasSpecial: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
+  }
+})
+
+// 檢查密碼是否符合所有要求
+const isPasswordValid = computed(() => {
+  const validation = passwordValidation.value
+  return validation.length && 
+         validation.hasNumber && 
+         validation.hasUpper && 
+         validation.hasLower && 
+         validation.hasSpecial
+})
+
+const validateForm = () => {
+  // 清除之前的錯誤
+  Object.keys(errors).forEach(key => {
+    errors[key] = ''
+  })
+
+  let isValid = true
+
+  // 驗證帳號
+  if (!formData.credential.trim()) {
+    errors.credential = '請輸入帳號'
+    isValid = false
+  } else if (formData.credential.length < 3) {
+    errors.credential = '帳號至少需要3個字元'
+    isValid = false
+  }
+
+  // 驗證密碼
+  if (!formData.password) {
+    errors.password = '請輸入密碼'
+    isValid = false
+  } else if (!isPasswordValid.value) {
+    const validation = passwordValidation.value
+    let errorMessages = []
+    
+    if (!validation.length) {
+      errorMessages.push('長度需介於8至20字元之間')
+    }
+    if (!validation.hasNumber) {
+      errorMessages.push('必須包含至少一個數字')
+    }
+    if (!validation.hasUpper) {
+      errorMessages.push('必須包含至少一個大寫字母')
+    }
+    if (!validation.hasLower) {
+      errorMessages.push('必須包含至少一個小寫字母')
+    }
+    if (!validation.hasSpecial) {
+      errorMessages.push('必須包含至少一個特殊符號')
+    }
+    
+    errors.password = '密碼複雜度不符合要求：' + errorMessages.join('、')
+    isValid = false
+  }
+
+  // 驗證確認密碼
+  if (!formData.confirmPassword) {
+    errors.confirmPassword = '請輸入確認密碼'
+    isValid = false
+  } else if (formData.password !== formData.confirmPassword) {
+    errors.confirmPassword = '密碼不一致'
+    isValid = false
+  }
+
+  // 驗證姓名
+  if (!formData.name.trim()) {
+    errors.name = '請輸入使用者姓名'
+    isValid = false
+  }
+
+  // 驗證 Email
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!formData.email) {
+    errors.email = '請輸入E-mail信箱'
+    isValid = false
+  } else if (!emailRegex.test(formData.email)) {
+    errors.email = '請輸入有效的E-mail格式'
+    isValid = false
+  }
+
+  return isValid
+}
+
+const handleSubmit = async () => {
+  if (!validateForm()) {
+    return
+  }
+
+  isLoading.value = true
+
+  try {
+    console.log('註冊資料:', formData)
+
+    const result = await useAuthStore().register(formData)
+
+    console.log('註冊結果:', result)
+    
+    // 這裡添加註冊 API 調用
+    // const response = await registerAPI(formData)
+    
+    // 模擬 API 調用
+    if(result.success) {
+      console.log('註冊成功:', result.data)
+    //   goToLogin()
+    localStorage.setItem('registeredEmail', formData.email)
+    router.push('/email-verification')
+
+    } else {
+      throw new Error(result.message || '註冊失敗')
+
+    }
+    
+    // 註冊成功後導向登入頁
+    
+  } catch (error) {
+    console.error('註冊失敗:', error)
+    alert('註冊失敗，請重試')
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const handleGoogleLogin = () => {
+  console.log('Google 登入')
+  // 實作 Google 登入邏輯
+}
+
+const handleGoogleSuccess = async (response) => {
+  console.log("Google登入成功，收到credential:", response)
+  
+  try {
+    // 使用後端提供的API格式
+    const result = await useAuthStore().googleLogin(response.credential)
+    
+    if (result.success) {
+      if(result.statusCode === 202 && result.data.firstLogin) {
+        alert('首次登入需重設密碼！')
+        router.push(`/init-password/${result.data.changePwToken}`);
+        return;
+      }
+      console.log('Google登入成功');
+      router.push('/')
+    } else {
+      console.error('Google登入失敗', result.error);
+      alert(result.error || 'Google登入失敗')
+    }
+  } catch (error) {
+    console.error('Google登入處理失敗:', error)
+    alert('Google登入失敗，請稍後再試')
+  }
+}
+
+const handleGoogleError = (error) => {
+  console.error("Google登入錯誤:", error)
+  alert('Google登入失敗，請稍後再試')
+}
+
+const goToLogin = () => {
+  // 使用 router 導航到登入頁
+  router.push('/login')
+  console.log('導向登入頁')
+}
+</script>
+
 <template>
   <div class="register-container">
     <div class="register-card">
@@ -40,6 +245,29 @@
             </button>
           </div>
           <div v-if="errors.password" class="error-message">{{ errors.password }}</div>
+          <!-- 密碼強度提示 -->
+          <div class="password-requirements" v-if="formData.password">
+            <div class="requirement-item" :class="{ 'valid': passwordValidation.length }">
+              <span class="requirement-dot"></span>
+              長度 8-20 字元
+            </div>
+            <div class="requirement-item" :class="{ 'valid': passwordValidation.hasNumber }">
+              <span class="requirement-dot"></span>
+              包含數字
+            </div>
+            <div class="requirement-item" :class="{ 'valid': passwordValidation.hasUpper }">
+              <span class="requirement-dot"></span>
+              包含大寫字母
+            </div>
+            <div class="requirement-item" :class="{ 'valid': passwordValidation.hasLower }">
+              <span class="requirement-dot"></span>
+              包含小寫字母
+            </div>
+            <div class="requirement-item" :class="{ 'valid': passwordValidation.hasSpecial }">
+              <span class="requirement-dot"></span>
+              包含特殊符號 (!@#$%^&*等)
+            </div>
+          </div>
         </div>
 
         <!-- 確認密碼 -->
@@ -112,182 +340,25 @@
         <div class="divider">
           <span>or</span>
         </div>
-
-        <!-- Google 登入按鈕 -->
-        <button 
-          type="button" 
-          class="google-button"
-          @click="handleGoogleLogin"
+        <GoogleSignInButton 
+          style="display:block"
+          @success="handleGoogleSuccess"
+          @error="handleGoogleError"
+          text="使用Google 帳號登入"
+          theme="filled_blue"
+          size="large"
+          class="google-btn"
         >
-          <div class="google-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24">
-              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-            </svg>
-          </div>
-          使用Google 帳號登入
-        </button>
+          <template #default>
+            <span class="google-icon">G</span>
+            使用Google 帳號登入
+          </template>
+        </GoogleSignInButton>
+        <!-- Google 登入按鈕 -->
       </form>
     </div>
   </div>
 </template>
-
-<script>
-import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
-import { User, Lock, Eye, EyeOff } from 'lucide-vue-next'
-import { useAuthStore } from '@/stores/auth'
-
-export default {
-  name: 'RegisterPage',
-  components: {
-    User,
-    Lock, 
-    Eye,
-    EyeOff
-  },
-  setup() {
-    const router = useRouter()
-    
-    const formData = reactive({
-      credential: '',
-      password: '',
-      confirmPassword: '',
-      name: '',
-      email: ''
-    })
-
-    const errors = reactive({
-      credential: '',
-      password: '',
-      confirmPassword: '',
-      name: '',
-      email: ''
-    })
-
-    const showPassword = ref(false)
-    const showConfirmPassword = ref(false)
-    const isLoading = ref(false)
-
-    const validateForm = () => {
-      // 清除之前的錯誤
-      Object.keys(errors).forEach(key => {
-        errors[key] = ''
-      })
-
-      let isValid = true
-
-      // 驗證帳號
-      if (!formData.credential.trim()) {
-        errors.credential = '請輸入帳號'
-        isValid = false
-      } else if (formData.credential.length < 3) {
-        errors.credential = '帳號至少需要3個字元'
-        isValid = false
-      }
-
-      // 驗證密碼
-      if (!formData.password) {
-        errors.password = '請輸入密碼'
-        isValid = false
-      } else if (formData.password.length < 6) {
-        errors.password = '密碼至少需要6個字元'
-        isValid = false
-      }
-
-      // 驗證確認密碼
-      if (!formData.confirmPassword) {
-        errors.confirmPassword = '請輸入確認密碼'
-        isValid = false
-      } else if (formData.password !== formData.confirmPassword) {
-        errors.confirmPassword = '密碼不一致'
-        isValid = false
-      }
-
-      // 驗證姓名
-      if (!formData.name.trim()) {
-        errors.name = '請輸入使用者姓名'
-        isValid = false
-      }
-
-      // 驗證 Email
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      if (!formData.email) {
-        errors.email = '請輸入E-mail信箱'
-        isValid = false
-      } else if (!emailRegex.test(formData.email)) {
-        errors.email = '請輸入有效的E-mail格式'
-        isValid = false
-      }
-
-      return isValid
-    }
-
-    const handleSubmit = async () => {
-      if (!validateForm()) {
-        return
-      }
-
-      isLoading.value = true
-
-      try {
-        console.log('註冊資料:', formData)
-
-        const result = await useAuthStore().register(formData)
-
-        console.log('註冊結果:', result)
-        
-        // 這裡添加註冊 API 調用
-        // const response = await registerAPI(formData)
-        
-        // 模擬 API 調用
-        if(result.success) {
-          console.log('註冊成功:', result.data)
-        //   goToLogin()
-        localStorage.setItem('registeredEmail', formData.email)
-        router.push('/email-verification')
-
-        } else {
-          throw new Error(result.message || '註冊失敗')
-
-        }
-        
-        // 註冊成功後導向登入頁
-        
-      } catch (error) {
-        console.error('註冊失敗:', error)
-        alert('註冊失敗，請重試')
-      } finally {
-        isLoading.value = false
-      }
-    }
-
-    const handleGoogleLogin = () => {
-      console.log('Google 登入')
-      // 實作 Google 登入邏輯
-    }
-
-    const goToLogin = () => {
-      // 使用 router 導航到登入頁
-      router.push('/login')
-      console.log('導向登入頁')
-    }
-
-    return {
-      formData,
-      errors,
-      showPassword,
-      showConfirmPassword,
-      isLoading,
-      handleSubmit,
-      handleGoogleLogin,
-      goToLogin
-    }
-  }
-}
-</script>
 
 <style lang="scss" scoped>
 .register-container {
@@ -379,6 +450,44 @@ export default {
   &:hover {
     color: #6b7280;
   }
+}
+
+// 密碼強度提示樣式
+.password-requirements {
+  margin-top: 8px;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.requirement-item {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 4px;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+  
+  &.valid {
+    color: #16a34a;
+    
+    .requirement-dot {
+      background: #16a34a;
+    }
+  }
+}
+
+.requirement-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  margin-right: 8px;
+  transition: background-color 0.3s ease;
 }
 
 .register-button {
@@ -475,6 +584,7 @@ export default {
   color: #ef4444;
   font-size: 14px;
   margin-top: 5px;
+  line-height: 1.4;
 }
 
 @media (max-width: 480px) {

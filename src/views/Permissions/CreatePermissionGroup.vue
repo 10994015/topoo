@@ -108,18 +108,23 @@ const handleSave = async () => {
   loading.save = true
   try {
     if (isCreateMode.value) {
-      await permissionStore.createPermissionGroup(formData)
-      console.log('創建成功')
-      alert('創建成功！')
+      const response = await permissionStore.createPermissionGroup(formData)
+      console.log(response)
+      if(response.status === 400){
+        alert(response.data.message)
+        return
+      }
+      alert(response.message)
       router.push('/settings/permission-management') // 返回列表頁
     } else {
-      await permissionStore.updatePermissionGroup(permissionId.value, formData)
-      console.log(formData)
+      const response = await permissionStore.updatePermissionGroup(permissionId.value, formData)
+      console.log(response)
       alert('更新成功！')
       currentMode.value = 'view'
     }
   } catch (error) {
-    console.error('儲存失敗:', error)
+    console.log('儲存失敗:', error)
+    alert(error.response?.data?.message || '儲存失敗，請稍後重試')
   } finally {
     loading.save = false
   }

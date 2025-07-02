@@ -342,7 +342,7 @@ const editMail = (item) => {
   if (item.id == mailId.value) {
     return // 已經在編輯這個信箱
   }
-  router.push(`/mail/edit/${item.id}`)
+  router.push(`/settings/parameter/mail-management/edit/${item.id}`)
 }
 
 // 分頁跳轉

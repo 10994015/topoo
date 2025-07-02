@@ -37,7 +37,7 @@ const errors = reactive({})
 // 狀態選項
 const statusOptions = [
   { value: 'Open', label: '啟用' },
-  { value: 'Leave', label: '休假' },
+  { value: 'Leave', label: '請假' },
   { value: 'Inconvenient', label: '不便' }
 ]
 
@@ -234,7 +234,7 @@ onMounted(() => {
             <td class="value-cell">
               <template v-if="!isEditing">
                 <span class="status-badge" :class="userProfile.status">
-                  {{ userProfile.status }}
+                  {{ statusOptions.find(option => option.value === userProfile.status)?.label ||  userProfile.status }}
                 </span>
               </template>
               <template v-else>

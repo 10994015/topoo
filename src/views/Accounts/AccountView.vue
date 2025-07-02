@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAccountStore } from '@/stores/account'
 import { useAuthStore } from '@/stores/auth'
 import { PERMISSIONS, checkPermission } from '@/utils/permissions'
+import { formatDate, formatDateTime } from '@/utils/dateUtils'
 
 const authStore = useAuthStore()
 const route = useRoute()
@@ -155,12 +156,6 @@ const handleBack = () => {
   router.push('/settings/account-management')
 }
 
-// 格式化日期
-const formatDate = (dateString) => {
-  if (!dateString) return '-'
-  return dateString
-}
-
 onMounted(() => {
   loadAccountData()
 })
@@ -307,14 +302,14 @@ onMounted(() => {
           <div class="detail-row">
             <div class="detail-label">帳號建立日期</div>
             <div class="detail-value">
-              <span class="readonly-field">{{ formatDate(accountData.created_at) }}</span>
+              <span class="readonly-field">{{ formatDateTime(accountData.created_at) }}</span>
             </div>
           </div>
           
           <div class="detail-row">
             <div class="detail-label">帳號停用日期</div>
             <div class="detail-value">
-              <span class="readonly-field">{{ formatDate(accountData.deleted_at) || '-' }}</span>
+              <span class="readonly-field">{{ formatDateTime(accountData.deleted_at) || '-' }}</span>
             </div>
           </div>
 
