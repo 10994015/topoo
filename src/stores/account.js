@@ -23,8 +23,8 @@ export const useAccountStore = defineStore('account', () => {
             const params = {};
             if (searchForm.text) params.q = searchForm.text;
             if (searchForm.status) params.status = searchForm.status;
-            if (searchForm.startAt) params.startAt = searchForm.startAt;
-            if (searchForm.endAt) params.endAt = searchForm.endAt;
+            if (searchForm.startAt) params.startAt =new Date(searchForm.startAt).toISOString(); // 確保日期格式正確
+            if (searchForm.endAt) params.endAt = new Date(searchForm.endAt).toISOString(); // 確保日期格式正確
             params.pageSize = searchForm.pageSize;
             params.page = searchForm.page;
             params.sortBy = searchForm.sortField; // 排序欄位

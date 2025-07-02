@@ -213,7 +213,7 @@ onMounted(async () => {
 
               <div class="info-group">
                 <label class="info-label">承辦人員</label>
-                <div class="info-value">{{ repairDetail.assign_name }}</div>
+                <div class="info-value">{{ repairDetail.assign_user_nick_name || '-' }}</div>
               </div>
             </div>
           </div>
@@ -256,6 +256,9 @@ onMounted(async () => {
               <button class="download-btn">
                 <span class="download-icon">⬇</span>
               </button>
+              <button class="view-btn">
+                <span class="view-icon">👁</span>
+              </button>
             </div>
           </div>
         </div>
@@ -270,48 +273,56 @@ onMounted(async () => {
 
     <!-- 詳細進度彈跳視窗 -->
     <div v-if="showProgressModal" class="modal-overlay" @click="closeProgressModal">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h3 class="modal-title">案件處理進度</h3>
-          <button @click="closeProgressModal" class="close-btn">✕</button>
-        </div>
-        
-        <div class="modal-body">
-          <div class="progress-timeline">
-            <div 
-              v-for="(record, index) in mockProgressData" 
-              :key="index"
-              class="timeline-item"
-              :class="{ 
-                'completed': record.repair_status === '已完成',
-                'processing': record.repair_status === '承辦中',
-                'assigned': record.repair_status === '指派中'
-              }"
-            >
-              <div class="timeline-icon">
-                <span v-if="record.repair_status === '已完成'">✓</span>
-                <span v-else-if="record.repair_status === '承辦中'">⚡</span>
-                <span v-else>⏳</span>
-              </div>
-              
-              <div class="timeline-content">
-                <div class="timeline-header">
-                  <span class="timeline-time">{{ formatDateTime(record.created_at) }}</span>
-                  <span class="timeline-status">{{ record.repair_status }}</span>
-                </div>
-                
-                <div class="timeline-user">{{ record.repair_record_name }} 回覆</div>
-                
-                <div v-if="record.content" class="timeline-comment">
-                  {{ record.content }}
-                </div>
-              </div>
+        <div class="modal-content" @click.stop>
+            <div class="modal-header">
+            <h3 class="modal-title">案件處理進度</h3>
+            <button @click="closeProgressModal" class="close-btn">✕</button>
             </div>
-          </div>
+            
+            <div class="modal-body">
+            <!-- 有資料時顯示時間軸 -->
+            <div v-if="mockProgressData && mockProgressData.length > 0" class="progress-timeline">
+                <div 
+                v-for="(record, index) in mockProgressData" 
+                :key="index"
+                class="timeline-item"
+                :class="{ 
+                    'completed': record.repair_status === '已完成',
+                    'processing': record.repair_status === '承辦中',
+                    'assigned': record.repair_status === '指派中'
+                }"
+                >
+                <div class="timeline-icon">
+                    <span v-if="record.repair_status === '已完成'">✓</span>
+                    <span v-else-if="record.repair_status === '承辦中'">⚡</span>
+                    <span v-else>⏳</span>
+                </div>
+                
+                <div class="timeline-content">
+                    <div class="timeline-header">
+                    <span class="timeline-time">{{ formatDateTime(record.created_at) }}</span>
+                    <span class="timeline-status">{{ record.repair_status }}</span>
+                    </div>
+                    
+                    <div class="timeline-user">{{ record.repair_record_name }} 回覆</div>
+                    
+                    <div v-if="record.content" class="timeline-comment">
+                    {{ record.content }}
+                    </div>
+                </div>
+                </div>
+            </div>
+            
+            <!-- 沒有資料時顯示提示 -->
+            <div v-else class="empty-state">
+                <div class="empty-icon">📋</div>
+                <div class="empty-title">尚無進度資料</div>
+                <div class="empty-description">目前還沒有任何處理進度記錄</div>
+            </div>
+            </div>
         </div>
-      </div>
+        </div>
     </div>
-  </div>
 </template>
 
 <style lang="scss" scoped>
@@ -585,25 +596,50 @@ onMounted(async () => {
     }
   }
 
-  .download-btn {
-    background: #6c5ce7;
-    color: white;
-    border: none;
-    padding: 8px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.3s;
-    font-size: 16px;
+  /* 下載按鈕 - 藍紫色 */
+.download-btn {
+  background: #6c5ce7;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 16px;
 
-    &:hover {
-      background: #5b4bcf;
-      transform: scale(1.05);
-    }
-
-    .download-icon {
-      display: block;
-    }
+  &:hover {
+    background: #5b4bcf;
+    transform: scale(1.05);
   }
+
+  .download-icon {
+    display: block;
+  }
+}
+
+/* 查看按鈕 - 綠色 */
+.view-btn {
+  background: #00b894;
+  margin-left: 10px;
+  color: white;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 16px;
+
+  &:hover {
+    background: #00a085;
+    transform: scale(1.05);
+  }
+
+  .view-icon {
+    display: block;
+  }
+}
 }
 
 // 彈跳視窗樣式
@@ -674,7 +710,30 @@ onMounted(async () => {
   flex-direction: column;
   gap: 20px;
 }
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+}
 
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.empty-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.empty-description {
+  font-size: 14px;
+  color: #999;
+  line-height: 1.5;
+}
 .timeline-item {
   display: flex;
   gap: 15px;

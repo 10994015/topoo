@@ -64,8 +64,8 @@ export const useRepairStore = defineStore('repair', () => {
             if (searchForm.repairCategoryId) params.repairCategoryId = searchForm.repairCategoryId;
             if (searchForm.repairStatusId) params.repairStatusId = searchForm.repairStatusId;
             if (searchForm.repairReasonId) params.repairReasonId = searchForm.repairReasonId;
-            if (searchForm.startAt) params.startAt = searchForm.startAt;
-            if (searchForm.endAt) params.endAt = searchForm.endAt;
+            if (searchForm.startAt) params.startAt = new Date(searchForm.startAt).toISOString();
+            if (searchForm.endAt) params.endAt = new Date(searchForm.endAt).toISOString();
             
             params.sortBy = column; // 排序欄位
             params.sortOrder = sortDirection.toUpperCase(); // 排序方向
@@ -83,6 +83,12 @@ export const useRepairStore = defineStore('repair', () => {
 
     const createRepair = async (repairData) => {
         console.log('repairData 物件類型:', repairData.constructor.name);
+        
+        // repairData.repairTime +8小時
+        if (!repairData.repairTime) {
+            console.error('repairTime 為空，請提供有效的時間');
+            throw new Error('repairTime 為空，請提供有效的時間');
+        }
         
         repairData.repairTime = new Date(repairData.repairTime).toISOString(); // 確保 repairTime 有值
         try {

@@ -2,6 +2,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import axiosClient from '../axios' // 引入 axios 實例
+import { formatDate, formatDateTime } from '@/utils/dateUtils'
 
 export const useAuthStore = defineStore('auth', () => {
     const user = ref(null);
@@ -99,6 +100,21 @@ export const useAuthStore = defineStore('auth', () => {
                             timestamp: timestamp
                         };
                     case 401:
+                        return { 
+                            success: false, 
+                            error: message || '帳號或密碼錯誤',
+                            statusCode: statusCode,
+                            backendStatusCode: backendStatusCode
+                        };
+                    case 403:
+                        if(responseData.data.status=='Lock'){
+                            return { 
+                                success: false, 
+                                error: message + '！直到'+ formatDateTime(responseData.data.lockedUntil) +'解除鎖定'  || '帳號或密碼錯誤',
+                                statusCode: statusCode,
+                                backendStatusCode: backendStatusCode
+                            };
+                        }
                         return { 
                             success: false, 
                             error: message || '帳號或密碼錯誤',

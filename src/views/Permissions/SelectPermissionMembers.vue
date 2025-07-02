@@ -29,7 +29,7 @@ const groupInfo = ref({
   memberCount: 1,
   createdTime: '2025/05/01 10:30'
 })
-
+const tempCheckedUsers = ref([]) // 用於暫存已選擇的用戶
 // 搜尋表單
 const searchForm = reactive({
   keyword: ''
@@ -37,7 +37,7 @@ const searchForm = reactive({
 
 // 分頁設定
 const currentPage = ref(1)
-const pageSize = ref(10)
+const pageSize = ref(25)
 const totalItems = ref(0)
 
 // 使用者資料
@@ -191,17 +191,19 @@ const handleSelectAll = (checked) => {
   users.value.forEach(user => {
     if (!user.isAdmin) {
       user.isSelected = checked
+      // tempCheckedUsers.value = checked ? users.value.filter(u => !u.isAdmin).map(u => u.id) : []
     }
   })
+  
 }
 
 // 單選
 const handleUserSelect = (user, checked) => {
   if (!user.isAdmin) {
     user.isSelected = checked
+    // tempCheckedUsers.value = users.value.filter(u => u.isSelected).map(u => u.id)
   }
   console.log(users.value);
-  
 }
 
 // 儲存
@@ -319,7 +321,7 @@ onMounted(async () => {
           </div>
           <div class="info-item">
             <span class="info-label">新增時間</span>
-            <span class="info-value">{{ groupInfo.createdTime }}</span>
+            <span class="info-value">{{ formatDateTime(groupInfo.createdTime) }}</span>
           </div>
         </div>
       </div>
@@ -354,8 +356,8 @@ onMounted(async () => {
             @change="handlePageSizeChange()" 
             class="page-size-select"
           >
-            <option value="1">1筆/頁</option>
             <option value="10">10筆/頁</option>
+            <option value="25">25筆/頁</option>
             <option value="20">20筆/頁</option>
             <option value="50">50筆/頁</option>
             <option value="999999999">全部顯示</option>
