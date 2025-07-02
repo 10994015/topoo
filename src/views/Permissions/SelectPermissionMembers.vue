@@ -214,8 +214,12 @@ const handleSave = async () => {
   }
   loading.save = true
   
-  const patchUsers = users.value.filter(user => user.isSelected).map(user => (user.id))
+  const patchUsers = users.value.map(user => ({
+    user_id: user.id,
+    is_in_role: user.isSelected,
+  }))
   console.log('成員:', patchUsers)
+
   
   try {
     // 模擬 API 調用

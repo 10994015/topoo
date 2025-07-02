@@ -23,7 +23,7 @@ const handleLogin = async () => {
   console.log(result);
   
   if(result.success) {
-    if(result.statusCode === 202 && result.data.firstLogin) {
+    if(result.statusCode === 202) {
       alert('首次登入需重設密碼！')
       router.push(`/init-password/${result.data.changePwToken}`);
       return;

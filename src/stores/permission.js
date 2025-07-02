@@ -176,10 +176,10 @@ export const usePermissionStore = defineStore('permission', () => {
         }
     }
     // 為權限群組添加成員
-    const updateMembersToPermission = async (id, userIds) => {
+    const updateMembersToPermission = async (id, patchUsers) => {
         try {
             const response = await axiosClient.patch(`/backend/auth/role/${id}/user`, {
-                userIds
+                updateRoleUsers: patchUsers
             });
             console.log(response.data);
             return response.data;

@@ -17,11 +17,24 @@ const showSuccessModal = ref(false)
 const token = ref('')
 const isValidToken = ref(true)
 
+// 密碼顯示狀態
+const showPassword = ref(false)
+const showConfirmPassword = ref(false)
+
 // 密碼驗證規則
 const validatePassword = (password) => {
   // 密碼應包含數字、英文大寫、英文小寫、特殊符號，密碼字串長度8~20碼
   const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,20}$/
   return passwordRegex.test(password)
+}
+
+// 切換密碼顯示狀態
+const togglePasswordVisibility = () => {
+  showPassword.value = !showPassword.value
+}
+
+const toggleConfirmPasswordVisibility = () => {
+  showConfirmPassword.value = !showConfirmPassword.value
 }
 
 // 檢查 token
@@ -132,26 +145,56 @@ const goToLogin = () => {
           
           <form @submit.prevent="handleSubmit" class="form">
             <div class="form-group">
-              <input
-                type="password"
-                v-model="password"
-                placeholder="請輸入新密碼"
-                class="form-input"
-                :class="{ error: passwordError }"
-                required
-              />
+              <div class="password-input-container">
+                <input
+                  :type="showPassword ? 'text' : 'password'"
+                  v-model="password"
+                  placeholder="請輸入新密碼"
+                  class="form-input"
+                  :class="{ error: passwordError }"
+                  required
+                />
+                <button
+                  type="button"
+                  class="eye-button"
+                  @click="togglePasswordVisibility"
+                >
+                  <svg v-if="showPassword" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M14.12 14.12C13.8454 14.4148 13.5141 14.6512 13.1462 14.8151C12.7782 14.9790 12.3809 15.0678 11.9784 15.0744C11.5759 15.0810 11.1753 15.0054 10.8016 14.8528C10.4279 14.7002 10.0887 14.4732 9.80385 14.1884C9.51897 13.9035 9.29195 13.5644 9.13937 13.1907C8.98679 12.8169 8.91123 12.4163 8.91783 12.0138C8.92443 11.6113 9.01306 11.214 9.17698 10.8461C9.34089 10.4781 9.57725 10.1468 9.872 9.872M17.94 17.94C16.2306 19.243 14.1491 19.9649 12 20C5 20 1 12 1 12C2.24389 9.68192 3.96914 7.65663 6.06 6.06M9.9 4.24C10.5883 4.0789 11.2931 3.99836 12 4C19 4 23 12 23 12C22.393 13.1356 21.6691 14.2048 20.84 15.19M14.12 14.12L9.9 4.24M14.12 14.12L20.84 15.19M9.9 4.24L6.06 6.06M6.06 6.06L1 1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                  </svg>
+                </button>
+              </div>
               <span v-if="passwordError" class="error-message">{{ passwordError }}</span>
             </div>
 
             <div class="form-group">
-              <input
-                type="password"
-                v-model="confirmPassword"
-                placeholder="請再次輸入密碼"
-                class="form-input"
-                :class="{ error: confirmPasswordError }"
-                required
-              />
+              <div class="password-input-container">
+                <input
+                  :type="showConfirmPassword ? 'text' : 'password'"
+                  v-model="confirmPassword"
+                  placeholder="請再次輸入密碼"
+                  class="form-input"
+                  :class="{ error: confirmPasswordError }"
+                  required
+                />
+                <button
+                  type="button"
+                  class="eye-button"
+                  @click="toggleConfirmPasswordVisibility"
+                >
+                  <svg v-if="showConfirmPassword" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M14.12 14.12C13.8454 14.4148 13.5141 14.6512 13.1462 14.8151C12.7782 14.9790 12.3809 15.0678 11.9784 15.0744C11.5759 15.0810 11.1753 15.0054 10.8016 14.8528C10.4279 14.7002 10.0887 14.4732 9.80385 14.1884C9.51897 13.9035 9.29195 13.5644 9.13937 13.1907C8.98679 12.8169 8.91123 12.4163 8.91783 12.0138C8.92443 11.6113 9.01306 11.214 9.17698 10.8461C9.34089 10.4781 9.57725 10.1468 9.872 9.872M17.94 17.94C16.2306 19.243 14.1491 19.9649 12 20C5 20 1 12 1 12C2.24389 9.68192 3.96914 7.65663 6.06 6.06M9.9 4.24C10.5883 4.0789 11.2931 3.99836 12 4C19 4 23 12 23 12C22.393 13.1356 21.6691 14.2048 20.84 15.19M14.12 14.12L9.9 4.24M14.12 14.12L20.84 15.19M9.9 4.24L6.06 6.06M6.06 6.06L1 1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                  </svg>
+                </button>
+              </div>
               <span v-if="confirmPasswordError" class="error-message">{{ confirmPasswordError }}</span>
             </div>
 
@@ -323,29 +366,62 @@ const goToLogin = () => {
       .form-group {
         margin-bottom: 20px;
 
-        .form-input {
-          width: 100%;
-          padding: 16px 20px;
-          border: 2px solid #e1e8ed;
-          border-radius: 12px;
-          font-size: 16px;
-          transition: all 0.3s ease;
-          background: #fafafa;
+        .password-input-container {
+          position: relative;
+          display: flex;
+          align-items: center;
 
-          &:focus {
-            outline: none;
-            border-color: #6c5ce7;
-            background: white;
-            box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.1);
+          .form-input {
+            width: 100%;
+            padding: 16px 50px 16px 20px;
+            border: 2px solid #e1e8ed;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #fafafa;
+
+            &:focus {
+              outline: none;
+              border-color: #6c5ce7;
+              background: white;
+              box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.1);
+            }
+
+            &.error {
+              border-color: #e74c3c;
+              background: #fdf2f2;
+            }
+
+            &::placeholder {
+              color: #999;
+            }
           }
 
-          &.error {
-            border-color: #e74c3c;
-            background: #fdf2f2;
-          }
+          .eye-button {
+            position: absolute;
+            right: 15px;
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            padding: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.3s ease;
 
-          &::placeholder {
-            color: #999;
+            &:hover {
+              color: #6c5ce7;
+            }
+
+            &:focus {
+              outline: none;
+            }
+
+            svg {
+              width: 20px;
+              height: 20px;
+            }
           }
         }
 
