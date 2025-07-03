@@ -162,7 +162,8 @@ const loadData = async () => {
     sortField: sortConfig.value.field,
     sortOrder: sortConfig.value.order,
     page: currentPage.value,
-    pageSize: pageSize.value
+    pageSize: pageSize.value,
+    provider: searchForm.loginSource
   };
   console.log(params);
   

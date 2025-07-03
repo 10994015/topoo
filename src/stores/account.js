@@ -16,13 +16,15 @@ export const useAccountStore = defineStore('account', () => {
         pageSize:10,
         page:1,
         sortField: 'created_at',
-        sortOrder: 'ASC'
+        sortOrder: 'ASC',
+        provider:'',
     }) => {
         try {
             console.log(searchForm);
             const params = {};
             if (searchForm.text) params.q = searchForm.text;
             if (searchForm.status) params.status = searchForm.status;
+            if (searchForm.provider) params.provider = searchForm.provider; // 新增 provider 條件
             if (searchForm.startAt) params.startAt =new Date(searchForm.startAt).toISOString(); // 確保日期格式正確
             if (searchForm.endAt) params.endAt = new Date(searchForm.endAt).toISOString(); // 確保日期格式正確
             params.pageSize = searchForm.pageSize;
