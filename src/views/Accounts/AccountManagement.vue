@@ -275,7 +275,7 @@ const handleFileSelect = (event) => {
 const resetImportForm = () => {
   importFile.value = null
   importProgress.value = 0
-  importResult.value = null
+  importResult.value = null  // 清除匯入結果
   isImporting.value = false
   
   const fileInput = document.getElementById('import-file-input')
@@ -283,6 +283,7 @@ const resetImportForm = () => {
     fileInput.value = ''
   }
 }
+
 
 const batchImport = async () => {
   showImportModal.value = true
@@ -313,17 +314,28 @@ const confirmImport = async () => {
     console.log(result);
 
     let message = '';
-    if(result.data.statusCode===200){
-      message = result.data.message;
-      message += '\n成功上傳' + result.data.data.successItems.length + '筆帳號資料';
-      if (result.data.data.errorItems.length > 0) {
-        const errorArray = result.data.data.errorItems.filter(item => item != 'undefined')
-        console.log(errorArray);
-        
-        message += '\n項次:' + errorArray.map(item => item).join(', ') + '上傳失敗'; 
-      }
-    }
+    let resultData = {};
     
+    if(result.data.statusCode === 200){
+      const { data: responseData } = result.data;
+      const successCount = responseData.successItems.length;
+      const errorItems = responseData.errorItems.filter(item => item != 'undefined');
+      const errorCount = errorItems.length;
+      const totalCount = successCount + errorCount;
+      
+      // 構建結構化的結果數據
+      resultData = {
+        total: totalCount,
+        success: successCount,
+        failed: errorCount,
+        successItems: responseData.successItems,
+        errorItems: errorItems,
+        originalMessage: result.data.message
+      };
+      
+      // 構建美觀的 message
+      message = result.data.message;
+    }
     
     clearInterval(progressInterval)
     importProgress.value = 100
@@ -331,7 +343,7 @@ const confirmImport = async () => {
     importResult.value = {
       success: true,
       message: message || '檔案匯入成功！',
-      data: result.data || {}
+      data: resultData
     }
     
     setTimeout(() => {
@@ -340,16 +352,24 @@ const confirmImport = async () => {
     
   } catch (error) {
     console.error('批次匯入失敗:', error)
-    
+    let resultData = {};
+    resultData = {
+      message: error.response?.data?.message || '匯入失敗，請檢查檔案資料格式',
+    }
     importResult.value = {
       success: false,
-      message: error.response?.data?.message || '匯入失敗，請檢查檔案格式',
-      errors: error.response?.data?.errors || []
+      message: error.response?.data?.message || '匯入失敗，請檢查檔案資料格式',
+      errors: error.response?.data?.errors || [],
+      data: resultData,
     }
+
+    console.log(importResult.value);
+    
     
     isImporting.value = false
   }
 }
+
 
 const closeImportModal = () => {
   showImportModal.value = false
@@ -674,7 +694,7 @@ onMounted(() => {
                 <div class="upload-icon">📁</div>
                 <div class="upload-text">
                   <p><strong>點擊選擇檔案</strong> 或拖拽檔案到此處</p>
-                  <p class="upload-hint">支援 .xlsx、.xls 格式</p>
+                  <p class="upload-hint">支援 .xlsx 格式</p>
                 </div>
               </div>
               
@@ -710,60 +730,156 @@ onMounted(() => {
           </div>
           
           <!-- 匯入結果 -->
-          <div v-if="importResult" class="import-result">
-            <div v-if="importResult.success" class="result-success">
-              <div class="result-icon">✅</div>
-              <div class="result-content">
-                <h4>匯入成功</h4>
-                <p>{{ importResult.message }}</p>
-                <div v-if="importResult.data" class="result-stats">
-                  <span v-if="importResult.data.total">
-                    總計處理：{{ importResult.data.total }} 筆
-                  </span>
-                  <span v-if="importResult.data.success">
-                    成功：{{ importResult.data.success }} 筆
-                  </span>
-                  <span v-if="importResult.data.failed">
-                    失敗：{{ importResult.data.failed }} 筆
-                  </span>
+          <div v-if="importResult?.success" class="result-success">
+            <!-- 成功標題區域 -->
+            <div class="success-header">
+              <div class="success-icon-wrapper">
+                <div class="success-icon">✅</div>
+              </div>
+              <div class="success-content">
+                <h4 class="success-title">匯入成功</h4>
+                <p class="success-message">{{ importResult.message }}</p>
+              </div>
+            </div>
+
+            <!-- 統計數據區域 -->
+            <div v-if="importResult.data" class="result-stats-container">
+              <!-- 統計卡片 -->
+              <div class="stats-grid">
+                <div v-if="importResult.data.total" class="stat-card total-card">
+                  <div class="stat-icon">📊</div>
+                  <div class="stat-info">
+                    <div class="stat-number">{{ importResult.data.total }}</div>
+                    <div class="stat-label">總計處理</div>
+                  </div>
+                </div>
+                
+                <div v-if="importResult.data.success" class="stat-card success-card">
+                  <div class="stat-icon">✅</div>
+                  <div class="stat-info">
+                    <div class="stat-number">{{ importResult.data.success }}</div>
+                    <div class="stat-label">成功匯入</div>
+                  </div>
+                </div>
+                
+                <div v-if="!importResult.success" class="stat-card failed-card">
+                  <div class="stat-icon">❌</div>
+                  <div class="stat-info">
+                    <div class="stat-number">{{ importResult.message }}</div>
+                    <div class="stat-label">匯入失敗</div>
+                  </div>
+                </div>
+              </div>
+              <!-- 失敗項次詳情 -->
+              <div v-if="importResult.data.errorItems && importResult.data.errorItems.length" class="error-details">
+                <div class="error-header">
+                  <div class="error-icon">⚠️</div>
+                  <div class="error-title">失敗項次詳情</div>
+                  <div class="error-count">{{ importResult.data.errorItems.length }} 項</div>
+                </div>
+                <div class="error-content">
+                  <div class="error-items">
+                    <div 
+                      v-for="(item, idx) in importResult.data.errorItems" 
+                      :key="idx" 
+                      class="error-item"
+                    >
+                      <div class="error-item-icon">📍</div>
+                      <div class="error-item-text">項次 {{ item }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- 匯入失敗結果 - 新增這個區塊 -->
+          <div v-if="importResult && importResult.success === false" class="result-error">
+            <!-- 失敗標題區域 -->
+            <div class="error-header-main">
+              <div class="error-icon-wrapper">
+                <div class="error-icon-main">❌</div>
+              </div>
+              <div class="error-content-main">
+                <h4 class="error-title-main">匯入失敗</h4>
+                <p class="error-message">{{ importResult.message }}</p>
+              </div>
+            </div>
+            
+            <!-- 錯誤詳情 -->
+            <div v-if="importResult.errors && importResult.errors.length" class="error-details-section">
+              <div class="error-list-header">
+                <div class="error-list-icon">📋</div>
+                <div class="error-list-title">錯誤詳情</div>
+              </div>
+              <div class="error-list-content">
+                <div 
+                  v-for="(error, index) in importResult.errors" 
+                  :key="index" 
+                  class="error-list-item"
+                >
+                  <div class="error-bullet">•</div>
+                  <div class="error-text">{{ error }}</div>
                 </div>
               </div>
             </div>
             
-            <div v-else class="result-error">
-              <div class="result-icon">❌</div>
-              <div class="result-content">
-                <h4>匯入失敗</h4>
-                <p>{{ importResult.message }}</p>
-                <div v-if="importResult.errors && importResult.errors.length > 0" class="error-details">
-                  <h5>錯誤詳情：</h5>
-                  <ul>
-                    <li v-for="(error, index) in importResult.errors" :key="index">
-                      {{ error }}
-                    </li>
-                  </ul>
-                </div>
+            <!-- 建議解決方案 -->
+            <div class="error-suggestions">
+              <div class="suggestion-header">
+                <div class="suggestion-icon">💡</div>
+                <div class="suggestion-title">建議解決方案</div>
+              </div>
+              <div class="suggestion-content">
+                <ul>
+                  <li>請檢查檔案格式是否正確（.xlsx）</li>
+                  <li>確認必填欄位是否完整填寫</li>
+                  <li>檢查資料格式是否符合範本要求</li>
+                  <li>確認檔案大小未超過 5MB 限制</li>
+                </ul>
               </div>
             </div>
           </div>
         </div>
         
         <div class="modal-footer">
-          <button 
-            class="btn btn-secondary" 
-            @click="closeImportModal"
-            :disabled="isImporting"
-          >
-            取消
-          </button>
-          <button 
-            class="btn btn-primary" 
-            @click="confirmImport"
-            :disabled="!importFile || isImporting"
-          >
-            <span v-if="isImporting">匯入中...</span>
-            <span v-else>開始匯入</span>
-          </button>
+          <!-- 匯入成功狀態 -->
+          <template v-if="importResult && importResult.success">
+            <button class="btn btn-secondary" @click="closeImportModal">
+              關閉
+            </button>
+            <button class="btn btn-primary" @click="resetImportForm">
+              繼續匯入
+            </button>
+          </template>
+          
+          <!-- 匯入失敗狀態 -->
+          <template v-else-if="importResult && !importResult.success">
+            <button class="btn btn-secondary" @click="closeImportModal">
+              關閉
+            </button>
+            <button class="btn btn-primary" @click="resetImportForm">
+              重新匯入
+            </button>
+          </template>
+          
+          <!-- 匯入中或未開始匯入狀態 -->
+          <template v-else>
+            <button 
+              class="btn btn-secondary" 
+              @click="closeImportModal"
+              :disabled="isImporting"
+            >
+              取消
+            </button>
+            <button 
+              class="btn btn-primary" 
+              @click="confirmImport"
+              :disabled="!importFile || isImporting"
+            >
+              <span v-if="isImporting">匯入中...</span>
+              <span v-else>開始匯入</span>
+            </button>
+          </template>
         </div>
       </div>
     </div>
@@ -1545,7 +1661,384 @@ onMounted(() => {
     }
   }
 }
+.result-success {
+  background: linear-gradient(135deg, #f8fff9 0%, #e8f8e8 100%);
+  border: 1px solid #c3e6cb;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(40, 167, 69, 0.12);
+  animation: slideInUp 0.5s ease-out;
+}
 
+// 成功標題區域
+.success-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 24px 20px 24px;
+  border-bottom: 1px solid rgba(195, 230, 203, 0.5);
+  
+  .success-icon-wrapper {
+    .success-icon {
+      font-size: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, #28a745, #20c997);
+      border-radius: 50%;
+      box-shadow: 0 4px 16px rgba(40, 167, 69, 0.3);
+      animation: bounceIn 0.6s ease-out 0.2s both;
+    }
+  }
+  
+  .success-content {
+    flex: 1;
+    
+    .success-title {
+      margin: 0 0 8px 0;
+      color: #155724;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    
+    .success-message {
+      margin: 0;
+      color: #28a745;
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 1.4;
+    }
+  }
+}
+
+// 統計數據容器
+.result-stats-container {
+  padding: 20px 24px 24px 24px;
+}
+
+// 統計卡片網格
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+  
+  .stat-card {
+    background: white;
+    border-radius: 10px;
+    padding: 18px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    border-left: 4px solid transparent;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+    }
+    
+    .stat-icon {
+      font-size: 24px;
+      opacity: 0.9;
+    }
+    
+    .stat-info {
+      .stat-number {
+        font-size: 22px;
+        font-weight: 700;
+        margin-bottom: 2px;
+        line-height: 1;
+      }
+      
+      .stat-label {
+        font-size: 11px;
+        color: #666;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+    }
+    
+    &.total-card {
+      border-left-color: #6c5ce7;
+      .stat-number { color: #6c5ce7; }
+    }
+    
+    &.success-card {
+      border-left-color: #28a745;
+      .stat-number { color: #28a745; }
+    }
+    
+    &.failed-card {
+      border-left-color: #dc3545;
+      .stat-number { color: #dc3545; }
+    }
+  }
+}
+
+// 成功率進度條
+.success-rate {
+  background: white;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  
+  .rate-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    
+    .rate-label {
+      font-size: 14px;
+      color: #155724;
+      font-weight: 600;
+    }
+    
+    .rate-value {
+      font-size: 18px;
+      color: #28a745;
+      font-weight: 700;
+    }
+  }
+  
+  .rate-bar {
+    width: 100%;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+    
+    .rate-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #28a745, #20c997);
+      border-radius: 4px;
+      transition: width 1s ease;
+      position: relative;
+      
+      &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.4),
+          transparent
+        );
+        animation: shimmer 2s infinite;
+      }
+    }
+  }
+}
+
+// 失敗項次詳情
+.error-details {
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #ffeaa7;
+  
+  .error-header {
+    background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid #ffeaa7;
+    
+    .error-icon {
+      font-size: 18px;
+      animation: pulse 2s infinite;
+    }
+    
+    .error-title {
+      flex: 1;
+      font-weight: 600;
+      color: #856404;
+      font-size: 14px;
+    }
+    
+    .error-count {
+      background: #dc3545;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+  }
+  
+  .error-content {
+    padding: 16px 18px;
+    max-height: 200px;
+    overflow-y: auto;
+    
+    .error-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      
+      .error-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: #f8f9fa;
+        border: 1px solid #dc3545;
+        border-radius: 20px;
+        padding: 6px 12px;
+        font-size: 12px;
+        transition: all 0.2s ease;
+        
+        &:hover {
+          background: #dc3545;
+          color: white;
+          transform: scale(1.05);
+        }
+        
+        .error-item-icon {
+          font-size: 10px;
+          opacity: 0.8;
+        }
+        
+        .error-item-text {
+          font-weight: 500;
+          white-space: nowrap;
+        }
+      }
+    }
+  }
+  
+  // 自定義滾動條
+  .error-content::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .error-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+  }
+  
+  .error-content::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+    
+    &:hover {
+      background: #a8a8a8;
+    }
+  }
+}
+
+// 動畫效果
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+// 響應式設計
+@media (max-width: 768px) {
+  .success-header {
+    padding: 20px 16px 16px 16px;
+    
+    .success-icon-wrapper .success-icon {
+      width: 48px;
+      height: 48px;
+      font-size: 28px;
+    }
+    
+    .success-content .success-title {
+      font-size: 18px;
+    }
+  }
+  
+  .result-stats-container {
+    padding: 16px;
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    
+    .stat-card {
+      padding: 16px;
+      
+      .stat-info .stat-number {
+        font-size: 20px;
+      }
+    }
+  }
+  
+  .error-details .error-content .error-items {
+    .error-item {
+      font-size: 11px;
+      padding: 4px 8px;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .success-header {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+  
+  .error-details .error-content {
+    max-height: 150px;
+  }
+}
 // 按鈕樣式
 .btn {
   padding: 10px 20px;
@@ -1579,7 +2072,284 @@ onMounted(() => {
     cursor: not-allowed;
   }
 }
+// 錯誤結果顯示樣式
+.result-error {
+  background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+  border: 1px solid #fc8181;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(220, 53, 69, 0.12);
+  animation: slideInUp 0.5s ease-out;
+  margin-bottom: 20px;
+}
 
+// 錯誤標題區域
+.error-header-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 24px 20px 24px;
+  border-bottom: 1px solid rgba(252, 129, 129, 0.3);
+  
+  .error-icon-wrapper {
+    .error-icon-main {
+      font-size: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, #dc3545, #c82333);
+      border-radius: 50%;
+      box-shadow: 0 4px 16px rgba(220, 53, 69, 0.3);
+      animation: shakeIn 0.6s ease-out 0.2s both;
+    }
+  }
+  
+  .error-content-main {
+    flex: 1;
+    
+    .error-title-main {
+      margin: 0 0 8px 0;
+      color: #721c24;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    
+    .error-message {
+      margin: 0;
+      color: #dc3545;
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 1.4;
+    }
+  }
+}
+
+// 錯誤詳情區塊
+.error-details-section {
+  background: white;
+  margin: 20px 24px;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #ffc9c9;
+  
+  .error-list-header {
+    background: linear-gradient(135deg, #ffe0e0, #ffc9c9);
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid #ffc9c9;
+    
+    .error-list-icon {
+      font-size: 18px;
+      color: #721c24;
+    }
+    
+    .error-list-title {
+      flex: 1;
+      font-weight: 600;
+      color: #721c24;
+      font-size: 14px;
+    }
+  }
+  
+  .error-list-content {
+    padding: 16px 18px;
+    max-height: 200px;
+    overflow-y: auto;
+    
+    .error-list-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 8px;
+      padding: 8px;
+      background: #fff5f5;
+      border-radius: 6px;
+      border-left: 3px solid #dc3545;
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+      
+      .error-bullet {
+        color: #dc3545;
+        font-weight: bold;
+        font-size: 16px;
+        line-height: 1.2;
+        margin-top: 1px;
+      }
+      
+      .error-text {
+        flex: 1;
+        color: #721c24;
+        font-size: 13px;
+        line-height: 1.4;
+        word-break: break-word;
+      }
+    }
+  }
+}
+
+// 建議解決方案區塊
+.error-suggestions {
+  background: white;
+  margin: 0 24px 24px 24px;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #bee5eb;
+  
+  .suggestion-header {
+    background: linear-gradient(135deg, #d1ecf1, #bee5eb);
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid #bee5eb;
+    
+    .suggestion-icon {
+      font-size: 18px;
+      color: #0c5460;
+    }
+    
+    .suggestion-title {
+      flex: 1;
+      font-weight: 600;
+      color: #0c5460;
+      font-size: 14px;
+    }
+  }
+  
+  .suggestion-content {
+    padding: 16px 18px;
+    
+    ul {
+      margin: 0;
+      padding-left: 20px;
+      
+      li {
+        margin-bottom: 8px;
+        color: #495057;
+        font-size: 13px;
+        line-height: 1.5;
+        
+        &:last-child {
+          margin-bottom: 0;
+        }
+        
+        &::marker {
+          color: #17a2b8;
+        }
+      }
+    }
+  }
+}
+
+// 錯誤動畫
+@keyframes shakeIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) rotate(-10deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05) rotate(5deg);
+  }
+  70% {
+    transform: scale(0.9) rotate(-2deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+// 修正模態框按鈕邏輯
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 20px 25px;
+  border-top: 1px solid #eee;
+  background: #f8f9fa;
+  border-radius: 0 0 12px 12px;
+  
+  // 匯入成功狀態
+  &.success-state {
+    .btn-secondary {
+      background: #6c757d;
+      &:hover { background: #5a6268; }
+    }
+    .btn-primary {
+      background: #28a745;
+      &:hover { background: #218838; }
+    }
+  }
+  
+  // 匯入失敗狀態  
+  &.error-state {
+    .btn-secondary {
+      background: #6c757d;
+      &:hover { background: #5a6268; }
+    }
+    .btn-primary {
+      background: #dc3545;
+      &:hover { background: #c82333; }
+    }
+  }
+  
+  // 匯入中或未開始狀態
+  &.default-state {
+    .btn-secondary {
+      background: #6c757d;
+      &:hover:not(:disabled) { background: #5a6268; }
+    }
+    .btn-primary {
+      background: #6c5ce7;
+      &:hover:not(:disabled) { background: #5b4bcf; }
+    }
+  }
+}
+
+// 響應式設計
+@media (max-width: 768px) {
+  .error-header-main {
+    padding: 20px 16px 16px 16px;
+    
+    .error-icon-wrapper .error-icon-main {
+      width: 48px;
+      height: 48px;
+      font-size: 28px;
+    }
+    
+    .error-content-main .error-title-main {
+      font-size: 18px;
+    }
+  }
+  
+  .error-details-section,
+  .error-suggestions {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .error-header-main {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+  
+  .error-details-section .error-list-content {
+    max-height: 150px;
+  }
+}
 // 響應式設計
 @media (max-width: 768px) {
   .search-row {
