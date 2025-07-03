@@ -309,7 +309,7 @@ onMounted(() => {
           <div class="detail-row">
             <div class="detail-label">帳號停用日期</div>
             <div class="detail-value">
-              <span class="readonly-field">{{ formatDateTime(accountData.deleted_at) || '-' }}</span>
+              <span class="readonly-field">{{ formatDateTime(accountData.disabled_at) || '-' }}</span>
             </div>
           </div>
 

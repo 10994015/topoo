@@ -135,12 +135,7 @@ export const useAccountStore = defineStore('account', () => {
             return {
                 success: true,
                 message: response.data.message || '匯入成功',
-                data: {
-                    total: response.data.total || response.data.data?.total || 0,
-                    success: response.data.success || response.data.data?.success || 0,
-                    failed: response.data.failed || response.data.data?.failed || 0,
-                    errors: response.data.errors || response.data.data?.errors || []
-                }
+                data: response.data
             };
             
         } catch (error) {

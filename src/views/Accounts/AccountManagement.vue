@@ -309,21 +309,33 @@ const confirmImport = async () => {
     }, 200)
     
     const result = await accountStore.importAccounts(formData)
+
+    console.log(result);
+
+    let message = '';
+    if(result.data.statusCode===200){
+      message = result.data.message;
+      message += '\n成功上傳' + result.data.data.successItems.length + '筆帳號資料';
+      if (result.data.data.errorItems.length > 0) {
+        const errorArray = result.data.data.errorItems.filter(item => item != 'undefined')
+        console.log(errorArray);
+        
+        message += '\n項次:' + errorArray.map(item => item).join(', ') + '上傳失敗'; 
+      }
+    }
+    
     
     clearInterval(progressInterval)
     importProgress.value = 100
     
     importResult.value = {
       success: true,
-      message: result.message || '匯入成功',
+      message: message || '檔案匯入成功！',
       data: result.data || {}
     }
     
     setTimeout(() => {
       loadData()
-      setTimeout(() => {
-        closeImportModal()
-      }, 3000)
     }, 500)
     
   } catch (error) {
