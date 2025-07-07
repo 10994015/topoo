@@ -487,71 +487,6 @@ const loginNow = () => {
   0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.5); }
   50% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(124, 58, 237, 0); }
 }
-
-// 功能預覽
-.feature-preview {
-  margin-bottom: 40px;
-  text-align: left;
-
-  h3 {
-    font-size: 18px;
-    font-weight: 600;
-    color: #374151;
-    margin-bottom: 20px;
-    text-align: center;
-  }
-
-  .feature-list {
-    display: grid;
-    gap: 16px;
-
-    .feature-item {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      padding: 16px;
-      background: rgba(255, 255, 255, 0.8);
-      border: 1px solid rgba(124, 58, 237, 0.1);
-      border-radius: 16px;
-      transition: all 0.3s ease;
-
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(124, 58, 237, 0.1);
-        border-color: rgba(124, 58, 237, 0.3);
-      }
-
-      .feature-icon {
-        font-size: 24px;
-        width: 48px;
-        height: 48px;
-        background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      .feature-text {
-        flex: 1;
-
-        h4 {
-          font-size: 14px;
-          font-weight: 600;
-          color: #374151;
-          margin: 0 0 4px 0;
-        }
-
-        p {
-          font-size: 12px;
-          color: #6b7280;
-          margin: 0;
-        }
-      }
-    }
-  }
-}
-
 // 操作區域
 .action-section {
   margin-bottom: 32px;
@@ -689,16 +624,6 @@ const loginNow = () => {
       span {
         font-size: 11px;
       }
-    }
-  }
-
-  .feature-preview .feature-list .feature-item {
-    padding: 12px;
-
-    .feature-icon {
-      width: 40px;
-      height: 40px;
-      font-size: 20px;
     }
   }
 
