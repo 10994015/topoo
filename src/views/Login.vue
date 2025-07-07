@@ -229,11 +229,13 @@ const handleGoogleError = (error) => {
     display: flex;
     flex-direction: column;
     align-items: center;
-    
+    font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+    font-weight: bold;
+    letter-spacing: 2px;
     .logo-main {
       font-size: 1.8rem;
       font-weight: 800;
-      color: #6366f1;
+      color: #6c5ce7;
       letter-spacing: 0.1em;
     }
     
@@ -243,7 +245,7 @@ const handleGoogleError = (error) => {
       color: #8b5cf6;
       letter-spacing: 0.2em;
       margin-top: -0.2rem;
-      background: linear-gradient(45deg, #6366f1, #8b5cf6);
+      background: linear-gradient(45deg, #6c5ce7, #8b5cf6);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
@@ -259,7 +261,7 @@ const handleGoogleError = (error) => {
 .form-title {
   font-size: 2rem;
   font-weight: 600;
-  color: #6366f1;
+  color: #6c5ce7;
   margin-bottom: 2rem;
   text-align: center;
 }
@@ -278,7 +280,7 @@ const handleGoogleError = (error) => {
   transition: border-color 0.3s ease;
   
   &:focus-within {
-    border-color: #6366f1;
+    border-color: #6c5ce7;
   }
   
   .user-icon,
@@ -326,7 +328,7 @@ const handleGoogleError = (error) => {
 
 .login-btn {
   width: 100%;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(135deg, #6c5ce7, #8b5cf6);
   color: white;
   border: none;
   border-radius: 8px;

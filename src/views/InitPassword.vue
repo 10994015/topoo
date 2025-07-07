@@ -288,9 +288,11 @@ const goToLogin = () => {
 
       .logo-text {
         font-size: 28px;
-        font-weight: bold;
+        font-weight: 800;
         color: #6c5ce7;
         letter-spacing: 2px;
+        font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+
       }
 
       .logo-subtitle {

@@ -365,6 +365,7 @@ const handleSubmenuClick = () => {
   height: auto;
   transition: transform 0.3s ease;
   height: 100%;
+  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
   .logo-section {
     padding: 30px 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -372,9 +373,9 @@ const handleSubmenuClick = () => {
 
     .logo {
       font-size: 28px;
-      font-weight: bold;
+      font-weight: 800;
       margin: 0 0 8px 0;
-      letter-spacing: 1px;
+      letter-spacing: 2px;
     }
 
     .system-name {
