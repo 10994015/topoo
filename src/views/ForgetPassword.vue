@@ -47,6 +47,11 @@ const handleSubmit = async () => {
     const result = await authStore.sendResetPasswordEmail(email.value)
 
     console.log(result);
+
+    if(!result.success){
+      emailError.value = '查無此Email信箱，請檢查後再試'
+      return
+    }
     
     
     // 顯示成功提示
@@ -64,7 +69,7 @@ const handleSubmit = async () => {
 const closeModal = () => {
   showSuccessModal.value = false
   // 返回登入頁
-  router.push('/login')
+  // router.push('/login')
 }
 </script>
 <template>

@@ -4,6 +4,8 @@ import axios from 'axios'
 // 創建 axios 實例
 const axiosClient = axios.create({
   baseURL: '/api',  // 使用代理路徑
+  // baseURL: import.meta.env.VITE_API_BASE_URL + 'api',  // 正式區路徑
+
   withCredentials: true,  // 允許發送 cookies
   timeout: 10000,  // 請求超時時間 (10秒)
   headers: {

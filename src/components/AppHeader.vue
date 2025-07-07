@@ -96,7 +96,7 @@ onMounted( () => {
   if(user){
       currentUser.value = {
         name: user.name || 'User001',
-        role: user.role || '系統管理員',
+        role: user.nick_name || '系統管理員',
         email: user.email || 'user001@company.com',
     }
   }

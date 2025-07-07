@@ -23,6 +23,7 @@ import MailManagement from '@/views/Parameters/MailManagement.vue'
 import EditMail from '@/views/Parameters/EditMail.vue'
 import InitPassword from '@/views/InitPassword.vue'
 import RepairView from '@/views/RepairView.vue'
+import EmailVerificationSuccess from '@/views/EmailVerificationSuccess.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -339,8 +340,24 @@ const router = createRouter({
       }
     },
     {
+      path: '/register/verify/:token',
+      name: 'email-verification-success',
+      component: EmailVerificationSuccess,
+      meta: {
+        title: 'Email 驗證成功'
+      }
+    },
+    {
       path: '/init-password/:token',
       name: 'init-password',
+      component: InitPassword,
+      meta: {
+        title: '重設密碼'
+      }
+    },
+    {
+      path: '/change-password/verify/:token',
+      name: 'change-password-verify',
       component: InitPassword,
       meta: {
         title: '重設密碼'

@@ -150,7 +150,7 @@ onMounted(async () => {
         <div class="detail-header">
           <div class="header-left">
             <h2 class="page-title">報修資訊</h2>
-            <span class="repair-number">{{ repairDetail.repair_id }}</span>
+            <span class="repair-number">{{ repairDetail.id }}</span>
           </div>
         </div>
 

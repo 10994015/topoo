@@ -3,8 +3,10 @@ import { ref, computed, reactive, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useRepairStore } from '@/stores/repair'
 import { formatDate, formatDateTime } from '@/utils/dateUtils'
+import { useAuthStore } from '@/stores/auth'
 const router = useRouter()
 
+const authStore = useAuthStore()
 const repairStore = useRepairStore()
 // 搜尋表單
 const searchForm = reactive({
@@ -148,6 +150,13 @@ const getRepairData = async(searchForm, column="repair_time", sortDirection="asc
   
   isSearching.value = false
 }
+const createNewRepair = () => {
+  if(!authStore.user.repair_unit){
+    alert('帳號未設定報修單位，請聯繫管理員完成配置後再進行報修。')
+    return;
+  }
+  router.push('/create-repair')
+}
 onMounted(async ()=>{
   console.log('onMounted: RepairSystem');
   try {
@@ -252,9 +261,8 @@ onMounted(async ()=>{
           </select>
         </div>
         
-        <router-link class="new-repair-btn" to="/create-repair" :class="{ disabled: isLoading }">
-          新增報修
-        </router-link>
+      
+        <button class="new-repair-btn" @click="createNewRepair" :class="{ disabled: isLoading }" :disabled="isLoading">新增報修</button>
       </div>
 
       <!-- 資料表格 -->
