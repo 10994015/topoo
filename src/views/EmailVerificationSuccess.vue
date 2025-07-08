@@ -55,7 +55,7 @@ const startRedirectCountdown = () => {
     redirectCountdown.value--
     if (redirectCountdown.value <= 0) {
       clearInterval(countdown)
-      // goToLogin()
+      goToLogin()
     }
   }, 1000)
 }
