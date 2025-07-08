@@ -12,8 +12,6 @@ const authStore = useAuthStore()
 const userEmail = ref('')
 const userName = ref('')
 const showConfetti = ref(false)
-const isRedirecting = ref(false)
-const redirectCountdown = ref(5)
 const verificationSuccess = ref(null) // null: 驗證中, true: 成功, false: 失敗
 const verificationError = ref('')
 
@@ -43,34 +41,12 @@ onMounted(async () => {
     setTimeout(() => {
       showConfetti.value = false
     }, 3000)
-
-    // 開始倒數計時自動跳轉
-    startRedirectCountdown()
   }
 })
 
-// 開始倒數計時
-const startRedirectCountdown = () => {
-  const countdown = setInterval(() => {
-    redirectCountdown.value--
-    if (redirectCountdown.value <= 0) {
-      clearInterval(countdown)
-      goToLogin()
-    }
-  }, 1000)
-}
-
 // 前往登入頁面
 const goToLogin = () => {
-  isRedirecting.value = true
-  setTimeout(() => {
-    router.push('/login')
-  }, 500)
-}
-
-// 立即登入
-const loginNow = () => {
-  goToLogin()
+  router.push('/login')
 }
 
 // 重新發送驗證信
@@ -152,32 +128,35 @@ const goToRegister = () => {
                 <div class="step-icon">✓</div>
                 <span>Email 驗證</span>
               </div>
-              <div class="step active">
+              <div class="step pending">
+                <div class="step-icon">⏳</div>
+                <span>等待審核</span>
+              </div>
+              <div class="step disabled">
                 <div class="step-icon">🚀</div>
                 <span>開始使用</span>
+              </div>
+            </div>
+
+            <!-- 等待審核通知 -->
+            <div class="pending-review-section">
+              <div class="pending-badge">
+                <span class="pending-icon">⏳</span>
+                <span class="pending-text">等待管理員審核中</span>
+              </div>
+              <div class="pending-description">
+                <p>您的帳號已成功驗證，但還需要管理員審核才能開始使用系統。</p>
               </div>
             </div>
 
             <!-- 操作按鈕 -->
             <div class="action-section">
               <button 
-                @click="loginNow"
+                @click="goToLogin"
                 class="login-btn"
-                :class="{ loading: isRedirecting }"
-                :disabled="isRedirecting"
               >
-                <span v-if="isRedirecting">跳轉中...</span>
-                <span v-else>立即開始使用</span>
+                返回登入頁面
               </button>
-              
-              <div class="auto-redirect-info">
-                <span class="countdown-text">
-                  {{ redirectCountdown }} 秒後自動跳轉到登入頁面
-                </span>
-                <div class="progress-bar">
-                  <div class="progress-fill" :style="{ width: ((5 - redirectCountdown) / 5) * 100 + '%' }"></div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -218,6 +197,10 @@ const goToRegister = () => {
               <div class="step error">
                 <div class="step-icon">✗</div>
                 <span>Email 驗證</span>
+              </div>
+              <div class="step disabled">
+                <div class="step-icon">⏸</div>
+                <span>等待審核</span>
               </div>
               <div class="step disabled">
                 <div class="step-icon">⏸</div>
@@ -661,11 +644,57 @@ const goToRegister = () => {
   }
 }
 
+// 等待審核區域
+.pending-review-section {
+  margin-bottom: 32px;
+
+  .pending-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    border: 1px solid #f59e0b;
+    border-radius: 20px;
+    padding: 8px 16px;
+    margin-bottom: 16px;
+    
+    .pending-icon {
+      font-size: 16px;
+      animation: pendingPulse 2s ease-in-out infinite;
+    }
+
+    .pending-text {
+      color: #92400e;
+      font-weight: 500;
+      font-size: 14px;
+    }
+  }
+
+  .pending-description {
+    text-align: center;
+    
+    p {
+      font-size: 14px;
+      color: #6b7280;
+      margin: 0 0 8px 0;
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+}
+
+@keyframes pendingPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
 // 完成步驟
 .completion-steps {
   display: flex;
   justify-content: center;
-  gap: 24px;
+  gap: 16px;
   margin-bottom: 40px;
   padding: 24px;
   background: rgba(124, 58, 237, 0.05);
@@ -681,7 +710,7 @@ const goToRegister = () => {
     align-items: center;
     gap: 8px;
     flex: 1;
-    max-width: 120px;
+    max-width: 100px;
 
     .step-icon {
       width: 40px;
@@ -708,6 +737,18 @@ const goToRegister = () => {
       }
       span {
         color: #065f46;
+      }
+    }
+
+    &.pending {
+      .step-icon {
+        background: linear-gradient(135deg, #f59e0b, #f97316);
+        color: white;
+        animation: stepPulse 2s ease-in-out infinite;
+      }
+      span {
+        color: #92400e;
+        font-weight: 600;
       }
     }
 
@@ -746,8 +787,8 @@ const goToRegister = () => {
 }
 
 @keyframes stepPulse {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.5); }
-  50% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(124, 58, 237, 0); }
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.5); }
+  50% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
 }
 
 // 操作區域
@@ -756,7 +797,7 @@ const goToRegister = () => {
 
   .login-btn {
     width: 100%;
-    background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+    background: linear-gradient(135deg, #6b7280 0%, #9ca3af 100%);
     color: white;
     border: none;
     padding: 18px 32px;
@@ -780,23 +821,13 @@ const goToRegister = () => {
       transition: left 0.5s;
     }
 
-    &:hover:not(:disabled) {
+    &:hover {
       transform: translateY(-3px);
-      box-shadow: 0 15px 35px rgba(124, 58, 237, 0.4);
+      box-shadow: 0 15px 35px rgba(107, 114, 128, 0.4);
 
       &::before {
         left: 100%;
       }
-    }
-
-    &.loading {
-      background: #9ca3af;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    &:disabled {
-      opacity: 0.7;
     }
   }
 
@@ -839,32 +870,6 @@ const goToRegister = () => {
         border-color: #7c3aed;
         color: #7c3aed;
         transform: translateY(-2px);
-      }
-    }
-  }
-
-  .auto-redirect-info {
-    text-align: center;
-
-    .countdown-text {
-      font-size: 14px;
-      color: #6b7280;
-      display: block;
-      margin-bottom: 12px;
-    }
-
-    .progress-bar {
-      width: 100%;
-      height: 4px;
-      background: #e5e7eb;
-      border-radius: 2px;
-      overflow: hidden;
-
-      .progress-fill {
-        height: 100%;
-        background: linear-gradient(90deg, #7c3aed, #a855f7);
-        transition: width 1s linear;
-        border-radius: 2px;
       }
     }
   }
@@ -918,7 +923,7 @@ const goToRegister = () => {
   }
 
   .completion-steps {
-    gap: 16px;
+    gap: 12px;
     padding: 20px 16px;
 
     .step {
@@ -988,5 +993,4 @@ const goToRegister = () => {
     }
   }
 }
-
 </style>
