@@ -418,6 +418,22 @@ export const useAuthStore = defineStore('auth', () => {
             throw error
         }
     }
+    async function emailVerification(token){
+        try {
+            console.log(token);
+            
+            const response = await axiosClient.post('/register/verify', { certificationId: token })
+            console.log(response);
+            
+            if (response.status === 200) {
+                return { success: true, message: 'Email 驗證成功' }
+            } else {
+                return { success: false, error: response.data.message }
+            }
+        } catch (error) {
+            return { success: false, error: error.message }
+        }
+    }
 
     return {
         user: computed(() => user.value),
@@ -441,5 +457,6 @@ export const useAuthStore = defineStore('auth', () => {
         sendResetPasswordEmail,
         changePassword,changePassword,
         googleLogin,
+        emailVerification,
     }
 })

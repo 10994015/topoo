@@ -206,7 +206,7 @@ const goToLogin = () => {
 <template>
   <div class="register-container">
     <div class="register-card">
-      <h1 class="register-title">註冊帳號</h1>
+      <h1 class="register-title">TOPOO 註冊帳號</h1>
       
       <form @submit.prevent="handleSubmit" class="register-form">
         <!-- 帳號輸入 -->

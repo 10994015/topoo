@@ -1,9 +1,12 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-
+import { useAuthStore } from '@/stores/auth'
+// 使用 router 和路由
 const router = useRouter()
 const route = useRoute()
+
+const authStore = useAuthStore()
 
 // 狀態管理
 const userEmail = ref('')
@@ -11,21 +14,39 @@ const userName = ref('')
 const showConfetti = ref(false)
 const isRedirecting = ref(false)
 const redirectCountdown = ref(5)
+const verificationSuccess = ref(null) // null: 驗證中, true: 成功, false: 失敗
+const verificationError = ref('')
 
 // 初始化用戶資訊
-onMounted(() => {
-  // 從路由參數獲取用戶資訊
-  userEmail.value = route.query.email || '您的信箱地址'
-  userName.value = route.query.name || '用戶'
+onMounted(async () => {
+  const token = (route.params.token);
   
-  // 顯示慶祝動畫
-  showConfetti.value = true
-  setTimeout(() => {
-    showConfetti.value = false
-  }, 3000)
+  console.log('token:', token);
+  
+  const response = await authStore.emailVerification(token)
 
-  // 開始倒數計時自動跳轉
-  startRedirectCountdown()
+  console.log(response);
+
+  if(!response.success){
+    console.log('驗證失敗:', response.error);
+    verificationSuccess.value = false
+    verificationError.value = '憑證無效或已過期，請重新註冊'
+  } else {
+    verificationSuccess.value = true
+    
+    // 從路由參數獲取用戶資訊
+    userEmail.value = route.query.email || '您的信箱地址'
+    userName.value = route.query.name || '用戶'
+    
+    // 顯示慶祝動畫
+    showConfetti.value = true
+    setTimeout(() => {
+      showConfetti.value = false
+    }, 3000)
+
+    // 開始倒數計時自動跳轉
+    startRedirectCountdown()
+  }
 })
 
 // 開始倒數計時
@@ -34,7 +55,7 @@ const startRedirectCountdown = () => {
     redirectCountdown.value--
     if (redirectCountdown.value <= 0) {
       clearInterval(countdown)
-      goToLogin()
+      // goToLogin()
     }
   }, 1000)
 }
@@ -51,6 +72,17 @@ const goToLogin = () => {
 const loginNow = () => {
   goToLogin()
 }
+
+// 重新發送驗證信
+const resendVerification = () => {
+  // 這裡可以添加重新發送驗證信的邏輯
+  console.log('重新發送驗證信')
+}
+
+// 返回註冊頁面
+const goToRegister = () => {
+  router.push('/register')
+}
 </script>
 
 <template>
@@ -63,8 +95,8 @@ const loginNow = () => {
       <div class="floating-circle circle-4"></div>
     </div>
 
-    <!-- 慶祝紙花效果 -->
-    <div v-if="showConfetti" class="confetti-container">
+    <!-- 慶祝紙花效果 (只在成功時顯示) -->
+    <div v-if="showConfetti && verificationSuccess" class="confetti-container">
       <div class="confetti" v-for="i in 20" :key="i" :style="{ 
         left: Math.random() * 100 + '%',
         animationDelay: Math.random() * 3 + 's',
@@ -73,69 +105,142 @@ const loginNow = () => {
     </div>
 
     <div class="success-container">
-      <div class="success-card">
-        <!-- 成功圖示動畫 -->
-        <div class="success-icon-wrapper">
-          <div class="success-icon">
-            <div class="icon-background">
-              <svg viewBox="0 0 24 24" class="check-icon">
-                <path fill="currentColor" d="M9,20.42L2.79,14.21L5.62,11.38L9,14.77L18.88,4.88L21.71,7.71L9,20.42Z"/>
-              </svg>
+      <div class="success-card" :class="{ 'error-card': verificationSuccess === false }">
+        <!-- 載入中 -->
+        <div v-if="verificationSuccess === null" class="loading-state">
+          <div class="loading-spinner"></div>
+          <h2 class="loading-title">驗證中...</h2>
+          <p class="loading-text">正在驗證您的信箱地址，請稍候</p>
+        </div>
+
+        <!-- 驗證成功 -->
+        <div v-else-if="verificationSuccess === true">
+          <!-- 成功圖示動畫 -->
+          <div class="success-icon-wrapper">
+            <div class="success-icon">
+              <div class="icon-background">
+                <svg viewBox="0 0 24 24" class="check-icon">
+                  <path fill="currentColor" d="M9,20.42L2.79,14.21L5.62,11.38L9,14.77L18.88,4.88L21.71,7.71L9,20.42Z"/>
+                </svg>
+              </div>
+              <div class="success-ring"></div>
             </div>
-            <div class="success-ring"></div>
+          </div>
+
+          <!-- 主要內容 -->
+          <div class="success-content">
+            <h1 class="main-title">
+              🎉 認證成功！
+            </h1>
+            
+            <div class="welcome-message">
+              <p class="greeting">歡迎加入，{{ userName }}！</p>
+              <p class="description">您的 Email 地址已成功驗證</p>
+              <div class="email-badge">
+                <span class="verified-icon">✓</span>
+                <span class="email-text">{{ userEmail }}</span>
+              </div>
+            </div>
+
+            <!-- 完成步驟指示 -->
+            <div class="completion-steps">
+              <div class="step completed">
+                <div class="step-icon">✓</div>
+                <span>帳號註冊</span>
+              </div>
+              <div class="step completed">
+                <div class="step-icon">✓</div>
+                <span>Email 驗證</span>
+              </div>
+              <div class="step active">
+                <div class="step-icon">🚀</div>
+                <span>開始使用</span>
+              </div>
+            </div>
+
+            <!-- 操作按鈕 -->
+            <div class="action-section">
+              <button 
+                @click="loginNow"
+                class="login-btn"
+                :class="{ loading: isRedirecting }"
+                :disabled="isRedirecting"
+              >
+                <span v-if="isRedirecting">跳轉中...</span>
+                <span v-else>立即開始使用</span>
+              </button>
+              
+              <div class="auto-redirect-info">
+                <span class="countdown-text">
+                  {{ redirectCountdown }} 秒後自動跳轉到登入頁面
+                </span>
+                <div class="progress-bar">
+                  <div class="progress-fill" :style="{ width: ((5 - redirectCountdown) / 5) * 100 + '%' }"></div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- 主要內容 -->
-        <div class="success-content">
-          <h1 class="main-title">
-            🎉 認證成功！
-          </h1>
-          
-          <div class="welcome-message">
-            <p class="greeting">歡迎加入，{{ userName }}！</p>
-            <p class="description">您的 Email 地址已成功驗證</p>
-            <div class="email-badge">
-              <span class="verified-icon">✓</span>
-              <span class="email-text">{{ userEmail }}</span>
-            </div>
-          </div>
-
-          <!-- 完成步驟指示 -->
-          <div class="completion-steps">
-            <div class="step completed">
-              <div class="step-icon">✓</div>
-              <span>帳號註冊</span>
-            </div>
-            <div class="step completed">
-              <div class="step-icon">✓</div>
-              <span>Email 驗證</span>
-            </div>
-            <div class="step active">
-              <div class="step-icon">🚀</div>
-              <span>開始使用</span>
-            </div>
-          </div>
-
-          <!-- 操作按鈕 -->
-          <div class="action-section">
-            <button 
-              @click="loginNow"
-              class="login-btn"
-              :class="{ loading: isRedirecting }"
-              :disabled="isRedirecting"
-            >
-              <span v-if="isRedirecting">跳轉中...</span>
-              <span v-else>立即開始使用</span>
-            </button>
-            
-            <div class="auto-redirect-info">
-              <span class="countdown-text">
-                {{ redirectCountdown }} 秒後自動跳轉到登入頁面
-              </span>
-              <div class="progress-bar">
-                <div class="progress-fill" :style="{ width: ((5 - redirectCountdown) / 5) * 100 + '%' }"></div>
+        <!-- 驗證失敗 -->
+        <div v-else class="error-content">
+          <!-- 失敗圖示 -->
+          <div class="error-icon-wrapper">
+            <div class="error-icon">
+              <div class="icon-background error-bg">
+                <svg viewBox="0 0 24 24" class="error-icon-svg">
+                  <path fill="currentColor" d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M12,6A6,6 0 0,0 6,12A6,6 0 0,0 12,18A6,6 0 0,0 18,12A6,6 0 0,0 12,6M15.5,8L17,9.5L13.5,13L17,16.5L15.5,18L12,14.5L8.5,18L7,16.5L10.5,13L7,9.5L8.5,8L12,11.5L15.5,8Z"/>
+                </svg>
               </div>
+              <div class="error-ring"></div>
+            </div>
+          </div>
+
+          <!-- 失敗內容 -->
+          <div class="error-message">
+            <h1 class="error-title">
+              ❌ 驗證失敗
+            </h1>
+            
+            <div class="error-details">
+              <div class="error-badge">
+                <span class="error-icon-small">⚠️</span>
+                <span class="error-text">{{ verificationError }}</span>
+              </div>
+            </div>
+
+            <!-- 失敗步驟指示 -->
+            <div class="completion-steps error-steps">
+              <div class="step completed">
+                <div class="step-icon">✓</div>
+                <span>帳號註冊</span>
+              </div>
+              <div class="step error">
+                <div class="step-icon">✗</div>
+                <span>Email 驗證</span>
+              </div>
+              <div class="step disabled">
+                <div class="step-icon">⏸</div>
+                <span>開始使用</span>
+              </div>
+            </div>
+
+            <!-- 失敗時的操作按鈕 -->
+            <div class="action-section error-actions">
+              <button 
+                v-if="false"
+                @click="resendVerification"
+                class="retry-btn"
+              >
+                重新發送驗證信
+              </button>
+              
+              <button 
+                @click="goToRegister"
+                class="register-btn"
+              >
+                返回註冊頁面
+              </button>
             </div>
           </div>
         </div>
@@ -292,11 +397,50 @@ const loginNow = () => {
     background-size: 200% 100%;
     animation: shimmer 3s ease-in-out infinite;
   }
+
+  &.error-card {
+    &::before {
+      background: linear-gradient(90deg, #ef4444, #f97316, #eab308);
+    }
+  }
 }
 
 @keyframes shimmer {
   0%, 100% { background-position: -200% 0; }
   50% { background-position: 200% 0; }
+}
+
+// 載入狀態
+.loading-state {
+  padding: 40px 0;
+
+  .loading-spinner {
+    width: 60px;
+    height: 60px;
+    border: 4px solid #e5e7eb;
+    border-top: 4px solid #7c3aed;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 24px;
+  }
+
+  .loading-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0 0 12px 0;
+  }
+
+  .loading-text {
+    font-size: 16px;
+    color: #6b7280;
+    margin: 0;
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 // 成功圖示
@@ -337,6 +481,54 @@ const loginNow = () => {
       border: 3px solid transparent;
       border-radius: 50%;
       background: linear-gradient(45deg, #7c3aed, #a855f7, #10b981, #f59e0b) border-box;
+      mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+      mask-composite: exclude;
+      animation: ringRotate 4s linear infinite;
+    }
+  }
+}
+
+// 錯誤圖示
+.error-icon-wrapper {
+  margin-bottom: 32px;
+
+  .error-icon {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin: 0 auto;
+
+    .icon-background {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: iconPulse 2s ease-in-out infinite;
+
+      &.error-bg {
+        background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
+        box-shadow: 0 10px 30px rgba(239, 68, 68, 0.3);
+      }
+
+      .error-icon-svg {
+        width: 60px;
+        height: 60px;
+        color: white;
+        animation: iconZoom 0.6s ease-out;
+      }
+    }
+
+    .error-ring {
+      position: absolute;
+      top: -10px;
+      left: -10px;
+      right: -10px;
+      bottom: -10px;
+      border: 3px solid transparent;
+      border-radius: 50%;
+      background: linear-gradient(45deg, #ef4444, #f97316, #eab308) border-box;
       mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
       mask-composite: exclude;
       animation: ringRotate 4s linear infinite;
@@ -412,6 +604,52 @@ const loginNow = () => {
   }
 }
 
+// 錯誤內容
+.error-content {
+  .error-message {
+    .error-title {
+      font-size: 36px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #ef4444, #f97316);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin: 0 0 24px 0;
+      animation: titleSlideIn 0.8s ease-out;
+    }
+
+    .error-description {
+      font-size: 16px;
+      color: #6b7280;
+      margin: 0 0 16px 0;
+    }
+
+    .error-details {
+      margin-bottom: 32px;
+
+      .error-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: linear-gradient(135deg, #fef2f2, #fee2e2);
+        border: 1px solid #ef4444;
+        border-radius: 20px;
+        padding: 8px 16px;
+        
+        .error-icon-small {
+          font-size: 16px;
+        }
+
+        .error-text {
+          color: #991b1b;
+          font-weight: 500;
+          font-size: 14px;
+        }
+      }
+    }
+  }
+}
+
 @keyframes titleSlideIn {
   0% {
     opacity: 0;
@@ -432,6 +670,10 @@ const loginNow = () => {
   padding: 24px;
   background: rgba(124, 58, 237, 0.05);
   border-radius: 20px;
+
+  &.error-steps {
+    background: rgba(239, 68, 68, 0.05);
+  }
 
   .step {
     display: flex;
@@ -480,6 +722,26 @@ const loginNow = () => {
         font-weight: 600;
       }
     }
+
+    &.error {
+      .step-icon {
+        background: #ef4444;
+        color: white;
+      }
+      span {
+        color: #991b1b;
+      }
+    }
+
+    &.disabled {
+      .step-icon {
+        background: #e5e7eb;
+        color: #9ca3af;
+      }
+      span {
+        color: #9ca3af;
+      }
+    }
   }
 }
 
@@ -487,6 +749,7 @@ const loginNow = () => {
   0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.5); }
   50% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(124, 58, 237, 0); }
 }
+
 // 操作區域
 .action-section {
   margin-bottom: 32px;
@@ -534,6 +797,49 @@ const loginNow = () => {
 
     &:disabled {
       opacity: 0.7;
+    }
+  }
+
+  &.error-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    .retry-btn {
+      width: 100%;
+      background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+      color: white;
+      border: none;
+      padding: 18px 32px;
+      border-radius: 20px;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+
+      &:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 15px 35px rgba(245, 158, 11, 0.4);
+      }
+    }
+
+    .register-btn {
+      width: 100%;
+      background: transparent;
+      color: #6b7280;
+      border: 2px solid #d1d5db;
+      padding: 16px 32px;
+      border-radius: 20px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+
+      &:hover {
+        border-color: #7c3aed;
+        color: #7c3aed;
+        transform: translateY(-2px);
+      }
     }
   }
 
@@ -606,7 +912,8 @@ const loginNow = () => {
     padding: 32px 24px;
   }
 
-  .success-content .main-title {
+  .success-content .main-title,
+  .error-content .error-title {
     font-size: 28px;
   }
 
@@ -627,7 +934,8 @@ const loginNow = () => {
     }
   }
 
-  .action-section .login-btn {
+  .action-section .login-btn,
+  .action-section .retry-btn {
     padding: 16px 24px;
     font-size: 16px;
   }
@@ -649,11 +957,13 @@ const loginNow = () => {
     padding: 24px 20px;
   }
 
-  .success-icon-wrapper .success-icon {
+  .success-icon-wrapper .success-icon,
+  .error-icon-wrapper .error-icon {
     width: 100px;
     height: 100px;
 
-    .icon-background .check-icon {
+    .icon-background .check-icon,
+    .icon-background .error-icon-svg {
       width: 50px;
       height: 50px;
     }
@@ -669,5 +979,14 @@ const loginNow = () => {
       justify-content: center;
     }
   }
+
+  .action-section.error-actions {
+    .retry-btn,
+    .register-btn {
+      padding: 14px 20px;
+      font-size: 14px;
+    }
+  }
 }
+
 </style>
