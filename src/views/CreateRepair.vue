@@ -340,7 +340,9 @@ const handleCancel = () => {
     router.go(-1)
   }
 }
+const isReasonLoading = ref(false);
 watch(() => repairForm.repairCategoryId, (newId) => {
+  isReasonLoading.value = true;
   const category = categories.value.find(cat => cat.id === newId)
   const type = category?.name
   const targetTypes = ['軟體', '硬體']
@@ -349,14 +351,22 @@ watch(() => repairForm.repairCategoryId, (newId) => {
     value: targetTypes.includes(type),
     type: targetTypes.includes(type) ? type : ''
   }
+
+  repairStore.fetchReasons(newId || '-').then(() => {
+    reasons.value = repairStore.reasons?.data || []
+  }).finally(() => {
+    isReasonLoading.value = false
+    repairForm.repairReasonId = ''
+  })
+  
 })
 // 載入枚舉資料
 onMounted(async () => {
   initializeDateTime()
-  
+  isReasonLoading.value = true
   try {
     await repairStore.fetchCategories()
-    await repairStore.fetchReasons()
+    await repairStore.fetchReasons(repairForm.repairCategoryId || '-')
     
     categories.value = repairStore.categories?.data || []
     console.log(categories.value);
@@ -364,6 +374,8 @@ onMounted(async () => {
     reasons.value = repairStore.reasons?.data || []
   } catch (error) {
     console.error('載入枚舉資料失敗:', error)
+  } finally {
+    isReasonLoading.value = false
   }
 })
 </script>
@@ -418,6 +430,7 @@ onMounted(async () => {
                 v-model="repairForm.repairReasonId"
                 class="form-select"
                 :class="{ error: errors.repairReasonId }"
+                :disabled="isReasonLoading"
               >
                 <option value="">選擇故障原因</option>
                 <option 

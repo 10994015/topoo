@@ -63,6 +63,7 @@ export const useMailStore = defineStore('mail', () => {
             
             // 根據 API 文檔，創建信箱需要的參數
             const payload = {
+                name: data.name, // 信箱名稱
                 email: data.email,
                 password: data.password,
                 smtpServer: data.smtpServer,
@@ -90,6 +91,7 @@ export const useMailStore = defineStore('mail', () => {
             
             // 根據 API 文檔，更新信箱的參數
             const payload = {
+                name: data.name, // 信箱名稱
                 email: data.email,
                 password: data.password,
                 smtpServer: data.smtpServer,

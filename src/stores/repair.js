@@ -23,9 +23,15 @@ export const useRepairStore = defineStore('repair', () => {
         }
     }
 
-    const fetchReasons = async () => {
+    const fetchReasons = async (categoryId) => {
+        console.log(categoryId);
+        
         try {
-            const response = await axiosClient.get('/enum/repair-reason')
+            const response = await axiosClient.get('/enum/repair-reason', {
+                params: {
+                    parentId: categoryId
+                }
+            })
             console.log(response.data);
             
             reasons.value = response.data;

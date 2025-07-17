@@ -18,6 +18,7 @@ const mailId = computed(() => route.params.id)
 
 // 表單資料
 const formData = reactive({
+  name: '', 
   email: '',
   password: '',
   smtpServer: '',
@@ -26,6 +27,7 @@ const formData = reactive({
 
 // 編輯模式下的信箱資料
 const mailDetail = ref({
+  name: '',
   email: '',
   smtpServer: '',
   smtpPort: ''
@@ -68,7 +70,9 @@ const endItem = computed(() => {
 // 表單驗證
 const validateForm = () => {
   const errors = {}
-  
+  if (!formData.name) {
+    errors.name = '請輸入信箱名稱'
+  }
   if (!formData.email) {
     errors.email = '請輸入信箱名稱'
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
@@ -211,6 +215,7 @@ const loadEditData = async () => {
     
     if (data) {
       // 填充表單資料
+      formData.name = data.name || ''
       formData.email = data.email || ''
       formData.smtpServer = data.smtp_server || ''
       formData.smtpPort = data.smtp_port || ''
@@ -219,6 +224,7 @@ const loadEditData = async () => {
       
       // 填充顯示資料
       mailDetail.value = {
+        name: data.name || '',
         email: data.email || '',
         smtpServer: data.smtp_server || '',
         smtpPort: data.smtp_port || ''
@@ -283,6 +289,7 @@ const handleSave = async () => {
       
       // 更新顯示資料
       mailDetail.value = {
+        name: formData.name,
         email: formData.email,
         smtpServer: formData.smtpServer,
         smtpPort: formData.smtpPort
@@ -291,10 +298,14 @@ const handleSave = async () => {
       // 新增模式
       const result = await mailStore.createMail(formData)
       alert('新增成功')
+      console.log(result);
+      
       
       // 新增成功後跳轉到編輯模式
-      if (result.data && result.data.id) {
-        router.replace(`/mail/edit/${result.data.id}`)
+      if (result.data && result.data.mailId) {
+        console.log('跳轉');
+        
+        router.push(`/settings/parameter/mail-management/edit/${result.data.mailId}`)
       }
     }
     
@@ -360,6 +371,7 @@ watch(() => route.params.id, (newId) => {
   } else {
     // 重置表單
     Object.assign(formData, {
+      name: '',
       email: '',
       password: '',
       smtpServer: '',
@@ -393,14 +405,26 @@ onMounted(() => {
           
           <form @submit.prevent="handleSave" class="mail-form">
             <div class="form-group">
-              <label for="email" class="form-label">信箱名稱</label>
+              <label for="name" class="form-label">信箱名稱</label>
+              <input
+                id="name"
+                type="text"
+                v-model="formData.name"
+                class="form-input"
+                :class="{ 'error': formErrors.name }"
+                placeholder="請輸入信箱名稱"
+              />
+              <span v-if="formErrors.email" class="error-message">{{ formErrors.email }}</span>
+            </div>
+            <div class="form-group">
+              <label for="email" class="form-label">信箱帳號</label>
               <input
                 id="email"
                 type="email"
                 v-model="formData.email"
                 class="form-input"
                 :class="{ 'error': formErrors.email }"
-                placeholder="請輸入信箱名稱"
+                placeholder="請輸入信箱帳號"
               />
               <span v-if="formErrors.email" class="error-message">{{ formErrors.email }}</span>
             </div>
@@ -476,7 +500,7 @@ onMounted(() => {
           <div v-else class="info-content">
             <div class="info-row">
               <span class="info-label">信箱名稱</span>
-              <span class="info-value">{{ mailDetail.email || '未設定' }}</span>
+              <span class="info-value">{{ mailDetail.name || '未設定' }}</span>
             </div>
             
             <div class="info-row">
