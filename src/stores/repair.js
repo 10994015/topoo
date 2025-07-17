@@ -151,32 +151,88 @@ export const useRepairStore = defineStore('repair', () => {
     
     // 獲取單一報修詳細資料
     const fetchRepairDetail = async (repairId) => {
-    try {
-        console.log(repairId);
-        
-        const response = await axiosClient.get(`/repair/${repairId}`)
-        console.log(response);
-        repairDetail.value = response.data.data
-        return response.data.statusCode
-    } catch (error) {
-        console.error('獲取報修詳細資料失敗:', error)
-        throw error
-    }
+        try {
+            console.log(repairId);
+            
+            const response = await axiosClient.get(`/repair/${repairId}`)
+            console.log(response);
+            repairDetail.value = response.data.data
+            return response.data.statusCode
+        } catch (error) {
+            console.error('獲取報修詳細資料失敗:', error)
+            throw error
+        }
     }
 
     // 獲取報修進度記錄  
     const fetchRepairProgress = async (repairId) => {
-    try {
-        const response = await axiosClient.get(`/repair/${repairId}/record`)
-        console.log(response);
-        repairProgress.value = response.data.data
-        console.log(repairProgress.value);
-        
-        return response.data.data
-    } catch (error) {
-        console.error('獲取進度記錄失敗:', error)
-        throw error
+        try {
+            const response = await axiosClient.get(`/repair/${repairId}/record`)
+            console.log(response);
+            repairProgress.value = response.data.data
+            console.log(repairProgress.value);
+            
+            return response.data.data
+        } catch (error) {
+            console.error('獲取進度記錄失敗:', error)
+            throw error
+        }
     }
+    // 下載檔案/api/repair/file/{id}/download
+    const downloadFile = async (fileId) => {
+        try {
+            const response = await axiosClient.get(`/repair/file/${fileId}/download`, {
+                responseType: 'blob', // 重要：設置響應類型為 blob
+                headers: {
+                    'Accept': 'application/octet-stream'
+                }
+            });
+            
+            // 創建下載連結
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            
+            // 從響應頭獲取文件名，或使用默認名稱
+            const contentDisposition = response.headers['content-disposition'];
+            let filename = 'download';
+            
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+                if (filenameMatch) {
+                    filename = filenameMatch[1];
+                }
+            }
+            
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            
+            // 清理
+            link.remove();
+            window.URL.revokeObjectURL(url);
+            
+        } catch (error) {
+            console.error('下載失敗:', error);
+            return error;
+        }
+    }
+
+    // 檢視檔案 /api/repair/file/{id}
+    const viewFile = async (fileId) => {
+        try {
+            const response = await axiosClient.get(`/repair/file/${fileId}` ,{
+                responseType: 'blob', // 重要：設置響應類型為 blob
+                headers: {
+                    'Accept': 'application/octet-stream'
+                }
+            })
+            console.log('檔案詳細資料:', response);
+            
+            return response.data
+        } catch (error) {
+            console.error('獲取檔案詳細資料失敗:', error);
+        }
     }
     return {
         categories,
@@ -195,7 +251,9 @@ export const useRepairStore = defineStore('repair', () => {
         saveRepairFiles,
         removeRepairFile,
         fetchRepairDetail,
-        fetchRepairProgress
+        fetchRepairProgress,
+        downloadFile,
+        viewFile
     }
 
 

@@ -5,7 +5,9 @@ export const PERMISSIONS = {
   PERMISSION_ROLE_MANAGEMENT: '權限角色管理',
   PERMISSION_ROLE_MEMBER_MANAGEMENT: '權限角色成員管理',
   MAIL_MANAGEMENT: '寄信管理',
-  PARAMETER_MANAGEMENT: '參數管理'
+  PARAMETER_MANAGEMENT: '參數管理',
+  TODO_MANAGEMENT: '派工管理',
+  REPAIR_TODO_MANAGEMENT: '報修管理',
 }
 
 // 權限檢查輔助函數

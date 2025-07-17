@@ -24,6 +24,12 @@ import EditMail from '@/views/Parameters/EditMail.vue'
 import InitPassword from '@/views/InitPassword.vue'
 import RepairView from '@/views/RepairView.vue'
 import EmailVerificationSuccess from '@/views/EmailVerificationSuccess.vue'
+import TodoManagment from '@/views/Todo/TodoManagment.vue'
+import TodoView from '@/views/Todo/TodoView.vue'
+import AssignWork from '@/views/Todo/AssignWork.vue'
+import RepairTodoManagment from '@/views/Todo/RepairTodoManagment.vue'
+import RepairTodoView from '@/views/Todo/RepairTodoView.vue'
+import HandleWork from '@/views/Todo/HandleWork.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -302,6 +308,98 @@ const router = createRouter({
             ],
             permission: PERMISSIONS.MAIL_MANAGEMENT,
             permissionMode: 'Readonly' 
+          },
+        },
+        // 派工管理
+        {
+          path: 'todo-management',
+          name: 'app.settings.todo-management',
+          component: TodoManagment,
+          meta: { 
+            title: '派工管理',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '派工管理', to: null },
+            ],
+            permission: PERMISSIONS.TODO_MANAGEMENT,
+            permissionMode: 'Readonly' 
+          },
+        },
+        {
+          path: 'view-todo/:id',
+          name: 'app.settings.view-todo',
+          component: TodoView,
+          meta: { 
+            title: '檢視案件',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '派工管理', to: '/settings/todo-management' },
+              { text: '檢視案件', to: null },
+            ],
+            permission: PERMISSIONS.TODO_MANAGEMENT,
+            permissionMode: 'Readonly' 
+          },
+        },
+        {
+          path: 'assign-work/:id',
+          name: 'app.settings.assign-work',
+          component: AssignWork,
+          meta: { 
+            title: '指派案件',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '派工管理', to: '/settings/todo-management' },
+              { text: '檢視案件', to: '/settings/view-todo/:id' },
+              { text: '指派案件', to: null },
+            ],
+            permission: PERMISSIONS.TODO_MANAGEMENT,
+            permissionMode: 'Full' 
+          },
+        },
+        // 報修待辦
+        {
+          path: 'repair-todo-management',
+          name: 'app.settings.repair-todo-management',
+          component: RepairTodoManagment,
+          meta: { 
+            title: '待辦管理',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '待辦管理', to: null },
+            ],
+            permission: PERMISSIONS.REPAIR_TODO_MANAGEMENT,
+            permissionMode: 'Readonly' 
+          },
+        },
+        {
+          path: 'view-repair-todo/:id',
+          name: 'app.settings.view-repair-todo',
+          component: RepairTodoView,
+          meta: { 
+            title: '檢視案件',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '待辦管理', to: '/settings/repair-todo-management' },
+              { text: '檢視案件', to: null },
+            ],
+            permission: PERMISSIONS.REPAIR_TODO_MANAGEMENT,
+            permissionMode: 'Readonly' 
+          },
+        },
+        {
+          path: 'handle-work/:id',
+          name: 'app.settings.handle-work',
+          component: HandleWork,
+          meta: { 
+            title: '指派案件',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '派工管理', to: '/settings/repair-todo-management' },
+              { text: '檢視案件', to: '/settings/view-repair-todo/:id' },
+              { text: '承辦案件', to: null },
+            ],
+            permission: PERMISSIONS.REPAIR_TODO_MANAGEMENT,
+            permissionMode: 'Full' 
           },
         },
       ]

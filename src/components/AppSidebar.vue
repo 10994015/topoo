@@ -102,9 +102,16 @@ const menuItems = [
       },
       {
         name: 'todo-management',
-        label: '待辦管理',
+        label: '派工管理',
         path: '/settings/todo-management',
-        permission: '待辦管理',
+        permission: '派工管理',
+        permissionMode: 'Readonly'
+      },
+      {
+        name: 'repair-todo-management',
+        label: '待辦管理',
+        path: '/settings/repair-todo-management',
+        permission: '報修管理',
         permissionMode: 'Readonly'
       },
       {

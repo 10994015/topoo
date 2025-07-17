@@ -2,28 +2,32 @@
 import { ref, reactive, onMounted, computed, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useRepairStore } from '@/stores/repair'
+import { useTodoStore } from '@/stores/todo'
 import { formatDate, formatDateTime } from '@/utils/dateUtils'
 import FilePreviewModal from '@/components/FilePreviewModal.vue'
 
 const route = useRoute()
 const router = useRouter()
 const repairStore = useRepairStore()
+const todoStore = useTodoStore()
 
 // 報修詳細資料
-const repairDetail = ref(null)
+const todoDetail = ref(null)
 const isLoading = ref(true)
 const showProgressModal = ref(false)
 
 // 從路由參數獲取報修ID
 const repairId = computed(() => route.params.id)
 
+const todoId = ref(null)
+
 // 獲取報修詳細資料
-const fetchRepairDetail = async () => {
+const fetchtodoDetail = async () => {
   try {
     isLoading.value = true
     // 這裡需要新增一個 API 方法來獲取單一報修詳細資料
-    const response = await repairStore.fetchRepairDetail(repairId.value)
-    repairDetail.value = response
+    const response = await repairStore.fetchtodoDetail(repairId.value)
+    todoDetail.value = response
   } catch (error) {
     console.error('獲取報修詳細資料失敗:', error)
     alert('載入失敗，請稍後重試')
@@ -35,8 +39,8 @@ const fetchRepairDetail = async () => {
 // 獲取報修進度記錄
 const fetchProgressRecords = async () => {
   try {
-    await repairStore.fetchRepairProgress(repairId.value)
-    mockProgressData.value = repairStore.repairProgress || []
+    await todoStore.fetchTodoProgress(repairId.value)
+    mockProgressData.value = todoStore.todoProgress || []
     console.log(mockProgressData.value);
     
   } catch (error) {
@@ -100,10 +104,49 @@ const closeProgressModal = () => {
 
 const mockProgressData = ref([])
 
+// 案件派工處理
+const handAssign = () => {
+  // 實作承辦案件邏輯
+  console.log('指派案件')
+  router.push({
+    name: 'app.settings.assign-work',
+    params: { id: repairId.value }
+  })
+  // 可以呼叫 API 或顯示確認對話框
+}
+
+const deleteAssign = async () => {
+  // 實作刪除案件邏輯
+  console.log('刪除案件')
+  // 可以呼叫 API 或顯示確認對話框
+  const response = await todoStore.removeTodo(todoId.value)
+  console.log(response);
+  
+  if (response.success) {
+    alert('刪除成功！')
+    router.go(-1)
+  }
+  else {
+    alert('刪除失敗，請稍後重試')
+  }
+  
+}
+const levels = {
+    1: '普級',
+    2: '中級',
+    3: '緊急',
+}
+const levelsMap = {
+  1: 'priority-normal',
+  2: 'priority-medium',
+  3: 'priority-urgent'
+}
+
+
 // 下載檔案
 const downloadFile = async (file) => {
     try {
-        const response = await repairStore.downloadFile(file.file_id);
+        const response = await todoStore.downloadFile(file.file_id);
 
         if(response?.status === 400){
             alert('下載失敗，請稍後重試。')
@@ -133,7 +176,7 @@ const closeFilePreview = () => {
 // 獲取檔案內容的方法（傳給子組件）
 const fetchFileContent = async (fileId) => {
   try {
-    const response = await repairStore.viewFile(fileId)
+    const response = await todoStore.viewFile(fileId)
     return response
   } catch (error) {
     console.error('獲取檔案內容失敗:', error)
@@ -155,12 +198,14 @@ const onPreviewLoadError = (error) => {
   alert('預覽失敗，請稍後重試')
 }
 onMounted(async () => {
-  // 實際開發時取消註解
-  const response = await repairStore.fetchRepairDetail(repairId.value)
+  const response = await todoStore.fetchTodoDetail(repairId.value)
   console.log(response);
   
-  repairDetail.value = repairStore.repairDetail
-  console.log(repairDetail.value);
+  todoDetail.value = todoStore.todoDetail
+  if(todoDetail.value.todo_id){
+    todoId.value = todoDetail.value.todo_id
+  }
+  console.log(todoDetail.value);
   
   isLoading.value = false
 })
@@ -176,12 +221,12 @@ onMounted(async () => {
       </div>
 
       <!-- 主要內容 -->
-      <div v-else-if="repairDetail" class="repair-detail">
+      <div v-else-if="todoDetail" class="repair-detail">
         <!-- 標題區域 -->
         <div class="detail-header">
           <div class="header-left">
             <h2 class="page-title">報修資訊</h2>
-            <span class="repair-number">{{ repairDetail.id }}</span>
+            <span class="repair-number">{{ todoDetail.id }}</span>
           </div>
         </div>
 
@@ -192,59 +237,59 @@ onMounted(async () => {
             <div class="info-column">
               <div class="info-group">
                 <label class="info-label">案件標題</label>
-                <div class="info-value">{{ repairDetail.title }}</div>
+                <div class="info-value">{{ todoDetail.title }}</div>
               </div>
 
               <div class="info-group">
                 <label class="info-label">故障類別</label>
-                <div class="info-value">{{ repairDetail.repair_category }}</div>
+                <div class="info-value">{{ todoDetail.repair_category }}</div>
               </div>
 
               <div class="info-group">
                 <label class="info-label">故障原因</label>
-                <div class="info-value">{{ repairDetail.repair_reason }}</div>
+                <div class="info-value">{{ todoDetail.repair_reason }}</div>
               </div>
 
-              <div class="info-group">
+              <div class="info-group" v-if="todoDetail.repair_category === '硬體' || todoDetail.repair_category === '軟體'">
                 <label class="info-label">功能項目</label>
-                <div class="info-value">{{ repairDetail.repair_item || '無' }}</div>
+                <div class="info-value">{{ todoDetail.repair_item || '無' }}</div>
               </div>
-
               <div class="info-group">
-                <label class="info-label">設備位置</label>
-                <div class="info-value">{{ repairDetail.device_location || '無' }}</div>
+                <label class="info-label">處理狀態</label>
+                <div class="info-value">
+                  <span class="status-badge" :class="getStatusClass(todoDetail.repair_status)">
+                    {{ todoDetail.repair_status }}
+                  </span>
+                </div>
               </div>
+              
             </div>
 
             <!-- 右欄 -->
             <div class="info-column">
               <div class="info-group">
                 <label class="info-label">報修人員</label>
-                <div class="info-value">{{ repairDetail.repair_name }}</div>
+                <div class="info-value">{{ todoDetail.repair_name }}</div>
               </div>
 
               <div class="info-group">
                 <label class="info-label">報修時間</label>
-                <div class="info-value">{{ formatDateTime(repairDetail.repair_time) }}</div>
+                <div class="info-value">{{ formatDateTime(todoDetail.repair_time) }}</div>
               </div>
 
               <div class="info-group">
                 <label class="info-label">填單時間</label>
-                <div class="info-value">{{ formatDateTime(repairDetail.created_at) }}</div>
+                <div class="info-value">{{ formatDateTime(todoDetail.created_at) }}</div>
               </div>
 
-              <div class="info-group">
-                <label class="info-label">處理狀態</label>
-                <div class="info-value">
-                  <span class="status-badge" :class="getStatusClass(repairDetail.repair_status)">
-                    {{ repairDetail.repair_status }}
-                  </span>
-                </div>
+              
+              <div class="info-group" v-if="todoDetail.repair_category === '硬體' || todoDetail.repair_category === '軟體'">
+                <label class="info-label">設備位置</label>
+                <div class="info-value">{{ todoDetail.device_location || '無' }}</div>
               </div>
-
               <div class="info-group">
                 <label class="info-label">承辦人員</label>
-                <div class="info-value">{{ repairDetail.assign_user_nick_name || '-' }}</div>
+                <div class="info-value">{{ todoDetail.assign_user_nick_name || '-' }}</div>
               </div>
             </div>
           </div>
@@ -253,7 +298,7 @@ onMounted(async () => {
           <div class="description-section">
             <label class="info-label">問題描述</label>
             <div class="description-content">
-              {{ repairDetail.depiction }}
+              {{ todoDetail.depiction }}
             </div>
           </div>
 
@@ -269,11 +314,11 @@ onMounted(async () => {
         </div>
 
         <!-- 附件列表 -->
-        <div v-if="repairDetail.files && repairDetail.files.length > 0" class="attachments-section">
+        <div v-if="todoDetail.files && todoDetail.files.length > 0" class="attachments-section">
           <h3 class="section-title">附件</h3>
           <div class="file-list">
             <div 
-              v-for="(file, index) in repairDetail.files" 
+              v-for="(file, index) in todoDetail.files" 
               :key="file.id" 
               class="file-item"
             >
@@ -292,6 +337,45 @@ onMounted(async () => {
               </button>
             </div>
           </div>
+        </div>
+        <div class="handler-section">
+            <h3 class="section-title">承辦資訊</h3>
+            
+            <div class="handler-content">
+                <!-- 重要程度 -->
+                <div class="priority-item">
+                <div class="priority-icon">📌</div>
+                <div class="priority-info">
+                    <span class="priority-label">重要程度</span>
+                    <span :class="[todoDetail.importance_level ? 'priority-badge' : '', levelsMap[todoDetail.importance_level] || '']">{{ levels[todoDetail.importance_level] || '-' }}</span>
+                </div>
+                </div>
+
+                <!-- 緊急程度 -->
+                <div class="priority-item">
+                <div class="priority-icon">⚠️</div>
+                <div class="priority-info">
+                    <span class="priority-label">緊急程度</span>
+                    <span :class="[todoDetail.importance_level ? 'priority-badge' : '', levelsMap[todoDetail.importance_level] || '']">{{ levels[todoDetail.emergency_level] || '-' }}</span>
+                </div>
+                </div>
+
+                <!-- 預計完成時間 -->
+                <div class="completion-time">
+                <span class="completion-label">預計完成時間</span>
+                <span class="completion-value">{{ formatDateTime(todoDetail.estimated_completion_time) || '-' }}</span>
+                </div>
+
+                <!-- 操作按鈕 -->
+                <div class="handler-actions">
+                <button @click="handAssign" class="accept-btn">
+                    {{ todoDetail.todo_id ? '編輯派工' : '案件派工'}}
+                </button>
+                <button @click="deleteAssign" class="reassign-btn" v-if="todoId">
+                    刪除派工
+                </button>
+                </div>
+            </div>
         </div>
       </div>
 
@@ -340,6 +424,44 @@ onMounted(async () => {
                     <div v-if="record.content" class="timeline-comment">
                     {{ record.content }}
                     </div>
+                    <!-- 附件區域 -->
+                      <div v-if="record.files && record.files.length > 0" class="timeline-files">
+                        <div class="files-header">
+                            <span class="files-icon">📎</span>
+                            <span class="files-title">附件 ({{ record.files.length }})</span>
+                        </div>
+                        <div class="files-list">
+                            <div 
+                            v-for="(file, fileIndex) in record.files" 
+                            :key="file.file_id || fileIndex" 
+                            class="file-item-inline"
+                            >
+                            <div class="file-info-inline">
+                                <span class="file-icon-small">{{ getFileIcon(file.file_name) }}</span>
+                                <div class="file-details-inline">
+                                <span class="file-name-inline">{{ file.original_name || file.file_name }}</span>
+                                <span class="file-size-inline">{{ formatFileSize(file.size) }}</span>
+                                </div>
+                            </div>
+                            <div class="file-actions-inline">
+                                <button 
+                                @click="openFilePreview(file)" 
+                                class="preview-btn-small"
+                                :title="'預覽 ' + (file.original_name || file.file_name)"
+                                >
+                                <span class="preview-icon">👁</span>
+                                </button>
+                                <button 
+                                @click="downloadFile(file)" 
+                                class="download-btn-small"
+                                :title="'下載 ' + (file.original_name || file.file_name)"
+                                >
+                                <span class="download-icon">⬇</span>
+                                </button>
+                            </div>
+                            </div>
+                        </div>
+                      </div>
                 </div>
                 </div>
             </div>
@@ -352,9 +474,10 @@ onMounted(async () => {
             </div>
             </div>
         </div>
-    </div>
+      </div>
 
-    <FilePreviewModal
+        <!-- 使用檔案預覽組件 -->
+      <FilePreviewModal
         :visible="showFilePreview"
         :file="selectedFile"
         :fetch-file-content="fetchFileContent"
@@ -365,8 +488,6 @@ onMounted(async () => {
         @load-error="onPreviewLoadError"
       />
   </div>
-
-
 </template>
 
 <style lang="scss" scoped>
@@ -705,7 +826,7 @@ onMounted(async () => {
   background: white;
   border-radius: 12px;
   width: 90%;
-  max-width: 600px;
+  max-width: 800px;
   max-height: 80vh;
   overflow: hidden;
   animation: slideUp 0.3s ease-out;
@@ -964,5 +1085,472 @@ onMounted(async () => {
     gap: 8px;
   }
 }
+// 承辦資訊區塊樣式
+.handler-section {
+  border-top: 1px solid #f0f0f0;
+  padding: 30px;
+  background: #fafbfc;
 
+  .section-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 20px;
+  }
+
+  .handler-content {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+  }
+
+  .priority-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid #f8f9fa;
+
+    &:last-of-type {
+      border-bottom: none;
+    }
+
+    .priority-icon {
+      font-size: 20px;
+      width: 24px;
+      text-align: center;
+    }
+
+    .priority-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex: 1;
+    }
+
+    .priority-label {
+      font-size: 14px;
+      color: #666;
+      font-weight: 500;
+    }
+
+    /* 優先級標籤基本樣式 */
+    .priority-badge {
+    padding: 6px 14px;
+    border-radius: 14px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    }
+
+    .priority-badge::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+        transition: left 0.5s ease;
+    }
+
+    .priority-badge:hover::before {
+        left: 100%;
+    }
+
+    /* 普級樣式 - 綠色系 */
+    .priority-normal {
+        background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        color: #155724;
+        border: 1px solid #c3e6cb;
+        box-shadow: 0 2px 4px rgba(21, 87, 36, 0.1);
+
+    &:hover {
+        background: linear-gradient(135deg, #c3e6cb 0%, #b8dcc8 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(21, 87, 36, 0.15);
+    }
+
+    &::before {
+        content: '✓';
+        margin-right: 4px;
+    }
+    }
+
+    /* 中級樣式 - 黃色系 */
+    .priority-medium {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+    color: #856404;
+    border: 1px solid #ffeaa7;
+    box-shadow: 0 2px 4px rgba(133, 100, 4, 0.1);
+
+    &:hover {
+        background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(133, 100, 4, 0.15);
+    }
+
+    &::before {
+        content: '⚠️';
+        margin-right: 4px;
+    }
+    }
+
+    /* 緊急樣式 - 紅色系 */
+    .priority-urgent {
+    background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+    box-shadow: 0 2px 4px rgba(114, 28, 36, 0.1);
+    animation: pulse 2s infinite;
+
+    &:hover {
+        background: linear-gradient(135deg, #f5c6cb 0%, #f1b0b7 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(114, 28, 36, 0.15);
+    }
+
+    &::before {
+        content: '🚨';
+        margin-right: 4px;
+    }
+    }
+
+    /* 緊急等級的脈衝動畫 */
+    @keyframes pulse {
+    0% { box-shadow: 0 2px 4px rgba(114, 28, 36, 0.1); }
+    50% { box-shadow: 0 4px 12px rgba(114, 28, 36, 0.2); }
+    100% { box-shadow: 0 2px 4px rgba(114, 28, 36, 0.1); }
+    }
+  }
+
+  .completion-time {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 0;
+    margin: 15px 0;
+    border-top: 1px solid #f8f9fa;
+
+    .completion-label {
+      font-size: 14px;
+      color: #666;
+      font-weight: 500;
+    }
+
+    .completion-value {
+      font-size: 14px;
+      color: #333;
+      font-weight: 500;
+      font-family: 'Courier New', monospace;
+    }
+  }
+
+  .handler-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #f8f9fa;
+
+    .accept-btn {
+      flex: 1;
+      background: #6c5ce7;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s;
+
+      &:hover {
+        background: #5b4bcf;
+        transform: translateY(-1px);
+      }
+
+      &:active {
+        transform: translateY(0);
+      }
+    }
+
+    .reassign-btn {
+      flex: 1;
+      background: #e74c3c;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s;
+
+      &:hover {
+        background: #c0392b;
+        transform: translateY(-1px);
+      }
+
+      &:active {
+        transform: translateY(0);
+      }
+    }
+  }
+}
+
+// 響應式設計
+@media (max-width: 768px) {
+  .handler-section {
+    padding: 20px;
+
+    .handler-content {
+      padding: 15px;
+    }
+
+    .handler-actions {
+      flex-direction: column;
+
+      .accept-btn,
+      .reassign-btn {
+        width: 100%;
+        margin: 0;
+      }
+    }
+
+    .priority-info {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .completion-time {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .priority-item {
+      padding: 15px 0;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .handler-section {
+    padding: 15px;
+
+    .section-title {
+      font-size: 14px;
+    }
+
+    .priority-icon {
+      font-size: 18px;
+    }
+
+    .priority-label,
+    .completion-label,
+    .completion-value {
+      font-size: 13px;
+    }
+
+    .priority-badge {
+      font-size: 11px;
+      padding: 3px 8px;
+    }
+  }
+}
+// 新增的附件樣式
+.timeline-files {
+  margin-top: 15px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+
+  .files-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e9ecef;
+
+    .files-icon {
+      font-size: 16px;
+    }
+
+    .files-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #495057;
+    }
+  }
+
+  .files-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .file-item-inline {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: #f8f9fa;
+      border-color: #6c5ce7;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(108, 92, 231, 0.1);
+    }
+  }
+
+  .file-info-inline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0; // 防止文字溢出
+
+    .file-icon-small {
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .file-details-inline {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+
+      .file-name-inline {
+        font-size: 12px;
+        color: #333;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .file-size-inline {
+        font-size: 10px;
+        color: #6c757d;
+      }
+    }
+  }
+
+  .file-actions-inline {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .preview-btn-small,
+  .download-btn-small {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+      transform: scale(1.05);
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+
+  .preview-btn-small {
+    background: #28a745;
+    color: white;
+
+    &:hover {
+      background: #218838;
+    }
+  }
+
+  .download-btn-small {
+    background: #6c5ce7;
+    color: white;
+
+    &:hover {
+      background: #5b4bcf;
+    }
+  }
+}
+
+// 響應式設計
+@media (max-width: 768px) {
+  .timeline-files {
+    .file-item-inline {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+    }
+
+    .file-info-inline {
+      justify-content: flex-start;
+    }
+
+    .file-actions-inline {
+      justify-content: center;
+    }
+
+    .preview-btn-small,
+    .download-btn-small {
+      flex: 1;
+      height: 32px;
+      font-size: 14px;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .timeline-files {
+    padding: 8px;
+
+    .files-header {
+      margin-bottom: 8px;
+      
+      .files-title {
+        font-size: 12px;
+      }
+    }
+
+    .file-item-inline {
+      padding: 6px 8px;
+    }
+
+    .file-details-inline {
+      .file-name-inline {
+        font-size: 11px;
+      }
+
+      .file-size-inline {
+        font-size: 9px;
+      }
+    }
+  }
+}
 </style>
