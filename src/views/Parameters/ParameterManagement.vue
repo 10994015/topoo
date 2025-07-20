@@ -6,7 +6,8 @@ import { PERMISSIONS, checkPermission } from '@/utils/permissions'
 
 const authStore = useAuthStore()
 const hasReadMailPermission = computed(() => authStore.canAccessPage(PERMISSIONS.MAIL_MANAGEMENT))
-
+const hasReadRepairCategoryPermission = computed(() => authStore.canAccessPage(PERMISSIONS.REPAIR_CATEGORY_MANAGEMENT))
+const hasReadRepairStatusPermission = computed(() => authStore.canAccessPage(PERMISSIONS.REPAIR_STATUS_MANAGEMENT))
 // 搜尋表單
 const searchForm = reactive({
   keyword: '',
@@ -27,23 +28,20 @@ const allParameterData = ref([
   {
     id: 1,
     parameterName: '故障類別',
-    url: '',
-    read: true,
-    lastModified: '2024-01-15'
+    url: '/settings/parameter/repair-category-management',
+    read: hasReadRepairCategoryPermission.value,
   },
   {
     id: 2,
     parameterName: '維修狀態',
-    url: '',
-    read: true,
-    lastModified: '2024-01-12'
+    url: '/settings/parameter/repair-status-management',
+    read: hasReadRepairStatusPermission.value,
   },
   {
     id: 3,
     parameterName: '系統信箱',
     url: '/settings/parameter/mail-management',
     read: hasReadMailPermission.value,
-    lastModified: '2024-01-10'
   },
 ])
 

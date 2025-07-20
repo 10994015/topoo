@@ -30,6 +30,12 @@ import AssignWork from '@/views/Todo/AssignWork.vue'
 import RepairTodoManagment from '@/views/Todo/RepairTodoManagment.vue'
 import RepairTodoView from '@/views/Todo/RepairTodoView.vue'
 import HandleWork from '@/views/Todo/HandleWork.vue'
+import RepairCategoryManagement from '@/views/Parameters/RepairCategoryManagement.vue'
+import EditRepairCategory from '@/views/Parameters/EditRepairCategory.vue'
+import EditRepairReason from '@/views/Parameters/EditRepairReason.vue'
+import RepairStatusManagement from '@/views/Parameters/RepairStatusManagement.vue'
+import EditRepairStatus from '@/views/Parameters/EditRepairStatus.vue'
+import { Edit } from 'lucide-vue-next'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -307,6 +313,135 @@ const router = createRouter({
               { text: '編輯信箱', to: null },
             ],
             permission: PERMISSIONS.MAIL_MANAGEMENT,
+            permissionMode: 'Readonly' 
+          },
+        },
+        // 故障類別管理
+        {
+          path: 'parameter/repair-category-management',
+          name: 'app.settings.repair-category-management',
+          component: RepairCategoryManagement,
+          meta: { 
+            title: '故障類別管理',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '參數管理', to: '/settings/parameter-management' },
+              { text: '故障類別管理', to: null },
+            ],
+            permission: PERMISSIONS.REPAIR_CATEGORY_MANAGEMENT,
+            permissionMode: 'Readonly' 
+          },
+        },
+        // 新增故障類別
+        {
+          path: 'parameter/repair-category/create',
+          name: 'app.settings.repair-category.create',
+          component: EditRepairCategory,
+          meta: { 
+            title: '新增故障類別',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '參數管理', to: '/settings/parameter-management' },
+              { text: '故障類別管理', to: '/settings/parameter/repair-category-management' },
+              { text: '新增故障類別', to: null },
+            ],
+            permission: PERMISSIONS.REPAIR_CATEGORY_MANAGEMENT,
+            permissionMode: 'Full' 
+          },
+        },
+        {
+          path: 'parameter/repair-category/edit/:id',
+          name: 'app.settings.repair-category.edit',
+          component: EditRepairCategory,
+          meta: { 
+            title: '編輯故障類別',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '參數管理', to: '/settings/parameter-management' },
+              { text: '故障類別管理', to: '/settings/parameter/repair-category-management' },
+              { text: '編輯類別管理', to: null },
+            ],
+            permission: PERMISSIONS.REPAIR_CATEGORY_MANAGEMENT,
+            permissionMode: 'Readonly' 
+          },
+        },
+        {
+          path: 'parameter/repair-reason/create/:categoryId',
+          name: 'app.settings.repair-reason.create',
+          component: EditRepairReason,
+          meta: { 
+            title: '新增故障原因',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '參數管理', to: '/settings/parameter-management' },
+              { text: '故障類別管理', to: '/settings/parameter/repair-category-management' },
+              { text: '新增故障原因', to: null },
+            ],
+            permission: PERMISSIONS.REPAIR_REASON_MANAGEMENT,
+            permissionMode: 'Full' 
+          },
+        },
+        {
+          path: 'parameter/repair-reason/edit/:categoryId/:reasonId',
+          name: 'app.settings.repair-reason.edit',
+          component: EditRepairReason,
+          meta: { 
+            title: '編輯故障類別',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '參數管理', to: '/settings/parameter-management' },
+              { text: '故障類別管理', to: '/settings/parameter/repair-category-management' },
+              { text: '編輯類別原因', to: null },
+            ],
+            permission: PERMISSIONS.REPAIR_REASON_MANAGEMENT,
+            permissionMode: 'Readonly' 
+          },
+        },
+        // 維修狀態管理
+        {
+          path: 'parameter/repair-status-management',
+          name: 'app.settings.repair-status-management',
+          component: RepairStatusManagement,
+          meta: { 
+            title: '維修狀態管理',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '參數管理', to: '/settings/parameter-management' },
+              { text: '維修狀態管理', to: null },
+            ],
+            permission: PERMISSIONS.REPAIR_CATEGORY_MANAGEMENT,
+            permissionMode: 'Readonly' 
+          },
+        },
+        {
+          path: 'parameter/repair-status/create',
+          name: 'app.settings.repair-status.create',
+          component: EditRepairStatus,
+          meta: { 
+            title: '新增維修狀態',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '參數管理', to: '/settings/parameter-management' },
+              { text: '維修狀態管理', to: '/settings/parameter/repair-status-management' },
+              { text: '新增維修狀態', to: null },
+            ],
+            permission: PERMISSIONS.REPAIR_STATUS_MANAGEMENT,
+            permissionMode: 'Full' 
+          },
+        },
+        {
+          path: 'parameter/repair-status/edit/:statusId',
+          name: 'app.settings.repair-status.edit',
+          component: EditRepairStatus,
+          meta: { 
+            title: '編輯維修狀態',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '參數管理', to: '/settings/parameter-management' },
+              { text: '維修狀態管理', to: '/settings/parameter/repair-status-management' },
+              { text: '編輯維修狀態', to: null },
+            ],
+            permission: PERMISSIONS.REPAIR_STATUS_MANAGEMENT,
             permissionMode: 'Readonly' 
           },
         },

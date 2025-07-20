@@ -8,6 +8,9 @@ export const PERMISSIONS = {
   PARAMETER_MANAGEMENT: '參數管理',
   TODO_MANAGEMENT: '派工管理',
   REPAIR_TODO_MANAGEMENT: '報修管理',
+  REPAIR_CATEGORY_MANAGEMENT: '故障類別管理',
+  REPAIR_REASON_MANAGEMENT: '故障原因類別管理',
+  REPAIR_STATUS_MANAGEMENT: '報修狀態管理',
 }
 
 // 權限檢查輔助函數
