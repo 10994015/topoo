@@ -2,6 +2,8 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { checkAnyPermission , PERMISSIONS } from '@/utils/permissions'
+
 
 const route = useRoute()
 const authStore = useAuthStore()
@@ -115,9 +117,9 @@ const menuItems = [
         permissionMode: 'Readonly'
       },
       {
-        name: 'department-management',
+        name: 'unit-management',
         label: '單位管理',
-        path: '/settings/department-management',
+        path: '/settings/unit-management',
         permission: '單位管理',
         permissionMode: 'Readonly'
       },
@@ -125,13 +127,23 @@ const menuItems = [
         name: 'report-management',
         label: '報表管理',
         path: '/settings/report-management',
-        permission: '報表管理',
+        anyPermissions: [
+          PERMISSIONS.ACCOUNT_EXCEL_DOWNLOAD,
+          PERMISSIONS.REPAIR_NOTICE_EXCEL_DOWNLOAD,
+          PERMISSIONS.REPAIR_PROGRESS_SUMMARY_EXCEL_DOWNLOAD
+        ],
         permissionMode: 'Readonly'
       },
       {
         name: 'parameter-management',
         label: '參數管理',
         path: '/settings/parameter-management',
+        anyPermissions: [
+          PERMISSIONS.REPAIR_CATEGORY_MANAGEMENT,
+          PERMISSIONS.REPAIR_STATUS_MANAGEMENT,
+          PERMISSIONS.MAIL_MANAGEMENT
+        ],
+        permissionMode: 'Readonly'
       }
     ]
   }
@@ -142,9 +154,19 @@ const filteredMenuItems = computed(() => {
   return menuItems.map(item => {
     if (item.hasSubmenu && item.submenu) {
       const filteredSubmenu = item.submenu.filter(subItem => {
-        if (!subItem.permission) return true
-        const requiredMode = subItem.permissionMode || 'Readonly'
-        return authStore.hasPermission(subItem.permission, requiredMode)
+        if (!subItem.permission && !subItem.anyPermissions) return true
+        
+        if (subItem.permission) {
+          const requiredMode = subItem.permissionMode || 'Readonly'
+          return authStore.hasPermission(subItem.permission, requiredMode)
+        }
+        
+        if (subItem.anyPermissions) {
+          const requiredMode = subItem.permissionMode || 'Readonly'
+          return checkAnyPermission(authStore, subItem.anyPermissions, requiredMode)
+        }
+        
+        return false
       })
       
       if (filteredSubmenu.length > 0) {
@@ -159,6 +181,11 @@ const filteredMenuItems = computed(() => {
     if (item.permission) {
       const requiredMode = item.permissionMode || 'Readonly'
       return authStore.hasPermission(item.permission, requiredMode) ? item : null
+    }
+    
+    if (item.anyPermissions) {
+      const requiredMode = item.permissionMode || 'Readonly'
+      return checkAnyPermission(authStore, item.anyPermissions, requiredMode) ? item : null
     }
     
     return item

@@ -45,8 +45,8 @@ export const useCategoryStore = defineStore('category', () => {
      */
     const fetchCategories = async (
         searchForm = { name: '' },
-        column = 'updated_at',
-        sortDirection = 'desc',
+        column = 'sequence',
+        sortDirection = 'asc',
         limit = 10,
         page = 1
     ) => {
@@ -65,6 +65,8 @@ export const useCategoryStore = defineStore('category', () => {
             params.sortOrder = sortDirection.toUpperCase()
             params.pageSize = limit
             params.page = page
+            
+            console.log(params.sortBy);
             
             console.log('獲取類別列表參數:', params)
             

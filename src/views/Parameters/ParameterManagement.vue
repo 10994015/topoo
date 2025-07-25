@@ -2,7 +2,7 @@
 import router from '@/router'
 import { ref, computed, reactive, onMounted, watch, nextTick } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { PERMISSIONS, checkPermission } from '@/utils/permissions'
+import { PERMISSIONS } from '@/utils/permissions'
 
 const authStore = useAuthStore()
 const hasReadMailPermission = computed(() => authStore.canAccessPage(PERMISSIONS.MAIL_MANAGEMENT))
@@ -358,7 +358,7 @@ onMounted(() => {
             
             <!-- 正常資料顯示 -->
             <tr v-else v-for="(item, index) in currentPageData" :key="item.id" class="table-row cursor-pointer" @click="editParameter(item.url)">
-              <td class="id-cell">{{ item.id }}</td>
+              <td class="id-cell">{{ index + 1 }}</td>
               <td class="name-cell">
                 <div class="name-content">
                   <span class="name-text">{{ item.parameterName }}</span>

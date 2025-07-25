@@ -18,8 +18,8 @@ export const useRepairStatusStore = defineStore('repairStatus', () => {
      */
     const fetchStatuses = async (
         searchForm = { name: '' },
-        column = 'updated_at',
-        sortDirection = 'desc',
+        column = 'sequence',
+        sortDirection = 'asc',
         limit = 10,
         page = 1
     ) => {

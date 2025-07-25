@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { PERMISSIONS } from '@/utils/permissions' // 引入權限常數
+import { PERMISSIONS, checkAnyPermission } from '@/utils/permissions' // 引入權限常數
 import Login from '@/views/Login.vue'
 import Dashboard from '@/views/Dashboard.vue'
 import { useAuthStore } from '../stores/auth'
@@ -36,6 +36,9 @@ import EditRepairReason from '@/views/Parameters/EditRepairReason.vue'
 import RepairStatusManagement from '@/views/Parameters/RepairStatusManagement.vue'
 import EditRepairStatus from '@/views/Parameters/EditRepairStatus.vue'
 import { Edit } from 'lucide-vue-next'
+import UnitManagement from '@/views/Units/UnitManagement.vue'
+import EditUnit from '@/views/Units/EditUnit.vue'
+import ReportManagement from '@/views/Reports/ReportManagement.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -267,6 +270,12 @@ const router = createRouter({
               { text: '首頁', to: '/' },
               { text: '參數管理', to: null },
             ],
+            anyPermissions: [
+              PERMISSIONS.REPAIR_CATEGORY_MANAGEMENT,
+              PERMISSIONS.REPAIR_STATUS_MANAGEMENT,
+              PERMISSIONS.MAIL_MANAGEMENT
+            ],
+            permissionMode: 'Readonly'
           }
         },
         {
@@ -537,6 +546,89 @@ const router = createRouter({
             permissionMode: 'Full' 
           },
         },
+        // 單位管理
+        {
+          path: 'unit-management',
+          name: 'app.settings.unit-management',
+          component: UnitManagement,
+          meta: { 
+            title: '單位管理',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '單位管理', to: null },
+            ],
+            permission: PERMISSIONS.UNIT_MANAGEMENT,
+            permissionMode: 'Readonly' // 讀取權限即可查看列表
+          },
+          
+        },
+        // 從第一層開始新增
+        {
+          path: 'unit/unit-create',
+          name: 'app.settings.unit.unit-create',
+          component: EditUnit,
+          meta: { 
+            title: '新增單位',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '單位管理', to: '/settings/unit-management' },
+              { text: '新增單位', to: null },
+            ],
+            permission: PERMISSIONS.UNIT_MANAGEMENT,
+            permissionMode: 'Full' 
+          },
+        },
+        // 從中間開始新增
+        {
+          path: 'unit/unit-insert/:parentId',
+          name: 'app.settings.unit.unit-insert',
+          component: EditUnit,
+          meta: { 
+            title: '新增單位',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '單位管理', to: '/settings/unit-management' },
+              { text: '新增單位', to: null },
+            ],
+            permission: PERMISSIONS.UNIT_MANAGEMENT,
+            permissionMode: 'Full' 
+          },
+        },
+        // 編輯單位
+        {
+          path: 'unit/unit-edit/:id',
+          name: 'app.settings.unit.unit-edit',
+          component: EditUnit,
+          meta: { 
+            title: '編輯單位',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '單位管理', to: '/settings/unit-management' },
+              { text: '編輯單位', to: null },
+            ],
+            permission: PERMISSIONS.UNIT_MANAGEMENT,
+            permissionMode: 'Full' 
+          },
+        },
+        // 報表管理
+        {
+          path: 'report-management',
+          name: 'app.settings.report-management',
+          component: ReportManagement,
+          meta: { 
+            title: '報表管理',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '報表管理', to: null },
+            ],
+            anyPermissions: [
+              PERMISSIONS.ACCOUNT_EXCEL_DOWNLOAD,
+              PERMISSIONS.REPAIR_NOTICE_EXCEL_DOWNLOAD,
+              PERMISSIONS.REPAIR_PROGRESS_SUMMARY_EXCEL_DOWNLOAD
+            ],
+            permissionMode: 'Readonly'
+          },
+        },
       ]
     },
     
@@ -659,6 +751,25 @@ router.beforeEach(async (to, from, next) => {
       }
       
       console.log(`權限檢查通過: ${permissionName} (${requiredMode})`)
+    }
+
+    // 新增：支援 anyPermissions 的權限檢查
+    if (to.meta.anyPermissions) {
+      const permissions = to.meta.anyPermissions
+      const requiredMode = to.meta.permissionMode || 'Readonly'
+      
+      console.log(`檢查任一權限: [${permissions.join(', ')}], 需要模式: ${requiredMode}`)
+      
+      // 使用現有的 checkAnyPermission 輔助函數
+      const hasAnyPermission = checkAnyPermission(authStore, permissions, requiredMode)
+      
+      if (!hasAnyPermission) {
+        console.log(`無任何權限訪問: [${permissions.join(', ')}] (${requiredMode})`)
+        next('/')
+        return
+      }
+      
+      console.log(`權限檢查通過: 至少有一個權限 (${requiredMode})`)
     }
   }
   

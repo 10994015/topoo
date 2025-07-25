@@ -23,7 +23,7 @@ const errors = ref({})
 const currentPage = ref(1)
 const pageSize = ref(10)
 const sortConfig = ref({
-  field: 'updated_at',
+  field: 'sequence',
   order: 'DESC'
 })
 
@@ -278,7 +278,7 @@ const handleSubmit = async () => {
 
 // 取消操作
 const handleCancel = () => {
-  router.push('/category-management')
+  router.push('/settings/parameter/repair-category-management')
 }
 
 // 重置表單
@@ -307,7 +307,7 @@ const handleDelete = async () => {
       
       // 清除快取並返回列表頁
       categoryStore.clearAllCache()
-      router.push('/category-management')
+      router.push('/settings/parameter/repair-category-management')
     } else {
       console.error('刪除失敗:', result.message)
       alert(`刪除失敗: ${result.message}`)

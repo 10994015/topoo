@@ -3,9 +3,16 @@ import { ref, computed, reactive, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCategoryStore } from '@/stores/repair.category'
 import { formatDate, formatDateTime } from '@/utils/dateUtils'
+import { PERMISSIONS } from '@/utils/permissions'
+import { useAuthStore } from '@/stores/auth'
+
 
 const router = useRouter()
 const categoryStore = useCategoryStore()
+const authStore = useAuthStore()
+// 檢查各個報表的權限
+const hasReadManageRepairReason = computed(() => authStore.canAccessPage(PERMISSIONS.REPAIR_REASON_MANAGEMENT))
+const hasWriteManageRepairReason = computed(() => authStore.canModify(PERMISSIONS.REPAIR_REASON_MANAGEMENT))
 
 // 搜尋表單
 const searchForm = reactive({
@@ -15,7 +22,7 @@ const searchForm = reactive({
 // 分頁設定 - 類別
 const currentPage = ref(1)
 const pageSize = ref(10)
-const sortColumn = ref('updated_at')
+const sortColumn = ref('sequence')
 const sortDirection = ref('desc')
 
 // 載入狀態
@@ -76,6 +83,7 @@ const showEllipsis = computed(() => {
 
 // 切換類別展開狀態
 const toggleCategory = async (categoryId) => {
+  if(!hasReadManageRepairReason.value) return
   if (expandedCategories.value.has(categoryId)) {
     expandedCategories.value.delete(categoryId)
     reasonPages.value.delete(categoryId)
@@ -85,7 +93,7 @@ const toggleCategory = async (categoryId) => {
     reasonPages.value.set(categoryId, {
       currentPage: 1,
       pageSize: 5,
-      sortColumn: 'updated_at',
+      sortColumn: 'sequence',
       sortDirection: 'desc'
     })
     // 載入該類別的原因
@@ -292,7 +300,7 @@ onMounted(async () => {
                 </span>
                 <span class="sort-icon neutral" v-else>⇅</span>
               </th>
-              <th width="120">展開/收合</th>
+              <th width="120" v-if="hasReadManageRepairReason">展開/收合</th>
             </tr>
           </thead>
           <tbody>
@@ -321,9 +329,9 @@ onMounted(async () => {
               <!-- 類別行 -->
               <tr class="table-row category-row">
                 <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
-                <td><router-link :to="`/settings/parameter/repair-category/edit/${item.id}`">{{ item.name }}</router-link></td>
+                <td><router-link :to="`/settings/parameter/repair-category/edit/${item.id}`" class="category-name">{{ item.name }}</router-link></td>
                 <td>{{ formatDateTime(item.updated_at) }}</td>
-                <td>
+                <td v-if="hasReadManageRepairReason">
                   <button 
                     class="action-btn expand-btn" 
                     @click="toggleCategory(item.id)"
@@ -340,7 +348,7 @@ onMounted(async () => {
                   <div class="reasons-container">
                     <div class="reasons-header">
                       <h4>{{ item.name }} - 故障原因</h4>
-                      <button class="new-reason-btn" @click="createNewReason(item.id)" :disabled="isLoading">
+                      <button v-if="hasWriteManageRepairReason" class="new-reason-btn" @click="createNewReason(item.id)" :disabled="isLoading">
                         新增故障原因
                       </button>
                     </div>
@@ -368,7 +376,7 @@ onMounted(async () => {
                             </span>
                             <span class="sort-icon neutral" v-else>⇅</span>
                           </th>
-                          <th width="80">操作</th>
+                          <th width="80" v-if="hasWriteManageRepairReason">操作</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -383,6 +391,7 @@ onMounted(async () => {
                               class="action-btn edit-btn" 
                               @click="editReason(item.id, reason.id)"
                               title="編輯"
+                              v-if="hasWriteManageRepairReason"
                             >
                               編輯
                             </button>
@@ -769,6 +778,15 @@ onMounted(async () => {
             padding: 15px 20px;
             font-size: 14px;
             color: #333;
+            .category-name{
+              color: #444;
+              text-decoration: none;
+
+              &:hover {
+                color: #000;
+                text-decoration: underline;
+              }
+            }
           }
         }
 

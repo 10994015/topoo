@@ -41,7 +41,7 @@ const currentEditStatus = ref(null)
 const currentPage = ref(1)
 const pageSize = ref(10)
 const sortConfig = ref({
-  field: 'updated_at',
+  field: 'sequence',
   order: 'DESC'
 })
 
