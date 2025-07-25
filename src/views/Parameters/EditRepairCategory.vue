@@ -2,11 +2,15 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useCategoryStore } from '@/stores/repair.category'
-import { formatDate, formatDateTime } from '@/utils/dateUtils'
-
+import { formatDateTime } from '@/utils/dateUtils'
+import { PERMISSIONS } from '@/utils/permissions'
+import { useAuthStore } from '@/stores/auth'
 const router = useRouter()
 const route = useRoute()
 const categoryStore = useCategoryStore()
+const authStore = useAuthStore()
+
+const hasWriteManageRepairCategoryPermission = computed(() => authStore.canModify(PERMISSIONS.REPAIR_CATEGORY_MANAGEMENT))
 
 // 表單資料
 const formData = reactive({
@@ -39,16 +43,6 @@ const isEditMode = computed(() => {
 
 // 計算屬性 - 當前編輯的類別ID
 const categoryId = computed(() => route.params.id)
-
-// 計算屬性 - 頁面標題
-const pageTitle = computed(() => {
-  return isEditMode.value ? '編輯故障類別' : '新增故障類別'
-})
-
-// 計算屬性 - 按鈕文字
-const submitButtonText = computed(() => {
-  return isEditMode.value ? '儲存' : '儲存'
-})
 
 // 計算項目範圍
 const startItem = computed(() => {
@@ -223,6 +217,7 @@ const goToPage = async (page) => {
 
 // 提交表單
 const handleSubmit = async () => {
+  if(!hasWriteManageRepairCategoryPermission) return
   // 表單驗證
   if (!validateForm()) {
     return
@@ -322,6 +317,7 @@ const handleDelete = async () => {
 
 // 刪除指定類別
 const deleteCategory = async (item) => {
+  if (!hasWriteManageRepairCategoryPermission) return
   const confirmMessage = `確定要刪除類別「${item.name}」嗎？\n\n注意：刪除類別會同時刪除其所有相關的故障原因，此操作無法復原。`
   
   if (!confirm(confirmMessage)) {
@@ -357,6 +353,7 @@ const editCategory = (item) => {
   router.push(`/settings/parameter/repair-category/edit/${item.id}`)
 }
 const handleMoveToTop = async() => {
+    if(!hasWriteManageRepairCategoryPermission) return
     if (!isEditMode.value) return
     
     try {
@@ -432,6 +429,7 @@ onMounted(async () => {
                 type="submit"
                 class="btn btn-primary"
                 :disabled="isSaving || !formData.name.trim()"
+                v-if="hasWriteManageRepairCategoryPermission"
               >
                 {{ isSaving ? '儲存中...' : '儲存' }}
               </button>
@@ -441,7 +439,7 @@ onMounted(async () => {
                 @click="handleCancel"
                 :disabled="isSaving"
               >
-                取消
+                返回
               </button>
             </div>
           </form>
@@ -482,6 +480,7 @@ onMounted(async () => {
                 class="btn btn-primary"
                 @click="handleSubmit"
                 :disabled="isSaving || !formData.name.trim()"
+                v-if="hasWriteManageRepairCategoryPermission"
               >
                 {{ isSaving ? '儲存中...' : '儲存' }}
               </button>
@@ -492,7 +491,7 @@ onMounted(async () => {
                 @click="handleCancel"
                 :disabled="isSaving"
               >
-                取消
+                返回
               </button>
               
               <button
@@ -500,6 +499,7 @@ onMounted(async () => {
                 class="btn btn-outline"
                 @click="handleMoveToTop"
                 :disabled="isSaving"
+                v-if="hasWriteManageRepairCategoryPermission"
               >
                 置頂
               </button>
@@ -540,7 +540,7 @@ onMounted(async () => {
                     更新時間
                     <span class="sort-icon">{{ getSortIcon('updated_at') }}</span>
                   </th>
-                  <th class="action-column">編輯/刪除</th>
+                  <th class="action-column" v-if="hasWriteManageRepairCategoryPermission">刪除</th>
                 </tr>
               </thead>
               <tbody>
@@ -554,14 +554,7 @@ onMounted(async () => {
                   <td class="id-cell">{{ (currentPage - 1) * pageSize + index + 1 }}</td>
                   <td class="name-cell">{{ item.name }}</td>
                   <td class="time-cell">{{ formatDateTime(item.updated_at) || formatDateTime(item.created_at) }}</td>
-                  <td class="action-cell">
-                    <button 
-                      class="edit-btn"
-                      @click.stop="editCategory(item)"
-                      title="編輯"
-                    >
-                      ✏️
-                    </button>
+                  <td class="action-cell" v-if="hasWriteManageRepairCategoryPermission">
                     <button 
                       class="delete-btn"
                       @click.stop="deleteCategory(item)"

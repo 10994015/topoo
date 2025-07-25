@@ -3,9 +3,13 @@ import { ref, computed, reactive, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUnitStore } from '@/stores/unit'
 import { formatDateTime } from '@/utils/dateUtils'
+import { PERMISSIONS } from '@/utils/permissions'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const unitStore = useUnitStore()
+const authStore = useAuthStore()
+const hasWriteUnitPermission = computed(() => authStore.canModify(PERMISSIONS.UNIT_MANAGEMENT))
 
 // 搜尋表單
 const searchForm = reactive({
@@ -265,18 +269,6 @@ const insertUnit = (id) => {
   router.push(`/settings/unit/unit-insert/${id}`)
 }
 
-const editUnit = (id) => {
-  console.log('編輯單位:', id)
-  router.push(`/settings/unit/unit-edit/${id}`)
-}
-
-const deleteUnit = (id) => {
-  if (confirm('確定要刪除此單位嗎？')) {
-    console.log('刪除單位:', id)
-    // 執行刪除邏輯
-  }
-}
-
 // 判斷是否有下一個同層級的兄弟節點
 const hasNextSibling = (item, index) => {
   // 檢查下一個項目是否存在且層級大於等於當前層級
@@ -297,20 +289,6 @@ const hasNextSibling = (item, index) => {
 const isLastChild = (item, index) => {
   const nextItem = displayData.value[index + 1]
   return !nextItem || nextItem.level <= item.level
-}
-
-const formatCreatedTime = (created_at) => {
-  if (!created_at) return '-'
-  // 將 "2025-07-19T12:19:19.000Z" 轉換為 "2025/07/19 12:19"
-  const date = new Date(created_at)
-  return date.toLocaleString('zh-TW', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  }).replace(/\//g, '/').replace(',', '')
 }
 
 const getUnitData = async () => {
@@ -401,16 +379,13 @@ onMounted(async () => {
             @keyup.enter="handleSearch"
             :disabled="isLoading"
           />
-          <button class="search-btn" @click="handleSearch" :disabled="isLoading || isSearching">
-            <span v-if="isSearching" class="loading-spinner">⟳</span>
-            <span v-else>🔍</span>
-          </button>
         </div>
         
-        <button class="query-btn" @click="handleSearch" :disabled="isLoading || isSearching">
+        <button class="search-btn" @click="handleSearch" :disabled="isLoading || isSearching">
           <span v-if="isSearching" class="loading-spinner">⟳</span>
           <span v-else>查詢</span>
         </button>
+        <button class="reset-btn" @click="handleReset" :disabled="isLoading">重置</button>
       </div>
     </section>
 
@@ -425,7 +400,7 @@ onMounted(async () => {
           </select>
         </div>
         
-        <button class="new-unit-btn" @click="createNewUnit" :class="{ disabled: isLoading }" :disabled="isLoading">
+        <button v-if="hasWriteUnitPermission" class="new-unit-btn" @click="createNewUnit" :class="{ disabled: isLoading }" :disabled="isLoading">
           新增單位
         </button>
       </div>
@@ -462,7 +437,7 @@ onMounted(async () => {
                 </span>
                 <span class="sort-icon neutral" v-else>⇅</span>
               </th>
-              <th>
+              <th v-if="hasWriteUnitPermission">
                 新增單位
               </th>
             </tr>
@@ -510,9 +485,9 @@ onMounted(async () => {
                 </div>
               </td>
               <td>{{ item.level }}</td>
-              <td>{{ formatCreatedTime(item.created_at) }}</td>
+              <td>{{ formatDateTime(item.created_at) }}</td>
               <td>
-                <button class="action-btn edit-btn" @click="insertUnit(item.id)" title="新增單位">
+                <button v-if="hasWriteUnitPermission" class="action-btn edit-btn" @click="insertUnit(item.id)" title="新增單位">
                   新增單位位階{{ item.level + 1 }}
                 </button>
               </td>
@@ -682,29 +657,51 @@ onMounted(async () => {
     }
   }
 
-  .query-btn {
+  .search-btn {
+    padding: 12px 20px;
     background: #6c5ce7;
     color: white;
     border: none;
-    padding: 12px 30px;
     border-radius: 6px;
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.3s;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    white-space: nowrap;
 
     &:hover:not(:disabled) {
       background: #5b4bcf;
       transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     }
 
     &:disabled {
-      background: #ccc;
+      opacity: 0.6;
       cursor: not-allowed;
-      transform: none;
+      transform: none !important;
+    }
+  }
+  .reset-btn {
+    background: white;
+    color: #666;
+    border: 1px solid #ddd;
+    padding: 12px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+
+    &:hover:not(:disabled) {
+      background: #f8f9fa;
+      border-color: #6c5ce7;
+      color: #6c5ce7;
+    }
+
+    &:disabled {
+      background: #f8f9fa;
+      color: #ccc;
+      cursor: not-allowed;
     }
   }
 }

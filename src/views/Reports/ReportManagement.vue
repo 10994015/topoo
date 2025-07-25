@@ -10,17 +10,10 @@ const repairStore = useRepairStore()
 const authStore = useAuthStore()
 
 // 檢查各個報表的權限
-const canDownloadAccount = computed(() => 
-    checkPermission(authStore, PERMISSIONS.ACCOUNT_EXCEL_DOWNLOAD, 'Readonly')
-)
+const hasDownloadAccountPermission = computed(() => authStore.canAccessPage(PERMISSIONS.ACCOUNT_EXCEL_DOWNLOAD))
+const hasDownloadRepairNoticePermission = computed(() => authStore.canAccessPage(PERMISSIONS.REPAIR_NOTICE_EXCEL_DOWNLOAD))
+const hasDownloadRepairSummaryPermission = computed(() => authStore.canAccessPage(PERMISSIONS.REPAIR_PROGRESS_SUMMARY_EXCEL_DOWNLOAD))
 
-const canDownloadRepairNotice = computed(() => 
-    checkPermission(authStore, PERMISSIONS.REPAIR_NOTICE_EXCEL_DOWNLOAD, 'Readonly')
-)
-
-const canDownloadRepairSummary = computed(() => 
-    checkPermission(authStore, PERMISSIONS.REPAIR_PROGRESS_SUMMARY_EXCEL_DOWNLOAD, 'Readonly')
-)
 // 當前活躍的報表類型
 const activeTab = ref('repair-progress')
 
@@ -163,21 +156,21 @@ onMounted(async () => {
         <button 
           :class="['tab-btn', { active: activeTab === 'repair-progress' }]"
           @click="switchTab('repair-progress')"
-          v-if="canDownloadRepairSummary"
+          v-if="hasDownloadRepairSummaryPermission"
         >
           報修進度綜合報表
         </button>
         <button 
           :class="['tab-btn', { active: activeTab === 'account-management' }]"
           @click="switchTab('account-management')"
-          v-if="canDownloadAccount"
+          v-if="hasDownloadAccountPermission"
         >
           帳號管理報表
         </button>
         <button 
           :class="['tab-btn', { active: activeTab === 'complete-repair' }]"
           @click="switchTab('complete-repair')"
-          v-if="canDownloadRepairNotice"
+          v-if="hasDownloadRepairNoticePermission"
         >
           完修記錄報表
         </button>

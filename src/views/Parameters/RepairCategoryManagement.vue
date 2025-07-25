@@ -2,7 +2,7 @@
 import { ref, computed, reactive, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCategoryStore } from '@/stores/repair.category'
-import { formatDate, formatDateTime } from '@/utils/dateUtils'
+import { formatDateTime } from '@/utils/dateUtils'
 import { PERMISSIONS } from '@/utils/permissions'
 import { useAuthStore } from '@/stores/auth'
 
@@ -11,8 +11,9 @@ const router = useRouter()
 const categoryStore = useCategoryStore()
 const authStore = useAuthStore()
 // 檢查各個報表的權限
-const hasReadManageRepairReason = computed(() => authStore.canAccessPage(PERMISSIONS.REPAIR_REASON_MANAGEMENT))
-const hasWriteManageRepairReason = computed(() => authStore.canModify(PERMISSIONS.REPAIR_REASON_MANAGEMENT))
+const hasReadManageRepairReasonPermission = computed(() => authStore.canAccessPage(PERMISSIONS.REPAIR_REASON_MANAGEMENT))
+const hasWriteManageRepairReasonPermission = computed(() => authStore.canModify(PERMISSIONS.REPAIR_REASON_MANAGEMENT))
+const hasWriteManageRepairCategoryPermission = computed(() => authStore.canModify(PERMISSIONS.REPAIR_CATEGORY_MANAGEMENT))
 
 // 搜尋表單
 const searchForm = reactive({
@@ -83,7 +84,7 @@ const showEllipsis = computed(() => {
 
 // 切換類別展開狀態
 const toggleCategory = async (categoryId) => {
-  if(!hasReadManageRepairReason.value) return
+  if(!hasReadManageRepairReasonPermission.value) return
   if (expandedCategories.value.has(categoryId)) {
     expandedCategories.value.delete(categoryId)
     reasonPages.value.delete(categoryId)
@@ -246,14 +247,10 @@ onMounted(async () => {
             @keyup.enter="handleSearch"
             :disabled="isLoading"
           />
-          <button class="search-btn" @click="handleSearch" :disabled="isLoading || isSearching">
-            <span v-if="isSearching" class="loading-spinner">⟳</span>
-            <span v-else>🔍</span>
-          </button>
         </div>
         
         <div class="action-buttons">
-          <button class="query-btn" @click="handleSearch" :disabled="isLoading || isSearching">
+          <button class="search-btn" @click="handleSearch" :disabled="isLoading || isSearching">
             <span v-if="isSearching" class="loading-spinner">⟳</span>
             <span v-else>查詢</span>
           </button>
@@ -273,7 +270,7 @@ onMounted(async () => {
           </select>
         </div>
         
-        <button class="new-category-btn" @click="createNewCategory" :class="{ disabled: isLoading }" :disabled="isLoading">
+        <button v-if="hasWriteManageRepairReasonPermission" class="new-category-btn" @click="createNewCategory" :class="{ disabled: isLoading }" :disabled="isLoading">
           新增故障類別
         </button>
       </div>
@@ -300,7 +297,7 @@ onMounted(async () => {
                 </span>
                 <span class="sort-icon neutral" v-else>⇅</span>
               </th>
-              <th width="120" v-if="hasReadManageRepairReason">展開/收合</th>
+              <th width="120" v-if="hasReadManageRepairReasonPermission">展開/收合</th>
             </tr>
           </thead>
           <tbody>
@@ -331,7 +328,7 @@ onMounted(async () => {
                 <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
                 <td><router-link :to="`/settings/parameter/repair-category/edit/${item.id}`" class="category-name">{{ item.name }}</router-link></td>
                 <td>{{ formatDateTime(item.updated_at) }}</td>
-                <td v-if="hasReadManageRepairReason">
+                <td v-if="hasReadManageRepairReasonPermission">
                   <button 
                     class="action-btn expand-btn" 
                     @click="toggleCategory(item.id)"
@@ -348,7 +345,7 @@ onMounted(async () => {
                   <div class="reasons-container">
                     <div class="reasons-header">
                       <h4>{{ item.name }} - 故障原因</h4>
-                      <button v-if="hasWriteManageRepairReason" class="new-reason-btn" @click="createNewReason(item.id)" :disabled="isLoading">
+                      <button v-if="hasWriteManageRepairCategoryPermission" class="new-reason-btn" @click="createNewReason(item.id)" :disabled="isLoading">
                         新增故障原因
                       </button>
                     </div>
@@ -376,7 +373,7 @@ onMounted(async () => {
                             </span>
                             <span class="sort-icon neutral" v-else>⇅</span>
                           </th>
-                          <th width="80" v-if="hasWriteManageRepairReason">操作</th>
+                          <th width="80" v-if="hasWriteManageRepairReasonPermission">操作</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -391,7 +388,7 @@ onMounted(async () => {
                               class="action-btn edit-btn" 
                               @click="editReason(item.id, reason.id)"
                               title="編輯"
-                              v-if="hasWriteManageRepairReason"
+                              v-if="hasWriteManageRepairReasonPermission"
                             >
                               編輯
                             </button>
@@ -560,7 +557,7 @@ onMounted(async () => {
     display: flex;
     gap: 20px;
     align-items: end;
-
+max-width: 500px;
     .search-field {
       position: relative;
       flex: 1;
@@ -585,57 +582,34 @@ onMounted(async () => {
           cursor: not-allowed;
         }
       }
-
-      .search-btn {
-        position: absolute;
-        right: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        background: none;
-        border: none;
-        cursor: pointer;
-        font-size: 16px;
-        color: #666;
-        transition: color 0.3s;
-
-        &:hover:not(:disabled) {
-          color: #6c5ce7;
-        }
-
-        &:disabled {
-          color: #ccc;
-          cursor: not-allowed;
-        }
-      }
     }
 
     .action-buttons {
       display: flex;
       gap: 10px;
 
-      .query-btn {
+      .search-btn {
+        padding: 12px 20px;
         background: #6c5ce7;
         color: white;
         border: none;
-        padding: 12px 30px;
         border-radius: 6px;
         font-size: 14px;
         font-weight: 500;
         cursor: pointer;
         transition: all 0.3s;
-        display: flex;
-        align-items: center;
-        gap: 8px;
+        white-space: nowrap;
 
         &:hover:not(:disabled) {
           background: #5b4bcf;
           transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
 
         &:disabled {
-          background: #ccc;
+          opacity: 0.6;
           cursor: not-allowed;
-          transform: none;
+          transform: none !important;
         }
       }
 

@@ -4,10 +4,16 @@ import { ref, computed, reactive, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUnitStore } from '@/stores/unit'
 import { formatDateTime } from '@/utils/dateUtils'
+import { PERMISSIONS } from '@/utils/permissions'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const route = useRoute()
 const unitStore = useUnitStore()
+const authStore = useAuthStore()
+
+const hasWriteUnitPermission = computed(() => authStore.canModify(PERMISSIONS.UNIT_MANAGEMENT))
+
 
 // 路由參數
 const parentId = ref(route.params.parentId || null)
@@ -900,6 +906,10 @@ const saveForm = async () => {
 
 // 編輯模式：切換單位名稱編輯狀態
 const toggleEditUnitName = () => {
+  if(!hasWriteUnitPermission.value){
+    alert('您沒有權限編輯單位名稱')
+    return
+  }
   isEditingUnitName.value = !isEditingUnitName.value
   
   // 找到目標單位層級並更新鎖定狀態
@@ -1021,6 +1031,10 @@ const saveUnitNameChange = async () => {
 
 // 刪除單位
 const deleteUnit = async () => {
+  if (!hasWriteUnitPermission.value) {
+    alert('您沒有權限刪除單位')
+    return
+  }
   if (!editUnitData.value) return
   
   const confirmMessage = `確定要刪除「${editUnitData.value.name}」嗎？此操作無法復原。`
@@ -1050,7 +1064,7 @@ const getInputPlaceholder = (layer) => {
   if (layer.isTarget && isEditMode.value) {
     return '請輸入新的單位名稱'
   }
-  return `單位階層${layer.level}`
+  return `請輸入新的單位名稱`
 }
 
 // 取得切換按鈕提示文字
@@ -1129,7 +1143,7 @@ onMounted(async () => {
       <h2>
         <span v-if="isCreateMode">新增單位群組</span>
         <span v-else-if="isInsertMode">新增子單位</span>
-        <span v-else-if="isEditMode">編輯單位</span>
+        <span v-else-if="isEditMode">{{ hasWriteUnitPermission ? '編輯單位' : '檢視單位' }}</span>
         <span v-else>單位群組資訊</span>
       </h2>
       <div class="header-actions">
@@ -1146,7 +1160,7 @@ onMounted(async () => {
         <template v-else>
           <!-- 編輯/儲存單位名稱按鈕 -->
           <button 
-            v-if="!isEditingUnitName"
+            v-if="!isEditingUnitName && hasWriteUnitPermission"
             class="edit-btn" 
             @click="toggleEditUnitName"
             :disabled="isSaving"
@@ -1165,7 +1179,7 @@ onMounted(async () => {
           
           <!-- 刪除單位按鈕 -->
           <button 
-            v-if="!isEditingUnitName"
+            v-if="!isEditingUnitName && hasWriteUnitPermission"
             class="delete-btn" 
             @click="deleteUnit"
             :disabled="isSaving"
@@ -1230,7 +1244,7 @@ onMounted(async () => {
                   :disabled="layer.isLoading || layer.isLocked"
                   :class="['layer-select', { 'locked': layer.isLocked, 'target': layer.isTarget }]"
                 >
-                  <option value="">請選擇單位階層{{ layer.level }}</option>
+                  <option value="">請選擇單位</option>
                   <option 
                     v-for="option in layer.options" 
                     :key="option.id" 
@@ -1330,28 +1344,12 @@ onMounted(async () => {
             </select>
           </div>
         </div>
-
-        <div class="notice-area">
-          <p v-if="!currentUnitId" class="notice-text warning">
-            請先選擇一個現有單位以載入有資格的用戶列表
-          </p>
-          <template v-else>
-            <p v-if="isEditMode" class="notice-text info">
-              正在編輯「{{ originalUnitName }}」單位的成員 - 原有成員已預選，可加入新成員或移除現有成員
-            </p>
-            <template v-else>
-              <p class="notice-text success">成員編輯/將編輯在頁面理 原本有的成員優先排在前</p>
-              <p class="notice-text info">正在為選的成員方框顯色表與原有成員的方框要有差異</p>
-            </template>
-          </template>
-        </div>
-
         <!-- 用戶表格 -->
         <div class="users-table-container">
           <table class="users-table">
             <thead>
               <tr>
-                <th>
+                <th v-if="hasWriteUnitPermission">
                   <input 
                     type="checkbox" 
                     @change="toggleSelectAll"
@@ -1380,7 +1378,7 @@ onMounted(async () => {
               <!-- 正常資料顯示 -->
               <tr v-else v-for="(user, index) in availableUsers" :key="user.id" 
                   :class="{ selected: user.isSelected, 'existing-member': user.is_join }">
-                <td>
+                <td v-if="hasWriteUnitPermission">
                   <input 
                     type="checkbox" 
                     :checked="user.isSelected"

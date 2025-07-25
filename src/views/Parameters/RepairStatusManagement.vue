@@ -3,9 +3,13 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRepairStatusStore } from '@/stores/repair.status'
 import { formatDate, formatDateTime } from '@/utils/dateUtils'
 import { useRouter } from 'vue-router'
+import { PERMISSIONS } from '@/utils/permissions'
+import { useAuthStore } from '@/stores/auth'
 
 const statusStore = useRepairStatusStore()
 const router = useRouter()
+const authStore = useAuthStore()
+const hasWriteStatusPermission = computed(() => authStore.canModify(PERMISSIONS.REPAIR_STATUS_MANAGEMENT))
 
 // 搜尋表單
 const searchForm = reactive({
@@ -129,7 +133,17 @@ const handleSearch = async () => {
   currentPage.value = 1
   await loadStatusList()
 }
+// 重置搜尋
+const handleReset = () => {
+  searchForm.name = ''
+  currentPage.value = 1
+  loadStatusList()
+}
 
+const editStatus = (item) => {
+  if (!hasWriteStatusPermission.value) return
+  router.push(`/settings/parameter/repair-status/edit/${item.id}`)
+}
 // 分頁大小變更
 const handlePageSizeChange = async () => {
   currentPage.value = 1
@@ -205,7 +219,8 @@ const deleteStatus = async (item) => {
 }
 
 const createRepairStatus = () => {
-    router.push('/settings/parameter/repair-status/create')
+  if (!hasWriteStatusPermission.value) return
+  router.push('/settings/parameter/repair-status/create')
 }
 // 組件掛載
 onMounted(async () => {
@@ -232,19 +247,15 @@ onMounted(async () => {
           >
             查詢
           </button>
+          <button class="reset-btn" @click="handleReset" :disabled="isLoading">重置</button>
         </div>
       </div>
       
-      <button 
-        class="add-btn"
-        @click="createRepairStatus"
-      >
-        新增維修狀態
-      </button>
+      
     </div>
 
     <div class="table-section">
-      <div class="table-header">
+      <div class="table-controls">
         <select 
           v-model="pageSize" 
           @change="handlePageSizeChange" 
@@ -254,6 +265,13 @@ onMounted(async () => {
           <option value="20">20筆/頁</option>
           <option value="50">50筆/頁</option>
         </select>
+        <button 
+          class="add-btn"
+          @click="createRepairStatus"
+          v-if="hasWriteStatusPermission"
+        >
+          新增維修狀態
+        </button>
       </div>
 
       <div class="table-container">
@@ -277,7 +295,7 @@ onMounted(async () => {
                 更新時間
                 <span class="sort-icon">{{ getSortIcon('updated_at') }}</span>
               </th>
-              <th class="action-column">編輯/刪除</th>
+              <th class="action-column" v-if="hasWriteStatusPermission">編輯/刪除</th>
             </tr>
           </thead>
           <tbody>
@@ -297,7 +315,7 @@ onMounted(async () => {
               <td class="id-cell">{{ (currentPage - 1) * pageSize + index + 1 }}</td>
               <td class="name-cell">{{ item.name }}</td>
               <td class="time-cell">{{ formatDateTime(item.updated_at) || formatDateTime(item.created_at) }}</td>
-              <td class="action-cell">
+              <td class="action-cell" v-if="hasWriteStatusPermission">
                 <button 
                   class="edit-btn"
                   @click="editStatus(item)"
@@ -431,24 +449,53 @@ onMounted(async () => {
         transform: none !important;
       }
     }
+    .reset-btn {
+        background: white;
+        color: #666;
+        border: 1px solid #ddd;
+        padding: 12px 20px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+
+        &:hover:not(:disabled) {
+          background: #f8f9fa;
+          border-color: #6c5ce7;
+          color: #6c5ce7;
+        }
+
+        &:disabled {
+          background: #f8f9fa;
+          color: #ccc;
+          cursor: not-allowed;
+        }
+      }
   }
 }
 
 .add-btn {
-  padding: 12px 20px;
-  background: #27ae60;
+  background: #6c5ce7;
   color: white;
   border: none;
+  padding: 10px 20px;
   border-radius: 6px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s;
 
-  &:hover {
-    background: #219a52;
+  &:hover:not(.disabled) {
+    background: #5b4bcf;
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  &.disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    transform: none;
+    pointer-events: none;
   }
 }
 
@@ -459,8 +506,11 @@ onMounted(async () => {
   overflow: hidden;
 }
 
-.table-header {
-  padding: 20px;
+.table-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 25px;
   border-bottom: 1px solid #f0f0f0;
 
   .page-size-select {

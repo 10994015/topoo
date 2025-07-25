@@ -414,7 +414,7 @@ onMounted(async () => {
                 @click="handleCancel"
                 :disabled="isSaving"
               >
-                取消
+                返回
               </button>
             </div>
           </form>
@@ -465,7 +465,7 @@ onMounted(async () => {
                 @click="handleCancel"
                 :disabled="isSaving"
               >
-                取消
+                返回
               </button>
               
               <button

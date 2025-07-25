@@ -1,15 +1,17 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useRepairStore } from '@/stores/repair'
 import { useBackendRepairStore } from '@/stores/backend.repair'
-import { formatDate, formatDateTime } from '@/utils/dateUtils'
+import { formatDateTime } from '@/utils/dateUtils'
 import FilePreviewModal from '@/components/FilePreviewModal.vue'
+import { PERMISSIONS } from '@/utils/permissions'
+import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
 const router = useRouter()
-const repairStore = useRepairStore()
+const authStore = useAuthStore()
 const backendRepairStore = useBackendRepairStore()
+const hasWriteRepairTodoPermission = computed(() => authStore.canModify(PERMISSIONS.REPAIR_TODO_MANAGEMENT))
 
 // 報修詳細資料
 const repairDetail = ref(null)
@@ -118,6 +120,10 @@ const mockProgressData = ref([])
 
 // 案件派工處理
 const handAssign = async () => {
+  if (!hasWriteRepairTodoPermission.value) {
+    alert('您沒有權限指派案件')
+    return
+  }
   // 實作承辦案件邏輯
   if(repairDetail.value.repair_status === '尚未承辦'){
     const response = await backendRepairStore.handleWork(repairId.value)
@@ -140,6 +146,10 @@ const handAssign = async () => {
 }
 
 const restartTodo = async () => {
+  if (!hasWriteRepairTodoPermission.value) {
+    alert('您沒有權限重啟案件')
+    return
+  }
   // 實作刪除案件邏輯
   console.log('重啟案件')
   const response = await backendRepairStore.restartTodo(repairId.value)
@@ -415,9 +425,9 @@ onMounted(async () => {
 
                 <!-- 操作按鈕 -->
                 <div class="handler-actions">
-                <button @click="handAssign" class="accept-btn">
+                <button @click="handAssign" class="accept-btn" v-if="hasWriteRepairTodoPermission">
                     {{ repairDetail.repair_status === '尚未承辦' ? '承辦案件' : '處理案件' }}
-                </button>
+                </button v-if="hasWriteRepairTodoPermission">
                 <button @click="restartTodo" class="reassign-btn" v-if="repairDetail.repair_status==='已完成' || repairDetail.repair_status==='歸檔'">
                     重啟案件
                 </button>

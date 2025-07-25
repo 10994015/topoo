@@ -3,13 +3,17 @@ import { ref, reactive, onMounted, computed, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useRepairStore } from '@/stores/repair'
 import { useTodoStore } from '@/stores/todo'
-import { formatDate, formatDateTime } from '@/utils/dateUtils'
+import { formatDateTime } from '@/utils/dateUtils'
 import FilePreviewModal from '@/components/FilePreviewModal.vue'
+import { PERMISSIONS } from '@/utils/permissions'
+import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
 const router = useRouter()
 const repairStore = useRepairStore()
 const todoStore = useTodoStore()
+const authStore = useAuthStore()
+const hasWriteTodoPermission = computed(() => authStore.canModify(PERMISSIONS.TODO_MANAGEMENT))
 
 // 報修詳細資料
 const todoDetail = ref(null)
@@ -106,6 +110,10 @@ const mockProgressData = ref([])
 
 // 案件派工處理
 const handAssign = () => {
+  if (!hasWriteTodoPermission.value) {
+    alert('您沒有權限指派案件')
+    return
+  }
   // 實作承辦案件邏輯
   console.log('指派案件')
   router.push({
@@ -368,7 +376,7 @@ onMounted(async () => {
 
                 <!-- 操作按鈕 -->
                 <div class="handler-actions">
-                <button @click="handAssign" class="accept-btn">
+                <button @click="handAssign" class="accept-btn" v-if="hasWriteTodoPermission">
                     {{ todoDetail.todo_id ? '編輯派工' : '案件派工'}}
                 </button>
                 <button @click="deleteAssign" class="reassign-btn" v-if="todoId">
