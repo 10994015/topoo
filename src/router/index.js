@@ -54,7 +54,7 @@ const router = createRouter({
           name: 'app.dashboard',
           component: Dashboard,
           meta: { 
-            title: '首頁',
+            title: '儀表板',
             breadcrumbs: [
               { text: '首頁', to: null },
             ]
