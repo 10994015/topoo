@@ -333,7 +333,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
                 return
             }
             console.log('獲取系統報修案件:', searchTypeParam)
-            let url = '/dashboard/repair-unit';
+            let url = '/dashboard/unit-repair';
             if(hasTodoPermission.value){
                 url = '/dashboard/system-repair';
             }else if(hasRepairTodoPermission.value){

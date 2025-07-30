@@ -382,9 +382,9 @@ const switchSearchType = async (searchType) => {
 // 根據搜尋類型返回標籤文字
 const getSearchTypeLabel = () => {
   const searchTypeLabels = {
-    'All': '全部',
+    'All': '系統',
     'Remaining': '剩餘',
-    'Completing': '處理中'
+    'Completing': '完成'
   }
   return searchTypeLabels[dashboardStore.searchType] || '全部'
 }
@@ -706,7 +706,7 @@ onMounted(async () => {
       <div class="section-header" :style="{ background: `linear-gradient(135deg, ${dashboardStore.currentHeaderColor} 0%, ${adjustColor(dashboardStore.currentHeaderColor, -20)} 100%)` }">
         <h3>
           <span class="star-icon">⭐</span>
-          本月個人/系統急辦 到貨案件
+          {{ hasTodoPermission || hasRepairTodoPermission ? '系統' : '個人' }}案件
         </h3>
         
         <!-- 搜尋類型切換按鈕 -->
