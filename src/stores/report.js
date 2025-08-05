@@ -18,8 +18,17 @@ export const useReportStore = defineStore('report', () => {
             if (params.repairStatusId) queryParams.repairStatusId = params.repairStatusId
             if (params.emergencyLevel) queryParams.emergencyLevel = params.emergencyLevel
             if (params.importanceLevel) queryParams.importanceLevel = params.importanceLevel
-            if (params.startAt) queryParams.startAt = new Date(params.startAt).toISOString()
-            if (params.endAt) queryParams.endAt = new Date(params.endAt).toISOString()
+            if (params.startAt) {
+                const startDate = new Date(params.startAt);
+                startDate.setHours(0, 0, 0, 0); // 設為當天開始
+                queryParams.startAt = startDate.toISOString();
+            }
+            // 處理結束時間：設為當天的 23:59:59
+            if (params.endAt) {
+                const endDate = new Date(params.endAt);
+                endDate.setHours(23, 59, 59, 999); // 設為當天結束
+                queryParams.endAt = endDate.toISOString();
+            }
             if (params.repairUnit) queryParams.repairUnit = params.repairUnit
             if (params.assignUserName) queryParams.assignUserName = params.assignUserName
 
@@ -125,8 +134,17 @@ export const useReportStore = defineStore('report', () => {
             // 處理參數，只添加有值的參數
             const queryParams = {}
             if (params.status) queryParams.status = params.status
-            if (params.startAt) queryParams.startAt = new Date(params.startAt).toISOString()
-            if (params.endAt) queryParams.endAt = new Date(params.endAt).toISOString()
+            if (params.startAt) {
+                const startDate = new Date(params.startAt);
+                startDate.setHours(0, 0, 0, 0); // 設為當天開始
+                queryParams.startAt = startDate.toISOString();
+            }
+            // 處理結束時間：設為當天的 23:59:59
+            if (params.endAt) {
+                const endDate = new Date(params.endAt);
+                endDate.setHours(23, 59, 59, 999); // 設為當天結束
+                queryParams.endAt = endDate.toISOString();
+            }
 
             console.log('下載帳號管理報表參數:', queryParams)
 
@@ -231,8 +249,17 @@ export const useReportStore = defineStore('report', () => {
             const queryParams = {}
             if (params.repairCategoryId) queryParams.repairCategoryId = params.repairCategoryId
             if (params.repairReasonId) queryParams.repairReasonId = params.repairReasonId
-            if (params.startAt) queryParams.startAt = new Date(params.startAt).toISOString()
-            if (params.endAt) queryParams.endAt = new Date(params.endAt).toISOString()
+            if (params.startAt) {
+                const startDate = new Date(params.startAt);
+                startDate.setHours(0, 0, 0, 0); // 設為當天開始
+                queryParams.startAt = startDate.toISOString();
+            }
+            // 處理結束時間：設為當天的 23:59:59
+            if (params.endAt) {
+                const endDate = new Date(params.endAt);
+                endDate.setHours(23, 59, 59, 999); // 設為當天結束
+                queryParams.endAt = endDate.toISOString();
+            }
 
             console.log('下載完修記錄報表參數:', queryParams)
 

@@ -510,7 +510,7 @@ const getStatusLabel = (status) => {
   const statusMap = {
     'Open': '啟用',
     'UnderReview': '審核中',
-    'ReviewFailed': '審核失敗',
+    'ReviewFailed': '審核未通過',
     'Invalid': '停用',
     'Lock': '封鎖',
     'Inconvenient': '不便',

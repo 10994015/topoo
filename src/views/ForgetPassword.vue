@@ -80,8 +80,9 @@ const closeModal = () => {
         <!-- LOGO -->
         <div class="logo-section">
           <div class="logo">
-            <span class="logo-text">TOPOO</span>
-            <span class="logo-subtitle">線上報修系統</span>
+            <span class="logo-text">
+              <img src="/images/topoo_logo.png" width="300" alt="">
+            </span>
           </div>
         </div>
 
@@ -127,7 +128,7 @@ const closeModal = () => {
       <div class="image-section">
         <div class="image-container">
           <img 
-            src="/images/forgot-password-illustration.svg" 
+            src="/images/forget_password.png" 
             alt="忘記密碼插圖"
             class="main-image"
           />
@@ -195,6 +196,10 @@ const closeModal = () => {
         color: #6c5ce7;
         letter-spacing: 2px;
         font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+        img{
+          max-width: 300px;
+          width: 100%;
+        }
       }
 
       .logo-subtitle {

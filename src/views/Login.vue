@@ -79,8 +79,9 @@ const handleGoogleError = (error) => {
     <div class="left-panel">
       <div class="logo">
         <div class="logo-text">
-          <span class="logo-main">TOPOO</span>
-          <span class="logo-sub">TECHNOLOGY</span>
+          <span class="logo-main">
+            <img src="/images/topoo_logo.png" width="300" alt="TOPOO Logo">
+          </span>
         </div>
       </div>
       
@@ -150,7 +151,7 @@ const handleGoogleError = (error) => {
           text="使用Google 帳號登入"
           theme="filled_blue"
           size="large"
-          style="display:block;"
+          style="display:block;width:100%"
         >
           <template #default>
             <span class="google-icon">G</span>
@@ -237,6 +238,10 @@ const handleGoogleError = (error) => {
       font-weight: 800;
       color: #6c5ce7;
       letter-spacing: 0.1em;
+      img{
+        max-width: 300px;
+        width: 100%;
+      }
     }
     
     .logo-sub {
@@ -575,7 +580,8 @@ const handleGoogleError = (error) => {
 // 響應式設計
 @media (max-width: 768px) {
   .login-container {
-    flex-direction: column;
+    flex-direction: column-reverse;
+    
   }
   
   .left-panel {

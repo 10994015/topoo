@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAccountStore } from '@/stores/account'
 import { useAuthStore } from '@/stores/auth'
@@ -23,6 +23,9 @@ const isEditing = ref(false)
 const accountData = ref(null)
 const editFormData = ref({})
 
+// 表單驗證錯誤
+const errors = reactive({})
+
 // 面包屑
 const breadcrumbs = computed(() => {
   const accountName = accountData.value?.name || route.params.id
@@ -38,7 +41,7 @@ const getStatusLabel = (status) => {
   const statusMap = {
     'Open': '啟用',
     'UnderReview': '審核中',
-    'ReviewFailed': '審核失敗',
+    'ReviewFailed': '審核未通過',
     'Invalid': '停用',
     'Lock': '封鎖',
     'Inconvenient': '不便',
@@ -59,6 +62,31 @@ const getStatusClass = (status) => {
     'Leave': 'status-inactive'
   }
   return statusMap[status] || ''
+}
+
+// 清空錯誤訊息
+const clearErrors = () => {
+  Object.keys(errors).forEach(key => delete errors[key])
+}
+
+// 表單驗證
+const validateForm = () => {
+  clearErrors()
+  
+  // 驗證姓名
+  if (!editFormData.value.name || editFormData.value.name.trim() === '') {
+    errors.name = '姓名為必填欄位'
+  }
+
+  
+  // 驗證暱稱
+  if(!editFormData.value.nick_name || editFormData.value.nick_name.trim() === '') {
+    errors.nick_name = '暱稱為必填欄位'
+  }else if (editFormData.value.nick_name && editFormData.value.nick_name.trim().length > 20) {
+    errors.nick_name = '暱稱不能超過20個字元'
+  }
+  
+  return Object.keys(errors).length === 0
 }
 
 // 載入帳號資料
@@ -86,6 +114,8 @@ const handleEdit = () => {
   isEditing.value = true
   // 複製當前資料到編輯表單
   editFormData.value = { ...accountData.value }
+  // 清空錯誤訊息
+  clearErrors()
 }
 
 // 取消編輯
@@ -93,6 +123,7 @@ const handleCancelEdit = () => {
   if (confirm('確定要取消編輯嗎？未儲存的變更將會遺失。')) {
     isEditing.value = false
     editFormData.value = {}
+    clearErrors()
   }
 }
 
@@ -102,9 +133,9 @@ const handleSaveEdit = async () => {
     alert('您沒有權限編輯帳號')
     return;
   }
+  
   // 表單驗證
-  if (!editFormData.value.name?.trim()) {
-    alert('姓名為必填欄位')
+  if (!validateForm()) {
     return
   }
   
@@ -117,6 +148,7 @@ const handleSaveEdit = async () => {
     // 更新本地資料
     accountData.value = { ...editFormData.value }
     isEditing.value = false
+    clearErrors()
     alert('帳號更新成功！')
   } catch (error) {
     console.error('更新帳號失敗:', error)
@@ -139,10 +171,16 @@ const handleDelete = async () => {
   isDeleting.value = true
   try {
     // 調用刪除 API
-    await accountStore.deleteAccount(route.params.id)
+    const response = await accountStore.deleteAccount(route.params.id)
+    console.log(response);
+    
     console.log('刪除帳號:', route.params.id)
-    alert('帳號刪除成功！')
-    router.push('/settings/account-management')
+    if(response.status !== 200) {
+      alert(response.data.message || '刪除帳號失敗')
+    }else{
+      alert('帳號刪除成功！');
+      router.push('/settings/account-management')
+    }
   } catch (error) {
     console.error('刪除帳號失敗:', error)
     alert('刪除帳號失敗，請稍後再試')
@@ -233,28 +271,39 @@ onMounted(() => {
           <div class="detail-row">
             <div class="detail-label">姓名</div>
             <div class="detail-value">
-              <span v-if="!isEditing">{{ accountData.name }}</span>
-              <input 
-                v-else 
-                type="text" 
-                v-model="editFormData.name"
-                class="edit-input"
-                placeholder="請輸入姓名"
-              />
+              <div v-if="!isEditing">{{ accountData.name }}</div>
+              <div v-else class="input-container">
+                <input 
+                  type="text" 
+                  v-model="editFormData.name"
+                  class="edit-input"
+                  :class="{ error: errors.name }"
+                  placeholder="請輸入姓名"
+                />
+                <div v-if="errors.name" class="error-message">
+                  {{ errors.name }}
+                </div>
+              </div>
             </div>
           </div>
           
           <div class="detail-row">
             <div class="detail-label">暱稱</div>
             <div class="detail-value">
-              <span v-if="!isEditing">{{ accountData.nick_name || '-' }}</span>
-              <input 
-                v-else 
-                type="text" 
-                v-model="editFormData.nick_name"
-                class="edit-input"
-                placeholder="請輸入暱稱"
-              />
+              <div v-if="!isEditing">{{ accountData.nick_name || '-' }}</div>
+              <div v-else class="input-container">
+                <input 
+                  type="text" 
+                  v-model="editFormData.nick_name"
+                  class="edit-input"
+                  :class="{ error: errors.nick_name }"
+                  placeholder="請輸入暱稱"
+                  maxlength="20"
+                />
+                <div v-if="errors.nick_name" class="error-message">
+                  {{ errors.nick_name }}
+                </div>
+              </div>
             </div>
           </div>
           
@@ -267,7 +316,7 @@ onMounted(() => {
               <select v-else v-model="editFormData.status" class="edit-select">
                 <option value="Open">啟用</option>
                 <option value="UnderReview">審核中</option>
-                <option value="ReviewFailed">審核失敗</option>
+                <option value="ReviewFailed">審核未通過</option>
                 <option value="Invalid">停用</option>
                 <option value="Lock">封鎖</option>
                 <option value="Inconvenient">不便</option>
@@ -335,7 +384,6 @@ onMounted(() => {
   background-color: #f5f5f5;
   min-height: 100vh;
 }
-
 
 // 載入中
 .loading-container {
@@ -496,6 +544,10 @@ onMounted(() => {
       display: flex;
       align-items: center;
 
+      .input-container {
+        width: 100%;
+      }
+
       .remark-text {
         white-space: pre-wrap;
         line-height: 1.5;
@@ -516,6 +568,12 @@ onMounted(() => {
         color: #999;
         font-style: italic;
       }
+
+      .error-message {
+        color: #dc3545;
+        font-size: 12px;
+        margin-top: 5px;
+      }
     }
   }
 }
@@ -535,6 +593,11 @@ onMounted(() => {
     border-color: #6c5ce7;
     box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.1);
   }
+
+  &.error {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.1);
+  }
 }
 
 .edit-textarea {
@@ -551,6 +614,11 @@ onMounted(() => {
     outline: none;
     border-color: #6c5ce7;
     box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.1);
+  }
+
+  &.error {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.1);
   }
 }
 

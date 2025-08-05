@@ -240,6 +240,7 @@ const loadEditData = async () => {
 
 // 測試信箱連接
 const testConnection = async () => {
+  if(!hasFullPermission.value) return alert('您沒有權限測試連接')
   if (!isEditMode.value) {
     alert('請先儲存信箱後再進行測試')
     return
@@ -343,7 +344,7 @@ const deleteMail = async (item) => {
       }
     } catch (error) {
       console.error('刪除失敗:', error)
-      alert('刪除失敗，請稍後再試')
+      alert(error.response?.data?.message || '刪除失敗，請稍後再試')
     }
   }
 }
@@ -525,16 +526,17 @@ onMounted(() => {
 
             <div class="info-actions">
               <button
+                v-if="hasFullPermission"
                 class="btn btn-test"
                 @click="testConnection"
                 :disabled="isTesting"
+                style="margin-right: 10px"
               >
                 {{ isTesting ? '測試中...' : '測試信箱' }}
               </button>
               <button
                 class="btn btn-secondary"
                 @click="handleCancel"
-                style="margin-left: 10px"
               >
                 返回
               </button>

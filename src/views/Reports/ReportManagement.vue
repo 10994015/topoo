@@ -29,7 +29,7 @@ const statuses = ref([])
 const accountStatuses = [
   { value: 'Open', label: '開啟' },
   { value: 'UnderReview', label: '審核中' },
-  { value: 'ReviewFailed', label: '審核失敗' },
+  { value: 'ReviewFailed', label: '審核未通過' },
   { value: 'Invalid', label: '無效' },
   { value: 'Lock', label: '鎖定' },
   { value: 'Inconvenient', label: '不便' },

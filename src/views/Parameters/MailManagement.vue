@@ -224,6 +224,7 @@ const deleteMailbox = async (item) => {
 
 // 測試信箱連接
 const testMailConnection = async (item) => {
+  if(!hasFullPermission) return alert('您沒有權限測試信箱連接')
   try {
     const result = await mailStore.testMailConnection(item.id)
     console.log('測試結果:', result)
@@ -346,9 +347,10 @@ onMounted(() => {
                     @click="editMailbox(item)"
                     title="編輯"
                   >
-                    ✏️
+                    👁️
                   </button>
                   <button 
+                    v-if="hasFullPermission"
                     class="action-btn test-btn" 
                     @click="testMailConnection(item)"
                     title="測試連接"

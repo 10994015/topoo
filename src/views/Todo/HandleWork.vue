@@ -430,7 +430,7 @@ onMounted(async () => {
             </div>
             <div class="info-item">
               <label class="info-label">報修人員</label>
-              <div class="info-value">{{ caseDetail.repair_name }}</div>
+              <div class="info-value">{{ caseDetail.repair_name || '無資料' }}</div>
             </div>
             <div class="info-item">
               <label class="info-label">故障類別</label>

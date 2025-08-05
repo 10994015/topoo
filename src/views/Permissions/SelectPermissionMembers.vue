@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { usePermissionStore } from '@/stores/permission'
 import { useAuthStore } from '@/stores/auth'
 import { PERMISSIONS, checkPermission } from '@/utils/permissions'
-import { formatDate, formatDateTime } from '@/utils/dateUtils'
+import { formatDateTime } from '@/utils/dateUtils'
 
 // 引入權限狀態管理
 const authStore = useAuthStore()

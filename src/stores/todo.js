@@ -35,8 +35,18 @@ export const useTodoStore = defineStore('todo', () => {
             if (searchForm.repairStatusId) params.repairStatusId = searchForm.repairStatusId;
             if (searchForm.emergencyLevel) params.emergencyLevel = searchForm.emergencyLevel;
             if (searchForm.importanceLevel) params.importanceLevel = searchForm.importanceLevel;
-            if (searchForm.startAt) params.startAt = new Date(searchForm.startAt).toISOString();
-            if (searchForm.endAt) params.endAt = new Date(searchForm.endAt).toISOString();
+            if (searchForm.startAt) {
+                const startDate = new Date(searchForm.startAt);
+                startDate.setHours(0, 0, 0, 0); // 設為當天開始
+                params.startAt = startDate.toISOString();
+            }
+            
+            // 處理結束時間：設為當天的 23:59:59
+            if (searchForm.endAt) {
+                const endDate = new Date(searchForm.endAt);
+                endDate.setHours(23, 59, 59, 999); // 設為當天結束
+                params.endAt = endDate.toISOString();
+            }
             
             params.sortBy = column; // 排序欄位
             params.sortOrder = sortDirection.toUpperCase(); // 排序方向

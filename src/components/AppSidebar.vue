@@ -264,7 +264,6 @@ const handleSubmenuClick = () => {
     >
       <div class="logo-section">
         <h1 class="logo">TOPOO</h1>
-        <p class="system-name">線上報修系統</p>
         
         <!-- 手機版關閉按鈕 -->
         <button 

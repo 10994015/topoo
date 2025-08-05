@@ -144,7 +144,7 @@ export const usePermissionStore = defineStore('permission', () => {
             return response.data;
         } catch (error) {
             console.error('刪除權限群組失敗:', error);
-            throw error;
+            return error.response;
         }
     }
 

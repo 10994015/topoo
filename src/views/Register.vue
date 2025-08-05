@@ -206,7 +206,9 @@ const goToLogin = () => {
 <template>
   <div class="register-container">
     <div class="register-card">
-      <h1 class="register-title">TOPOO 註冊帳號</h1>
+      <h1 class="register-title">
+        <img src="/images/topoo_logo.png"  width="250" alt="">
+      </h1>
       
       <form @submit.prevent="handleSubmit" class="register-form">
         <!-- 帳號輸入 -->
@@ -388,6 +390,10 @@ const goToLogin = () => {
   margin-bottom: 40px;
   color: #8b5cf6;
   margin-top: 0;
+  img{
+    max-width: 250px;
+    width: 100%;
+  }
 }
 
 .register-form {

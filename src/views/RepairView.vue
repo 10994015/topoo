@@ -280,7 +280,7 @@ onMounted(async () => {
               <div class="file-info">
                 <span class="file-icon">{{ getFileIcon(file.file_name) }}</span>
                 <div class="file-details">
-                  <span class="file-name">{{ index + 1 }}. {{ file.file_name }}</span>
+                  <span class="file-name">{{ file.original_name }}</span>
                   <span class="file-size">{{ formatFileSize(file.size) }}</span>
                 </div>
               </div>

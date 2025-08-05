@@ -420,7 +420,7 @@ onMounted(async () => {
               <td>{{ item.title }}</td>
               <td>{{ item.repair_category }}</td>
               <td>{{ item.repair_reason }}</td>
-              <td>{{ item.repair_name }}</td>
+              <td>{{ item.repair_name || '無資料' }}</td>
               <td>{{ formatDateTime(item.repair_time) }}</td>
               <td>
                 <span :class="['level-badge', getLevelClass(item.importance_level)]">

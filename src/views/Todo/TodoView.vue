@@ -277,7 +277,7 @@ onMounted(async () => {
             <div class="info-column">
               <div class="info-group">
                 <label class="info-label">報修人員</label>
-                <div class="info-value">{{ todoDetail.repair_name }}</div>
+                <div class="info-value">{{ todoDetail.repair_name || '無資料' }}</div>
               </div>
 
               <div class="info-group">
@@ -333,7 +333,7 @@ onMounted(async () => {
               <div class="file-info">
                 <span class="file-icon">{{ getFileIcon(file.file_name) }}</span>
                 <div class="file-details">
-                  <span class="file-name">{{ index + 1 }}. {{ file.file_name }}</span>
+                  <span class="file-name">{{ index + 1 }}. {{ file.original_name }}</span>
                   <span class="file-size">{{ formatFileSize(file.size) }}</span>
                 </div>
               </div>

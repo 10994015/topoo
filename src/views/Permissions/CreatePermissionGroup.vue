@@ -5,6 +5,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { PERMISSIONS, checkPermission } from '@/utils/permissions'
 
+import { formatDateTime } from '@/utils/dateUtils'
+
 const authStore = useAuthStore()
 const route = useRoute()
 const router = useRouter()
@@ -165,10 +167,16 @@ const handleDelete = async () => {
   if (confirm('確定要刪除此權限群組嗎？')) {
     loading.delete = true
     try {
-      await permissionStore.deletePermissionGroup(permissionId.value)
-      console.log('刪除成功')
-      alert('刪除成功！')
-      router.push('/settings/permission-management') // 返回列表頁
+      const response = await permissionStore.deletePermissionGroup(permissionId.value)
+      console.log(response)
+      if(response.status === 400){
+        alert(response.data.message)
+        return
+      }else{
+        alert('刪除成功！')
+        router.push('/settings/permission-management')
+      }
+      // router.push('/settings/permission-management') // 返回列表頁
     } catch (error) {
       console.error('刪除失敗:', error)
     } finally {
@@ -305,7 +313,7 @@ console.log(permissions);
 
         <div v-if="!isCreateMode" class="form-group">
           <label class="form-label">新增時間</label>
-          <div class="form-display">{{ formData.createdTime }}</div>
+          <div class="form-display">{{ formatDateTime(formData.createdTime) }}</div>
         </div>
 
         <div class="form-actions">

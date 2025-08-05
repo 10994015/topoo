@@ -97,13 +97,16 @@ const cancelEdit = () => {
 }
 
 const validateForm = () => {
-  Object.assign(errors, {})
+  Object.keys(errors).forEach(key => delete errors[key])
   
-  // 暱稱驗證（可選）
-  if (editForm.nickname && editForm.nickname.length > 20) {
+  if (!editForm.nickname || editForm.nickname.trim() === '') {
+    errors.nickname = '請輸入暱稱'
+    
+  }else if (editForm.nickname && editForm.nickname.length > 20) {
     errors.nickname = '暱稱不能超過20個字元'
+    
   }
-  
+
   return Object.keys(errors).length === 0
 }
 

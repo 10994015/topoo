@@ -42,6 +42,9 @@ const uploadedFiles = ref([])
 const isUploading = ref(false)
 const deletingFileId = ref(null) // 記錄正在刪除的檔案 ID
 
+// 拖拽狀態
+const isDragOver = ref(false)
+
 // 表單驗證錯誤
 const errors = reactive({
   title: '',
@@ -103,14 +106,50 @@ const triggerFileInput = () => {
   fileInput.value?.click()
 }
 
-// 處理檔案上傳
-const handleFileUpload = async (event) => {
-  const files = Array.from(event.target.files)
+// 處理拖拽進入
+const handleDragEnter = (event) => {
+  event.preventDefault()
+  event.stopPropagation()
+  isDragOver.value = true
+}
+
+// 處理拖拽離開
+const handleDragLeave = (event) => {
+  event.preventDefault()
+  event.stopPropagation()
+  // 只有當滑鼠完全離開拖放區域時才設為 false
+  if (!event.currentTarget.contains(event.relatedTarget)) {
+    isDragOver.value = false
+  }
+}
+
+// 處理拖拽經過
+const handleDragOver = (event) => {
+  event.preventDefault()
+  event.stopPropagation()
+  isDragOver.value = true
+}
+
+// 處理檔案拖放
+const handleDrop = async (event) => {
+  event.preventDefault()
+  event.stopPropagation()
+  isDragOver.value = false
   
+  // 檢查是否已達檔案數量上限或正在上傳
+  if (uploadedFiles.value.length >= FILE_LIMITS.maxFiles || isUploading.value) {
+    return
+  }
+  
+  const files = Array.from(event.dataTransfer.files)
+  await processFiles(files)
+}
+
+// 處理檔案上傳（統一處理函數）
+const processFiles = async (files) => {
   // 檢查文件數量限制
   if (uploadedFiles.value.length + files.length > FILE_LIMITS.maxFiles) {
     alert(`最多只能上傳 ${FILE_LIMITS.maxFiles} 個檔案！目前已有 ${uploadedFiles.value.length} 個檔案。`)
-    event.target.value = ''
     return
   }
   
@@ -139,7 +178,6 @@ const handleFileUpload = async (event) => {
   }
   
   if (validFiles.length === 0) {
-    event.target.value = ''
     return
   }
   
@@ -179,8 +217,14 @@ const handleFileUpload = async (event) => {
     }
   } finally {
     isUploading.value = false
-    event.target.value = '' // 清空 input
   }
+}
+
+// 處理檔案上傳（從 input）
+const handleFileUpload = async (event) => {
+  const files = Array.from(event.target.files)
+  await processFiles(files)
+  event.target.value = '' // 清空 input
 }
 
 // 移除檔案
@@ -508,17 +552,31 @@ onMounted(async () => {
         <!-- 檔案上傳區域 -->
         <div class="form-group">
           <label class="form-label">檔案上傳 ({{ uploadedFiles.length }}/{{ FILE_LIMITS.maxFiles }})</label>
-          <div class="upload-area" @click="triggerFileInput" :class="{ uploading: isUploading, disabled: uploadedFiles.length >= FILE_LIMITS.maxFiles }">
+          <div 
+            class="upload-area" 
+            @click="triggerFileInput" 
+            @dragenter="handleDragEnter"
+            @dragleave="handleDragLeave"
+            @dragover="handleDragOver"
+            @drop="handleDrop"
+            :class="{ 
+              uploading: isUploading, 
+              disabled: uploadedFiles.length >= FILE_LIMITS.maxFiles,
+              'drag-over': isDragOver
+            }"
+          >
             <div class="upload-content">
               <div class="upload-icon">
                 <span v-if="isUploading">⏳</span>
                 <span v-else-if="uploadedFiles.length >= FILE_LIMITS.maxFiles">🚫</span>
+                <span v-else-if="isDragOver">📂</span>
                 <span v-else>📁</span>
               </div>
               <div class="upload-text">
                 <p class="upload-main">
                   <span v-if="isUploading">正在上傳檔案...</span>
                   <span v-else-if="uploadedFiles.length >= FILE_LIMITS.maxFiles">已達到檔案數量上限</span>
+                  <span v-else-if="isDragOver">放開滑鼠即可上傳檔案</span>
                   <span v-else>將檔案拖曳至此處或點擊選擇上傳的檔案</span>
                 </p>
                 <p class="upload-sub">上傳檔案須小於100MB，最多5個檔案，支援 JPG/PNG/DOC/DOCX/PPT/PPTX/PDF/MP4 格式</p>
@@ -767,6 +825,14 @@ onMounted(async () => {
     opacity: 0.6;
   }
 
+  // 新增拖拽狀態樣式
+  &.drag-over {
+    border-color: #27ae60;
+    background: #f0fff4;
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(39, 174, 96, 0.2);
+  }
+
   .upload-content {
     display: flex;
     flex-direction: column;
@@ -777,6 +843,13 @@ onMounted(async () => {
   .upload-icon {
     font-size: 48px;
     opacity: 0.5;
+    transition: all 0.3s;
+  }
+
+  // 拖拽時圖示動畫
+  &.drag-over .upload-icon {
+    opacity: 0.8;
+    transform: scale(1.1);
   }
 
   .upload-text {
@@ -784,6 +857,7 @@ onMounted(async () => {
       font-size: 16px;
       color: #333;
       margin: 0 0 8px 0;
+      transition: color 0.3s;
     }
 
     .upload-sub {
@@ -791,6 +865,12 @@ onMounted(async () => {
       color: #666;
       margin: 0;
     }
+  }
+
+  // 拖拽時文字顏色變化
+  &.drag-over .upload-text .upload-main {
+    color: #27ae60;
+    font-weight: 500;
   }
 
   .file-input {

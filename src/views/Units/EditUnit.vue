@@ -1018,6 +1018,21 @@ const saveUnitNameChange = async () => {
       
       alert('單位名稱更新成功！')
       reloadEditPageData();
+      const currentUser = availableUsers.value.find(user => user.id === authStore.user.id);
+      if (currentUser) {
+        if (currentUser.isSelected) {
+          authStore.user.repair_unit = targetLayer.inputValue;
+          console.log('用户仍在单位中，更新 repair_unit 为:', targetLayer.inputValue);
+        } else {
+          authStore.user.repair_unit = '';
+          console.log('用户已被移除单位，清空 repair_unit');
+        }
+      } else {
+        console.log('当前用户不在此单位的用户列表中');
+      }
+
+      
+      
     } else {
       alert('更新失敗：' + (response.message || '未知錯誤'))
     }

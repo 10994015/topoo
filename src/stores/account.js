@@ -25,8 +25,18 @@ export const useAccountStore = defineStore('account', () => {
             if (searchForm.text) params.q = searchForm.text;
             if (searchForm.status) params.status = searchForm.status;
             if (searchForm.provider) params.provider = searchForm.provider; // 新增 provider 條件
-            if (searchForm.startAt) params.startAt =new Date(searchForm.startAt).toISOString(); // 確保日期格式正確
-            if (searchForm.endAt) params.endAt = new Date(searchForm.endAt).toISOString(); // 確保日期格式正確
+            if (searchForm.startAt) {
+                const startDate = new Date(searchForm.startAt);
+                startDate.setHours(0, 0, 0, 0); // 設為當天開始
+                params.startAt = startDate.toISOString();
+            }
+            
+            // 處理結束時間：設為當天的 23:59:59
+            if (searchForm.endAt) {
+                const endDate = new Date(searchForm.endAt);
+                endDate.setHours(23, 59, 59, 999); // 設為當天結束
+                params.endAt = endDate.toISOString();
+            }
             params.pageSize = searchForm.pageSize;
             params.page = searchForm.page;
             params.sortBy = searchForm.sortField; // 排序欄位
@@ -72,6 +82,7 @@ export const useAccountStore = defineStore('account', () => {
             return response.data;
         } catch (error) {
             console.error('刪除帳號失敗:', error);
+            return error.response; // 返回錯誤響應以便處理
         }
     }
 

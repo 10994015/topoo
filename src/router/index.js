@@ -253,7 +253,6 @@ const router = createRouter({
             breadcrumbs: [
               { text: '首頁', to: '/' },
               { text: '權限管理', to: '/settings/permission-management' },
-              { text: '編輯權限群組', to: '/settings/permission-group/edit/:id' },
               { text: '權限成員編輯', to: null },
             ],
             permission: PERMISSIONS.PERMISSION_ROLE_MEMBER_MANAGEMENT,
@@ -314,12 +313,12 @@ const router = createRouter({
           name: 'app.settings.mail-management.edit',
           component: EditMail,
           meta: { 
-            title: '編輯信箱',
+            title: '檢視信箱',
             breadcrumbs: [
               { text: '首頁', to: '/' },
               { text: '參數管理', to: '/settings/parameter-management' },
               { text: '寄信管理', to: '/settings/parameter/mail-management' },
-              { text: '編輯信箱', to: null },
+              { text: '檢視信箱', to: null },
             ],
             permission: PERMISSIONS.MAIL_MANAGEMENT,
             permissionMode: 'Readonly' 
@@ -493,7 +492,6 @@ const router = createRouter({
             breadcrumbs: [
               { text: '首頁', to: '/' },
               { text: '派工管理', to: '/settings/todo-management' },
-              { text: '檢視案件', to: '/settings/view-todo/:id' },
               { text: '指派案件', to: null },
             ],
             permission: PERMISSIONS.TODO_MANAGEMENT,
@@ -539,7 +537,6 @@ const router = createRouter({
             breadcrumbs: [
               { text: '首頁', to: '/' },
               { text: '派工管理', to: '/settings/repair-todo-management' },
-              { text: '檢視案件', to: '/settings/view-repair-todo/:id' },
               { text: '承辦案件', to: null },
             ],
             permission: PERMISSIONS.REPAIR_TODO_MANAGEMENT,
