@@ -306,7 +306,7 @@ onMounted(async () => {
               </div>
 
               <div class="info-group" v-if="repairDetail.repair_category ==='硬體' || repairDetail.repair_category ==='軟體'">
-                <label class="info-label">功能項目</label>
+                <label class="info-label">{{ repairDetail.repair_category==='軟體' ? '功能項目' : '設備項目' }}</label>
                 <div class="info-value">{{ repairDetail.repair_item || '無' }}</div>
               </div>
 

@@ -171,7 +171,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
             if (response.data.statusCode === 200) {
                 esgStats.value = response.data.data
                 // 暫時硬編碼樹木節省數，等待 API 提供
-                esgStats.value.systemTressSavingNumber = 150
+                // esgStats.value.systemTressSavingNumber = 150
             }
             
             console.log('ESG 統計數據已載入')
