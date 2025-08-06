@@ -1,51 +1,22 @@
+<!-- 在你的 login 頁面中，先暫時讓 Google 按鈕顯示出來測試 -->
+
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import { GoogleSignInButton } from "vue3-google-signin"
+
 const router = useRouter()
+const hiddenGoogleBtn = ref(null)
 
 const account = ref('')
 const password = ref('')
 const showPassword = ref(false)
 
-const togglePassword = () => {
-  showPassword.value = !showPassword.value
-}
-
-const handleLogin = async () => {
-  console.log(useAuthStore);
-  const result = await useAuthStore().login({
-    credential: account.value,
-    password: password.value
-  })
-
-  console.log(result);
-  
-  if(result.success) {
-    if(result.statusCode === 202) {
-      const message = result.data.firstLogin ? '首次登入需重設密碼！' : '密碼已過期，請重新設定密碼！';
-      alert(message)
-      router.push(`/init-password/${result.data.changePwToken}`);
-      return;
-    }
-    console.log('登入成功');
-    router.push('/')
-  } else {
-    console.error('登入失敗', result.error);
-    // 可以在這裡顯示錯誤訊息
-    alert(result.error || '登入失敗，請檢查帳號或密碼')
-  }
-}
-
-const handleRegister = () => {
-  router.push('/register')
-}
 const handleGoogleSuccess = async (response) => {
   console.log("Google登入成功，收到credential:", response)
   
   try {
-    // 使用後端提供的API格式
     const result = await useAuthStore().googleLogin(response.credential)
     
     if (result.success) {
@@ -65,17 +36,88 @@ const handleGoogleSuccess = async (response) => {
     alert('Google登入失敗，請稍後再試')
   }
 }
+
 const handleGoogleError = (error) => {
   console.error("Google登入錯誤:", error)
   alert('Google登入失敗，請稍後再試')
 }
 
+// 觸發隱藏的 Google 按鈕
+const triggerGoogleLogin = async () => {
+  console.log('觸發自定義 Google 登入按鈕')
+  await nextTick()
+  
+  // 嘗試多種方式找到並點擊隱藏的 Google 按鈕
+  const hiddenDiv = document.querySelector('.hidden-google-signin')
+  if (hiddenDiv) {
+    // 先嘗試找到按鈕元素
+    const button = hiddenDiv.querySelector('button') || 
+                  hiddenDiv.querySelector('div[role="button"]') ||
+                  hiddenDiv.querySelector('[data-testid]') ||
+                  hiddenDiv.querySelector('div[tabindex="0"]')
+    
+    if (button) {
+      console.log('找到隱藏按鈕，準備點擊')
+      // 暫時讓按鈕可以被點擊
+      hiddenDiv.style.pointerEvents = 'auto'
+      button.style.pointerEvents = 'auto'
+      
+      // 點擊按鈕
+      button.click()
+      
+      // 點擊後再隱藏
+      setTimeout(() => {
+        hiddenDiv.style.pointerEvents = 'none'
+        button.style.pointerEvents = 'none'
+      }, 100)
+    } else {
+      console.log('在隱藏區域找不到可點擊的按鈕')
+      console.log('隱藏區域內容:', hiddenDiv.innerHTML)
+      alert('Google 登入初始化中，請稍後再試')
+    }
+  } else {
+    console.error('找不到隱藏的 Google 登入區域')
+    alert('Google 登入服務尚未準備就緒')
+  }
+}
 
+// 其他方法保持不變...
+const togglePassword = () => {
+  showPassword.value = !showPassword.value
+}
+
+const handleLogin = async () => {
+  const result = await useAuthStore().login({
+    credential: account.value,
+    password: password.value
+  })
+  
+  if(result.success) {
+    if(result.statusCode === 202) {
+      const message = result.data.firstLogin ? '首次登入需重設密碼！' : '密碼已過期，請重新設定密碼！';
+      alert(message)
+      router.push(`/init-password/${result.data.changePwToken}`);
+      return;
+    }
+    console.log('登入成功');
+    router.push('/')
+  } else {
+    console.error('登入失敗', result.error);
+    alert(result.error || '登入失敗，請檢查帳號或密碼')
+  }
+}
+
+const handleRegister = () => {
+  router.push('/register')
+}
+
+onMounted(() => {
+  console.log('頁面載入完成，檢查 Google API:', !!window.google)
+})
 </script>
 
 <template>
   <main class="login-container">
-    <!-- 左側登入表單 -->
     <div class="left-panel">
       <div class="logo">
         <div class="logo-text">
@@ -87,6 +129,8 @@ const handleGoogleError = (error) => {
       
       <div class="login-form">
         <h1 class="form-title">登入</h1>
+        
+        <!-- 移除除錯區域，改用自定義按鈕 -->
         
         <div class="form-group">
           <div class="input-wrapper">
@@ -120,18 +164,11 @@ const handleGoogleError = (error) => {
           </div>
         </div>
         
-        <router-link 
-          to="/forgot-password" 
-          class="forgot-password"
-        >
+        <router-link to="/forgot-password" class="forgot-password">
           忘記密碼?
         </router-link>
         
-        <button 
-          @click="handleLogin"
-          
-          class="login-btn"
-        >
+        <button @click="handleLogin" class="login-btn">
           登入
         </button>
         
@@ -139,31 +176,39 @@ const handleGoogleError = (error) => {
           <span>or</span>
         </div>
         
-        <button 
-          @click="handleRegister"
-          class="register-btn"
-        >
+        <button @click="handleRegister" class="register-btn">
           註冊
         </button>
-        <GoogleSignInButton 
-          @success="handleGoogleSuccess"
-          @error="handleGoogleError"
-          text="使用Google 帳號登入"
-          theme="filled_blue"
-          size="large"
-          style="display:block;width:100%"
-        >
-          <template #default>
-            <span class="google-icon">G</span>
-            使用Google 帳號登入
-          </template>
-        </GoogleSignInButton>
+
+        <!-- 自定義的 Google 按鈕 -->
+        <button @click="triggerGoogleLogin" class="google-btn-custom">
+          <div class="google-icon">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M17.64 9.20455C17.64 8.56636 17.5836 7.95273 17.48 7.36364H9V10.8455H13.8436C13.635 11.97 13.0009 12.923 12.0477 13.5614V15.8973H14.9564C16.6581 14.3427 17.64 11.9364 17.64 9.20455Z" fill="#4285F4"/>
+              <path d="M9.00045 18.0004C11.4318 18.0004 13.4686 17.194 14.9568 15.8977L12.0481 13.5618C11.2432 14.1014 9.96318 14.4364 9.00045 14.4364C6.65409 14.4364 4.67181 12.8677 3.96409 10.7109H1.09045V13.1045C4.10045 17.5995 6.73181 18.0004 9.00045 18.0004Z" fill="#34A853"/>
+              <path d="M3.96409 10.7109C4.36409 9.60682 4.36409 8.39318 3.96409 7.28909V4.89545H1.09045C-0.368182 7.80909 -0.368182 10.1909 1.09045 13.1045L3.96409 10.7109Z" fill="#FBBC04"/>
+              <path d="M9.00045 3.56364C10.375 3.56364 11.615 4.05114 12.75 5.13409L15.005 2.87909C13.4455 1.41227 11.3827 0.563186 9.00045 0.563186C6.73181 0.563186 4.10045 0.964091 1.09045 4.89545L5.00491 7.28909C4.67181 5.13227 6.65409 3.56364 9.00045 3.56364Z" fill="#EA4335"/>
+            </svg>
+          </div>
+          使用 Google 帳號登入
+        </button>
+
+        <!-- 隱藏的原本 Google 按鈕 -->
+        <div class="hidden-google-signin">
+          <GoogleSignInButton 
+            @success="handleGoogleSuccess"
+            @error="handleGoogleError"
+            text="使用 Google 帳號登入"
+            theme="filled_blue"
+            size="large"
+            ref="hiddenGoogleBtn"
+          />
+        </div>
       </div>
     </div>
     
-    <!-- 右側歡迎區域 -->
+    <!-- 右側保持不變 -->
     <div class="right-panel">
-      <!-- 背景裝飾點 -->
       <div class="bg-dots">
         <div class="dot dot-1"></div>
         <div class="dot dot-2"></div>
@@ -206,6 +251,63 @@ const handleGoogleError = (error) => {
 </template>
 
 <style lang="scss" scoped>
+// 自定義 Google 按鈕樣式 - 簡潔白色按鈕
+.google-btn-custom {
+  width: 100%;
+  background: white;
+  color: #374151;
+  border: 2px solid #cccccc;
+  border-radius: 8px;
+  padding: 0.875rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  
+  &:hover {
+    background: #f9fafb;
+    border-color: #d1d5db;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  .google-icon {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    svg {
+      width: 18px;
+      height: 18px;
+    }
+  }
+}
+
+// 隱藏原本的 Google 按鈕
+.hidden-google-signin {
+  position: fixed !important;
+  top: -500px !important;
+  left: -500px !important;
+  width: 1px !important;
+  height: 1px !important;
+  opacity: 0 !important;
+  overflow: hidden !important;
+  z-index: -9999 !important;
+  pointer-events: none !important;
+  
+  // 但保留內部結構以便點擊觸發
+  * {
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+}
+
 .login-container {
   display: flex;
   min-height: 100vh;
@@ -242,18 +344,6 @@ const handleGoogleError = (error) => {
         max-width: 300px;
         width: 100%;
       }
-    }
-    
-    .logo-sub {
-      font-size: 0.7rem;
-      font-weight: 400;
-      color: #8b5cf6;
-      letter-spacing: 0.2em;
-      margin-top: -0.2rem;
-      background: linear-gradient(45deg, #6c5ce7, #8b5cf6);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
     }
   }
 }
@@ -376,42 +466,8 @@ const handleGoogleError = (error) => {
   }
 }
 
-.google-btn {
-  width: 100%;
-  background: #1a73e8;
-  border: 2px solid #e5e7eb;
-  border-radius: 50px;
-  padding: 0.875rem;
-  font-size: 1rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  transition: all 0.3s ease;
-  
-  &:hover {
-    border-color: #d1d5db;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  }
-  
-  .google-icon {
-    width: 20px;
-    height: 20px;
-    background: #4285f4;
-    color: white;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    font-size: 0.8rem;
-  }
-}
-
 .right-panel {
   flex: 1;
-  // background: linear-gradient(135deg, #3730a3, #1e1b4b);
   background-image: url('/images/login-bg.svg');
   position: relative;
   overflow: hidden;
@@ -577,11 +633,9 @@ const handleGoogleError = (error) => {
   }
 }
 
-// 響應式設計
 @media (max-width: 768px) {
   .login-container {
     flex-direction: column-reverse;
-    
   }
   
   .left-panel {
@@ -602,51 +656,4 @@ const handleGoogleError = (error) => {
     padding: 1.5rem;
   }
 }
-
-:deep(.google-signin-button),
-:deep([role="button"]) {
-  width: 100% !important;
-  height: 50px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  background: #4285f4 !important;
-  color: white !important;
-  border: none !important;
-  border-radius: 8px !important;
-  font-size: 1rem !important;
-  font-weight: 500 !important;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-  cursor: pointer !important;
-  transition: all 0.3s ease !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
-  
-  &:hover {
-    background: #3367d6 !important;
-    transform: translateY(-1px) !important;
-    box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3) !important;
-  }
-  
-  &:focus {
-    outline: none !important;
-    box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.2) !important;
-  }
-  
-  // Google 圖標樣式
-  .google-icon {
-    width: 20px !important;
-    height: 20px !important;
-    background: white !important;
-    color: #4285f4 !important;
-    border-radius: 2px !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    font-weight: bold !important;
-    font-size: 14px !important;
-    margin-right: 12px !important;
-  }
-}
-
-
 </style>
