@@ -44,41 +44,97 @@ const handleGoogleError = (error) => {
 
 // 觸發隱藏的 Google 按鈕
 const triggerGoogleLogin = async () => {
-  console.log('觸發自定義 Google 登入按鈕')
+  console.log('=== Google 登入除錯資訊 ===')
+  console.log('當前網域:', window.location.origin)
+  console.log('Google API 是否載入:', !!window.google)
+  console.log('環境:', process.env.NODE_ENV)
+  
   await nextTick()
   
-  // 嘗試多種方式找到並點擊隱藏的 Google 按鈕
+  // 檢查隱藏區域是否存在
   const hiddenDiv = document.querySelector('.hidden-google-signin')
+  console.log('找到隱藏區域:', !!hiddenDiv)
+  
   if (hiddenDiv) {
-    // 先嘗試找到按鈕元素
-    const button = hiddenDiv.querySelector('button') || 
-                  hiddenDiv.querySelector('div[role="button"]') ||
-                  hiddenDiv.querySelector('[data-testid]') ||
-                  hiddenDiv.querySelector('div[tabindex="0"]')
+    console.log('隱藏區域HTML:', hiddenDiv.innerHTML)
+    
+    // 嘗試多種方式找到按鈕
+    const selectors = [
+      'button',
+      'div[role="button"]', 
+      '[data-testid]',
+      'div[tabindex="0"]',
+      '.g_id_signin',
+      '[data-client_id]'
+    ]
+    
+    let button = null
+    for (const selector of selectors) {
+      button = hiddenDiv.querySelector(selector)
+      if (button) {
+        console.log('找到按鈕，使用選擇器:', selector)
+        console.log('按鈕元素:', button)
+        break
+      }
+    }
     
     if (button) {
-      console.log('找到隱藏按鈕，準備點擊')
-      // 暫時讓按鈕可以被點擊
-      hiddenDiv.style.pointerEvents = 'auto'
-      button.style.pointerEvents = 'auto'
-      
-      // 點擊按鈕
-      button.click()
-      
-      // 點擊後再隱藏
-      setTimeout(() => {
-        hiddenDiv.style.pointerEvents = 'none'
-        button.style.pointerEvents = 'none'
-      }, 100)
+      try {
+        console.log('嘗試點擊按鈕...')
+        
+        // 暫時恢復按鈕的可點擊性
+        const originalPointerEvents = hiddenDiv.style.pointerEvents
+        const originalButtonPointerEvents = button.style.pointerEvents
+        
+        hiddenDiv.style.pointerEvents = 'auto'
+        hiddenDiv.style.opacity = '1'
+        button.style.pointerEvents = 'auto'
+        button.style.opacity = '1'
+        
+        // 嘗試點擊
+        button.click()
+        
+        console.log('按鈕點擊完成')
+        
+        // 延遲後恢復隱藏
+        setTimeout(() => {
+          hiddenDiv.style.pointerEvents = originalPointerEvents
+          hiddenDiv.style.opacity = '0'
+          button.style.pointerEvents = originalButtonPointerEvents
+          button.style.opacity = '0'
+        }, 200)
+        
+      } catch (error) {
+        console.error('點擊按鈕時發生錯誤:', error)
+        alert('Google 登入按鈕點擊失敗: ' + error.message)
+      }
     } else {
-      console.log('在隱藏區域找不到可點擊的按鈕')
-      console.log('隱藏區域內容:', hiddenDiv.innerHTML)
-      alert('Google 登入初始化中，請稍後再試')
+      console.error('所有選擇器都找不到可點擊的按鈕')
+      console.log('可能的解決方案:')
+      console.log('1. 檢查 Google Client ID 是否正確')
+      console.log('2. 檢查網域是否在 Google Console 中授權')
+      console.log('3. 檢查 HTTPS 設定')
+      console.log('4. 檢查 vue3-google-signin 是否正確初始化')
+      
+      // 檢查 vue3-google-signin 的初始化狀態
+      if (window.google && window.google.accounts) {
+        console.log('Google Identity Services 已載入，嘗試直接調用...')
+        try {
+          window.google.accounts.id.prompt()
+        } catch (directError) {
+          console.error('直接調用 Google API 失敗:', directError)
+          alert('Google 登入服務初始化失敗，請檢查網路連線或聯繫系統管理員')
+        }
+      } else {
+        alert('Google 登入初始化中，請稍後再試')
+      }
     }
   } else {
     console.error('找不到隱藏的 Google 登入區域')
-    alert('Google 登入服務尚未準備就緒')
+    alert('Google 登入服務尚未準備就緒，請重新整理頁面')
   }
+  
+  console.log('=== Google 登入除錯結束 ===')
 }
 
 // 其他方法保持不變...
@@ -256,7 +312,7 @@ onMounted(() => {
   width: 100%;
   background: white;
   color: #374151;
-  border: 2px solid #cccccc;
+  border: 2px solid #e5e7eb;
   border-radius: 8px;
   padding: 0.875rem;
   font-size: 1rem;

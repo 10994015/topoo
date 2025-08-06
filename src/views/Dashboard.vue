@@ -1009,8 +1009,8 @@ onMounted(async () => {
       transition: all 0.3s ease;
       
       svg {
-        width: 80px;
-        height: 80px;
+        width: 60px;
+        height: 60px;
         transition: all 0.3s ease;
         
       }

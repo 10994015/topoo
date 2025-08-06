@@ -74,7 +74,7 @@ const validateForm = () => {
     errors.name = '請輸入信箱名稱'
   }
   if (!formData.email) {
-    errors.email = '請輸入信箱名稱'
+    errors.email = '請輸入信箱帳號'
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
     errors.email = '請輸入有效的信箱格式'
   }
@@ -415,7 +415,7 @@ onMounted(() => {
                 :class="{ 'error': formErrors.name }"
                 placeholder="請輸入信箱名稱"
               />
-              <span v-if="formErrors.email" class="error-message">{{ formErrors.email }}</span>
+              <span v-if="formErrors.name" class="error-message">{{ formErrors.name }}</span>
             </div>
             <div class="form-group">
               <label for="email" class="form-label">信箱帳號</label>
