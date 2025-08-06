@@ -65,8 +65,14 @@ const isHardwareOrSoftware = ref({
   value: false,
   type: '',
 })
+
 // 當前用戶資訊
 const currentUser = computed(() => authStore.user)
+
+// 計算是否可以提交表單 (新增)
+const canSubmit = computed(() => {
+  return !isSubmitting.value && !isUploading.value && !deletingFileId.value
+})
 
 // 初始化報修時間為當前時間
 const initializeDateTime = () => {
@@ -145,7 +151,7 @@ const handleDrop = async (event) => {
   await processFiles(files)
 }
 
-// 處理檔案上傳（統一處理函數）
+// 處理檔案上傳（統一處理函數）- 修改版本
 const processFiles = async (files) => {
   // 檢查文件數量限制
   if (uploadedFiles.value.length + files.length > FILE_LIMITS.maxFiles) {
@@ -185,6 +191,21 @@ const processFiles = async (files) => {
   
   try {
     for (const file of validFiles) {
+      // 先創建檔案資訊物件，標記為上傳中
+      const tempFileInfo = {
+        id: null, // 暫時沒有 ID，表示還在上傳中
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        originalFile: file,
+        uploadedAt: new Date().toISOString(),
+        isUploading: true // 新增標記，表示正在上傳
+      }
+      
+      // 先加入列表顯示上傳中狀態
+      uploadedFiles.value.push(tempFileInfo)
+      const fileIndex = uploadedFiles.value.length - 1 // 記錄檔案在陣列中的位置
+      
       try {
         // 立即上傳檔案到後端
         const formData = new FormData()
@@ -197,21 +218,22 @@ const processFiles = async (files) => {
         
         console.log('上傳結果:', result)
         
-        // 將檔案資訊加入列表（包含後端回傳的檔案 ID）
-        const fileInfo = {
+        // 上傳成功，更新檔案資訊
+        uploadedFiles.value[fileIndex] = {
+          ...tempFileInfo,
           id: result.data?.id || result.data, // 後端回傳的檔案 ID
-          name: file.name,
-          size: file.size,
-          type: file.type,
-          originalFile: file,
-          uploadedAt: new Date().toISOString()
+          isUploading: false // 標記上傳完成
         }
         
-        uploadedFiles.value.push(fileInfo)
-        console.log('檔案上傳成功:', fileInfo)
+        console.log('檔案上傳成功:', uploadedFiles.value[fileIndex])
         
       } catch (error) {
         console.error('檔案上傳失敗:', error)
+        
+        // 上傳失敗，從列表中移除這個檔案
+        uploadedFiles.value.splice(fileIndex, 1)
+        
+        // 顯示錯誤訊息
         alert(`檔案 ${file.name} 上傳失敗：${error.message || '未知錯誤'}`)
       }
     }
@@ -605,8 +627,9 @@ onMounted(async () => {
                 <div class="file-details">
                   <span class="file-name">{{ file.name }}</span>
                   <span class="file-size">{{ formatFileSize(file.size) }}</span>
-                  <span v-if="file.id" class="file-status uploaded">✅ 已上傳</span>
-                  <span v-else class="file-status pending">⏳ 上傳中</span>
+                  <span v-if="file.id && !file.isUploading" class="file-status uploaded">✅ 已上傳</span>
+                  <span v-else-if="file.isUploading" class="file-status pending">⏳ 上傳中</span>
+                  <span v-else class="file-status failed">❌ 上傳失敗</span>
                 </div>
               </div>
               <button
@@ -627,8 +650,11 @@ onMounted(async () => {
           <button type="button" @click="handleCancel" class="cancel-btn">
             取消
           </button>
-          <button type="submit" :disabled="isSubmitting" class="submit-btn">
-            {{ isSubmitting ? '儲存中...' : '儲存' }}
+          <button type="submit" :disabled="!canSubmit" class="submit-btn">
+            <span v-if="isSubmitting">儲存中...</span>
+            <span v-else-if="isUploading">檔案上傳中...</span>
+            <span v-else-if="deletingFileId">刪除檔案中...</span>
+            <span v-else>儲存</span>
           </button>
         </div>
       </form>
@@ -932,6 +958,10 @@ onMounted(async () => {
 
         &.pending {
           color: #f39c12;
+        }
+
+        &.failed {
+          color: #e74c3c;
         }
       }
     }

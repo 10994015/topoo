@@ -200,9 +200,9 @@ const addMailbox = () => {
   router.push('/settings/parameter/mail-management/create')
 }
 
-// 編輯信箱
+// 檢視信箱
 const editMailbox = (item) => {
-  console.log('編輯信箱:', item)
+  console.log('檢視信箱:', item)
   // 可以導航到編輯頁面或開啟彈窗
   router.push(`/settings/parameter/mail-management/edit/${item.id}`)
 }
@@ -345,7 +345,7 @@ onMounted(() => {
                   <button 
                     class="action-btn edit-btn" 
                     @click="editMailbox(item)"
-                    title="編輯"
+                    title="檢視"
                   >
                     👁️
                   </button>

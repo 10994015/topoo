@@ -127,6 +127,16 @@ const selectedUser = computed(() => {
   return selectedUserInfo.value
 })
 
+// 計算屬性：檢查是否有檔案正在上傳 (新增)
+const hasUploadingFiles = computed(() => {
+  return selectedFiles.value.some(file => file.uploading)
+})
+
+// 計算屬性：是否可以提交表單 (新增)
+const canSubmit = computed(() => {
+  return !isSaving.value && !hasUploadingFiles.value
+})
+
 // 獲取報修詳細資料
 const fetchTodoDetail = async () => {
   try {
@@ -326,7 +336,7 @@ const addFiles = async (files) => {
   }
 }
 
-// 上傳檔案到待辦案件專用 API
+// 上傳檔案到待辦案件專用 API - 修改版本
 const uploadFile = async (fileObj) => {
   try {
     fileObj.uploading = true
@@ -338,9 +348,9 @@ const uploadFile = async (fileObj) => {
         fileFormData.append('todoId', todoDetail.value.todo_id)
     }
 
+    console.log('開始上傳檔案:', fileObj.name)
     const result = await todoStore.saveTodoFiles(fileFormData)
-
-    
+    console.log('上傳結果:', result)
     
     if (result.success && result.data) {
       const uploadedFile = result.data[0]
@@ -366,11 +376,20 @@ const uploadFile = async (fileObj) => {
       if (index > -1) {
         selectedFiles.value.splice(index, 1)
       }
+      
+      console.log('檔案上傳成功:', uploadedFile)
     }
   } catch (error) {
     console.error('檔案上傳失敗:', error)
-    alert(`檔案 "${fileObj.name}" 上傳失敗`)
-    fileObj.uploading = false
+    
+    // 上傳失敗，從選擇列表中移除該檔案
+    const index = selectedFiles.value.findIndex(f => f.id === fileObj.id)
+    if (index > -1) {
+      selectedFiles.value.splice(index, 1)
+    }
+    
+    // 顯示錯誤訊息
+    alert(`檔案 "${fileObj.name}" 上傳失敗：${error.message || '未知錯誤'}`)
   }
 }
 
@@ -854,6 +873,7 @@ onMounted(async () => {
                   <div class="file-status">
                     <span v-if="file.uploading" class="uploading-text">上傳中...</span>
                     <span v-else-if="file.uploaded" class="uploaded-text">已上傳</span>
+                    <span v-else class="failed-text">上傳失敗</span>
                   </div>
                   <button 
                     type="button"
@@ -874,9 +894,10 @@ onMounted(async () => {
               type="button"
               @click="saveForm" 
               class="save-btn"
-              :disabled="isSaving"
+              :disabled="!canSubmit"
             >
               <span v-if="isSaving">儲存中...</span>
+              <span v-else-if="hasUploadingFiles">檔案上傳中...</span>
               <span v-else>儲存</span>
             </button>
             
@@ -1420,6 +1441,11 @@ onMounted(async () => {
       .uploaded-text {
         font-size: 12px;
         color: #155724;
+      }
+
+      .failed-text {
+        font-size: 12px;
+        color: #e74c3c;
       }
     }
 

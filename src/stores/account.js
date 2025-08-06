@@ -76,10 +76,10 @@ export const useAccountStore = defineStore('account', () => {
     const deleteAccount = async (id) => {
         try {
             const response = await axiosClient.delete(`/backend/user/${id}`);
-            console.log(response.data);
+            console.log(response);
             // 刪除成功後，重新獲取帳號列表
             await fetchAccounts();
-            return response.data;
+            return response;
         } catch (error) {
             console.error('刪除帳號失敗:', error);
             return error.response; // 返回錯誤響應以便處理

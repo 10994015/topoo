@@ -56,7 +56,7 @@ const loadUserProfile = async () => {
       name: user.name || '尚未設定',
       email: user.email || '尚未設定',
       nickname: user.nick_name || '尚未設定',
-      status: user.status || 'Open'
+      status: user.status || '啟用'
     })
     
     // 複製到編輯表單
@@ -254,7 +254,7 @@ onMounted(() => {
                   </template>
                   <template v-else>
                     <span class="status-badge" :class="userProfile.status">
-                      {{ userProfile.status }}
+                        {{ statusOptions.find(option => option.value === userProfile.status)?.label ||  userProfile.status }}
                     </span>
                   </template>
               </template>

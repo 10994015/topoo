@@ -1,4 +1,3 @@
-
 <script setup>
 import { ref, watch, onUnmounted, defineProps, defineEmits } from 'vue'
 
@@ -32,9 +31,9 @@ const loading = ref(false)
 const error = ref(false)
 
 // 支援的檔案類型
-const supportedImageTypes = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg']
-const supportedVideoTypes = ['mp4', 'webm', 'ogg', 'mov', 'avi']
-const supportedDocTypes = ['pdf']
+const supportedImageTypes = ['jpg', 'jpeg', 'png']
+const supportedVideoTypes = ['mp4']
+const supportedDocTypes = ['pdf', 'doc', 'docx', 'ppt', 'pptx']
 
 // 獲取檔案副檔名
 const getFileExtension = (fileName) => {
@@ -77,8 +76,12 @@ const getContentType = (fileName) => {
     'mov': 'video/quicktime',
     'avi': 'video/x-msvideo',
     
-    // 文檔
-    'pdf': 'application/pdf'
+    // 文檔 (後端會轉成PDF)
+    'pdf': 'application/pdf',
+    'doc': 'application/pdf',
+    'docx': 'application/pdf',
+    'ppt': 'application/pdf',
+    'pptx': 'application/pdf'
   }
   
   return mimeTypes[extension] || 'application/octet-stream'
@@ -98,6 +101,7 @@ const loadFileContent = async () => {
       loading.value = false
       return
     }
+    
     const id = props.file.file_id || props.file.id
     console.log(id);
     
@@ -194,7 +198,7 @@ onUnmounted(() => {
   <div v-if="visible" class="file-preview-modal" @click="handleClose">
     <div class="file-preview-content" @click.stop>
       <div class="file-preview-header">
-        <h3 class="preview-title">{{ file?.file_name || '檔案預覽' }}</h3>
+        <h3 class="preview-title">{{ file?.original_name || '檔案預覽' }}</h3>
         <div class="preview-actions">
           <button @click="handleDownload" class="preview-download-btn" title="下載檔案">
             <span>⬇</span>
@@ -222,7 +226,7 @@ onUnmounted(() => {
           />
         </div>
         
-        <!-- PDF 預覽 -->
+        <!-- PDF 預覽 (包含後端轉換的Office文檔) -->
         <div v-else-if="previewType === 'pdf'" class="pdf-preview">
           <iframe :src="previewUrl" frameborder="0"></iframe>
         </div>
@@ -379,17 +383,15 @@ onUnmounted(() => {
   justify-content: center;
 
   img {
-    max-width: 90%; /* 更保守的尺寸限制 */
+    max-width: 90%;
     max-height: 90%;
     width: auto;
     height: auto;
     object-fit: contain;
-
-
   }
 }
 
-// PDF 預覽
+// PDF 預覽 (包含後端轉換的Office文檔)
 .pdf-preview {
   width: 100%;
   height: 100%;
@@ -493,11 +495,10 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0; // 移除 body 的 padding，讓圖片預覽自己處理
+    padding: 0;
     background: #f8f9fa;
     position: relative;
-    overflow: hidden; // 防止內容溢出
-
+    overflow: hidden;
   }
 }
 
