@@ -207,156 +207,165 @@ const goToLogin = () => {
   <div class="register-container">
     <div class="register-card">
       <h1 class="register-title">
-        <img src="/images/topoo_logo.png"  width="250" alt="">
+        註冊帳號
       </h1>
       
       <form @submit.prevent="handleSubmit" class="register-form">
-        <!-- 帳號輸入 -->
-        <div class="input-group">
-          <div class="input-wrapper">
-            <User class="input-icon" :size="20" />
-            <input
-              type="text"
-              v-model="formData.credential"
-              placeholder="請輸入帳號"
-              class="form-input"
-              required
-            />
-          </div>
-          <div v-if="errors.credential" class="error-message">{{ errors.credential }}</div>
-        </div>
+        <div class="form-layout">
+          <!-- 左側：輸入框區域 -->
+          <div class="form-inputs">
+            <!-- 帳號輸入 -->
+            <div class="input-group">
+              <div class="input-wrapper">
+                <User class="input-icon" :size="20" />
+                <input
+                  type="text"
+                  v-model="formData.credential"
+                  placeholder="請輸入帳號"
+                  class="form-input"
+                  required
+                />
+              </div>
+              <div v-if="errors.credential" class="error-message">{{ errors.credential }}</div>
+            </div>
 
-        <!-- 密碼輸入 -->
-        <div class="input-group">
-          <div class="input-wrapper">
-            <Lock class="input-icon" :size="20" />
-            <input
-              :type="showPassword ? 'text' : 'password'"
-              v-model="formData.password"
-              placeholder="請輸入密碼"
-              class="form-input"
-              required
-            />
-            <button
-              type="button"
-              class="toggle-password"
-              @click="showPassword = !showPassword"
+            <!-- 密碼輸入 -->
+            <div class="input-group">
+              <div class="input-wrapper">
+                <Lock class="input-icon" :size="20" />
+                <input
+                  :type="showPassword ? 'text' : 'password'"
+                  v-model="formData.password"
+                  placeholder="請輸入密碼"
+                  class="form-input"
+                  required
+                />
+                <button
+                  type="button"
+                  class="toggle-password"
+                  @click="showPassword = !showPassword"
+                >
+                  <EyeOff v-if="showPassword" :size="20" />
+                  <Eye v-else :size="20" />
+                </button>
+              </div>
+              <div v-if="errors.password" class="error-message">{{ errors.password }}</div>
+              <!-- 密碼強度提示 -->
+              <div class="password-requirements" v-if="formData.password">
+                <div class="requirement-item" :class="{ 'valid': passwordValidation.length }">
+                  <span class="requirement-dot"></span>
+                  長度 8-20 字元
+                </div>
+                <div class="requirement-item" :class="{ 'valid': passwordValidation.hasNumber }">
+                  <span class="requirement-dot"></span>
+                  包含數字
+                </div>
+                <div class="requirement-item" :class="{ 'valid': passwordValidation.hasUpper }">
+                  <span class="requirement-dot"></span>
+                  包含大寫字母
+                </div>
+                <div class="requirement-item" :class="{ 'valid': passwordValidation.hasLower }">
+                  <span class="requirement-dot"></span>
+                  包含小寫字母
+                </div>
+                <div class="requirement-item" :class="{ 'valid': passwordValidation.hasSpecial }">
+                  <span class="requirement-dot"></span>
+                  包含特殊符號 (!@#$%^&*等)
+                </div>
+              </div>
+            </div>
+
+            <!-- 確認密碼 -->
+            <div class="input-group">
+              <div class="input-wrapper">
+                <Lock class="input-icon" :size="20" />
+                <input
+                  :type="showConfirmPassword ? 'text' : 'password'"
+                  v-model="formData.confirmPassword"
+                  placeholder="請輸入確認密碼"
+                  class="form-input"
+                  required
+                />
+                <button
+                  type="button"
+                  class="toggle-password"
+                  @click="showConfirmPassword = !showConfirmPassword"
+                >
+                  <EyeOff v-if="showConfirmPassword" :size="20" />
+                  <Eye v-else :size="20" />
+                </button>
+              </div>
+              <div v-if="errors.confirmPassword" class="error-message">{{ errors.confirmPassword }}</div>
+            </div>
+
+            <!-- 使用者姓名 -->
+            <div class="input-group">
+              <div class="input-wrapper">
+                <input
+                  type="text"
+                  v-model="formData.name"
+                  placeholder="請輸入使用者姓名"
+                  class="form-input"
+                  required
+                />
+              </div>
+              <div v-if="errors.name" class="error-message">{{ errors.name }}</div>
+            </div>
+
+            <!-- E-mail -->
+            <div class="input-group">
+              <div class="input-wrapper">
+                <input
+                  type="email"
+                  v-model="formData.email"
+                  placeholder="請輸入E-mail信箱"
+                  class="form-input"
+                  required
+                />
+              </div>
+              <div v-if="errors.email" class="error-message">{{ errors.email }}</div>
+            </div>
+          </div>
+
+          <!-- 右側：按鈕區域 -->
+          <div class="form-actions">
+            <!-- 註冊按鈕 -->
+            <button 
+              type="submit" 
+              class="register-button"
+              :disabled="isLoading"
             >
-              <EyeOff v-if="showPassword" :size="20" />
-              <Eye v-else :size="20" />
+              {{ isLoading ? '註冊中...' : '註冊' }}
             </button>
-          </div>
-          <div v-if="errors.password" class="error-message">{{ errors.password }}</div>
-          <!-- 密碼強度提示 -->
-          <div class="password-requirements" v-if="formData.password">
-            <div class="requirement-item" :class="{ 'valid': passwordValidation.length }">
-              <span class="requirement-dot"></span>
-              長度 8-20 字元
-            </div>
-            <div class="requirement-item" :class="{ 'valid': passwordValidation.hasNumber }">
-              <span class="requirement-dot"></span>
-              包含數字
-            </div>
-            <div class="requirement-item" :class="{ 'valid': passwordValidation.hasUpper }">
-              <span class="requirement-dot"></span>
-              包含大寫字母
-            </div>
-            <div class="requirement-item" :class="{ 'valid': passwordValidation.hasLower }">
-              <span class="requirement-dot"></span>
-              包含小寫字母
-            </div>
-            <div class="requirement-item" :class="{ 'valid': passwordValidation.hasSpecial }">
-              <span class="requirement-dot"></span>
-              包含特殊符號 (!@#$%^&*等)
-            </div>
-          </div>
-        </div>
 
-        <!-- 確認密碼 -->
-        <div class="input-group">
-          <div class="input-wrapper">
-            <Lock class="input-icon" :size="20" />
-            <input
-              :type="showConfirmPassword ? 'text' : 'password'"
-              v-model="formData.confirmPassword"
-              placeholder="請輸入確認密碼"
-              class="form-input"
-              required
-            />
-            <button
-              type="button"
-              class="toggle-password"
-              @click="showConfirmPassword = !showConfirmPassword"
+            <!-- 登入連結 -->
+            <div class="login-link">
+              <span>已經註冊過帳號？</span>
+              <a href="#" class="link" @click.prevent="goToLogin">返回登入頁</a>
+            </div>
+
+            <!-- 分隔線 -->
+            <div class="divider">
+              <span>or</span>
+            </div>
+
+            <!-- Google 登入按鈕 -->
+            <GoogleSignInButton 
+              style="display:block"
+              @success="handleGoogleSuccess"
+              @error="handleGoogleError"
+              text="使用Google 帳號登入"
+              theme="filled_blue"
+              size="large"
+              class="google-btn"
             >
-              <EyeOff v-if="showConfirmPassword" :size="20" />
-              <Eye v-else :size="20" />
-            </button>
+              <template #default>
+                <span class="google-icon">G</span>
+                使用Google 帳號登入
+              </template>
+            </GoogleSignInButton>
           </div>
-          <div v-if="errors.confirmPassword" class="error-message">{{ errors.confirmPassword }}</div>
         </div>
-
-        <!-- 使用者姓名 -->
-        <div class="input-group">
-          <div class="input-wrapper">
-            <input
-              type="text"
-              v-model="formData.name"
-              placeholder="請輸入使用者姓名"
-              class="form-input"
-              required
-            />
-          </div>
-          <div v-if="errors.name" class="error-message">{{ errors.name }}</div>
-        </div>
-
-        <!-- E-mail -->
-        <div class="input-group">
-          <div class="input-wrapper">
-            <input
-              type="email"
-              v-model="formData.email"
-              placeholder="請輸入E-mail信箱"
-              class="form-input"
-              required
-            />
-          </div>
-          <div v-if="errors.email" class="error-message">{{ errors.email }}</div>
-        </div>
-
-        <!-- 註冊按鈕 -->
-        <button 
-          type="submit" 
-          class="register-button"
-          :disabled="isLoading"
-        >
-          {{ isLoading ? '註冊中...' : '註冊' }}
-        </button>
-
-        <!-- 登入連結 -->
-        <div class="login-link">
-          <span>已經註冊過帳號？</span>
-          <a href="#" class="link" @click.prevent="goToLogin">返回登入頁</a>
-        </div>
-
-        <!-- 分隔線 -->
-        <div class="divider">
-          <span>or</span>
-        </div>
-        <GoogleSignInButton 
-          style="display:block"
-          @success="handleGoogleSuccess"
-          @error="handleGoogleError"
-          text="使用Google 帳號登入"
-          theme="filled_blue"
-          size="large"
-          class="google-btn"
-        >
-          <template #default>
-            <span class="google-icon">G</span>
-            使用Google 帳號登入
-          </template>
-        </GoogleSignInButton>
-        <!-- Google 登入按鈕 -->
       </form>
     </div>
   </div>
@@ -376,9 +385,9 @@ const goToLogin = () => {
 .register-card {
   background: white;
   border-radius: 16px;
-  padding: 40px;
+  padding: 60px 80px;
   width: 100%;
-  max-width: 400px;
+  max-width: 800px; // 增加最大寬度以適應左右分欄
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 
               0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
@@ -388,7 +397,7 @@ const goToLogin = () => {
   font-weight: 700;
   text-align: center;
   margin-bottom: 40px;
-  color: #8b5cf6;
+  color: #5B42C9;
   margin-top: 0;
   img{
     max-width: 250px;
@@ -397,9 +406,33 @@ const goToLogin = () => {
 }
 
 .register-form {
+  width: 100%;
+}
+
+// 新增：左右分欄佈局
+.form-layout {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 40px;
+  align-items: start;
+}
+
+// 左側輸入框區域
+.form-inputs {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  min-width: 300px;
+}
+
+// 右側按鈕區域
+.form-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 280px;
+  position: sticky;
+  top: 20px;
 }
 
 .input-group {
@@ -500,13 +533,13 @@ const goToLogin = () => {
   background: #8b5cf6;
   color: white;
   border: none;
-  padding: 16px;
+  padding: 16px 24px;
   border-radius: 12px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  margin-top: 10px;
+  width: 100%;
 
   &:hover:not(:disabled) {
     background: #7c3aed;
@@ -522,15 +555,16 @@ const goToLogin = () => {
 
 .login-link {
   text-align: center;
-  margin-top: 20px;
   color: #6b7280;
   font-size: 14px;
+  line-height: 1.4;
 
   .link {
     color: #8b5cf6;
     text-decoration: none;
     font-weight: 600;
-    margin-left: 8px;
+    display: block;
+    margin-top: 4px;
 
     &:hover {
       text-decoration: underline;
@@ -541,7 +575,6 @@ const goToLogin = () => {
 .divider {
   display: flex;
   align-items: center;
-  margin: 30px 0;
   color: #9ca3af;
   font-size: 14px;
 
@@ -558,32 +591,8 @@ const goToLogin = () => {
   }
 }
 
-.google-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
+.google-btn {
   width: 100%;
-  padding: 16px;
-  border: 2px solid #e5e7eb;
-  border-radius: 12px;
-  background: white;
-  color: #374151;
-  font-size: 16px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-
-  &:hover {
-    border-color: #d1d5db;
-    background: #f9fafb;
-    transform: translateY(-1px);
-  }
-
-  .google-icon {
-    display: flex;
-    align-items: center;
-  }
 }
 
 .error-message {
@@ -593,18 +602,49 @@ const goToLogin = () => {
   line-height: 1.4;
 }
 
-@media (max-width: 480px) {
+// 響應式設計
+@media (max-width: 768px) {
   .register-container {
     padding: 10px;
   }
 
   .register-card {
     padding: 30px 20px;
+    max-width: 400px;
+  }
+
+  .form-layout {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+
+  .form-actions {
+    width: 100%;
+    position: static;
+  }
+
+  .form-inputs {
+    min-width: auto;
   }
 
   .register-title {
     font-size: 28px;
     margin-bottom: 30px;
+  }
+}
+
+@media (max-width: 480px) {
+  .register-card {
+    padding: 20px 15px;
+  }
+
+  .register-title {
+    font-size: 24px;
+    margin-bottom: 25px;
+  }
+
+  .form-layout {
+    gap: 20px;
   }
 }
 </style>
