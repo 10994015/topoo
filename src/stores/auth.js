@@ -43,6 +43,25 @@ export const useAuthStore = defineStore('auth', () => {
         return hasPermission(permissionName, 'Full')
     }
 
+    // 新增：強制登出方法（用於 token 過期）
+    const forceLogout = (message = '登入憑證已過期，請重新登入') => {
+        // 清除用戶狀態
+        user.value = null
+        permissions.value = []
+        isInitialized.value = false
+        
+        // 顯示提示訊息
+        alert(message)
+        
+        // 跳轉到登入頁
+        // 這裡需要動態導入 router 以避免循環依賴
+        import('@/router').then(({ default: router }) => {
+            if (router.currentRoute.value.name !== 'login') {
+                router.push('/login')
+            }
+        })
+    }
+
     const login = async (credentials) => {
         console.log("sha256後:", hashSHA256(credentials.password));
         credentials.password = await hashSHA256(credentials.password);
@@ -249,12 +268,20 @@ export const useAuthStore = defineStore('auth', () => {
             // 嘗試獲取用戶資料來驗證登入狀態
             await fetchUser()
             // 登入成功後獲取權限
-            await getPermissions ()
+            await getPermissions()
             return true
         } catch (error) {
-            console.log('未登入或 token 已過期')
+            console.log('認證檢查失敗:', error)
+            
+            // 重要：將錯誤拋出，讓路由守衛可以捕獲
             user.value = null
             permissions.value = []
+            
+            // 如果是 401 錯誤，拋出錯誤讓路由守衛處理
+            if (error.response && error.response.status === 401) {
+                throw error // 拋出錯誤，包含 401 狀態碼
+            }
+            
             return false
         } finally {
             isLoading.value = false
@@ -448,6 +475,8 @@ export const useAuthStore = defineStore('auth', () => {
         canAccessPage,
         canModify,
         getPermissions ,
+        // 新增強制登出方法
+        forceLogout,
         // 方法
         login,
         register,

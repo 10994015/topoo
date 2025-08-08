@@ -5,7 +5,6 @@ import axios from 'axios'
 const axiosClient = axios.create({
   baseURL: '/api',  // 使用代理路徑
   // baseURL: import.meta.env.VITE_API_BASE_URL + 'api',  // 正式區路徑
-
   withCredentials: true,  // 允許發送 cookies
   timeout: 10000,  // 請求超時時間 (10秒)
   headers: {
@@ -13,21 +12,14 @@ const axiosClient = axios.create({
   }
 })
 
+// 追蹤是否正在處理 401 錯誤，避免重複處理
+let isHandling401 = false
+
 // 請求攔截器
 axiosClient.interceptors.request.use(
   config => {
     // 在發送請求之前做些什麼
     console.log('🚀 發送請求:', config.method?.toUpperCase(), config.url)
-    
-    // 可以在這裡添加 loading 狀態
-    // store.dispatch('setLoading', true)
-    
-    // 可以在這裡添加 token（如果使用 Authorization header）
-    // const token = localStorage.getItem('token')
-    // if (token) {
-    //   config.headers.Authorization = `Bearer ${token}`
-    // }
-    
     return config
   },
   error => {
@@ -42,8 +34,8 @@ axiosClient.interceptors.response.use(
     // 對回應資料做點什麼
     console.log('✅ 收到回應:', response.status, response.config.url)
     
-    // 可以在這裡關閉 loading 狀態
-    // store.dispatch('setLoading', false)
+    // 成功請求時重置 401 處理狀態
+    isHandling401 = false
     
     return response
   },
@@ -52,9 +44,35 @@ axiosClient.interceptors.response.use(
     
     // 統一錯誤處理
     if (error.response?.status === 401) {
-      console.warn('🔒 認證失敗，需要重新登入')
-      // 這裡可以清除認證狀態或跳轉到登入頁
-      // 但為了避免循環依賴，我們在 store 中處理
+      console.warn('🔒 認證失敗，登入憑證已過期')
+      
+      // 避免重複處理 401 錯誤
+      if (isHandling401) {
+        console.log('已在處理 401 錯誤，跳過')
+        return Promise.reject(error)
+      }
+      
+      isHandling401 = true
+      
+      // 檢查當前是否已經在登入頁
+      const currentPath = window.location.pathname
+      if (currentPath === '/login' || currentPath === '/register' || currentPath === '/forgot-password') {
+        console.log('當前已在登入相關頁面，跳過 401 處理')
+        isHandling401 = false
+        return Promise.reject(error)
+      }
+      
+      // 動態導入 auth store 並調用強制登出方法
+      import('@/stores/auth').then(({ useAuthStore }) => {
+        const authStore = useAuthStore()
+        authStore.forceLogout('登入憑證已過期，請重新登入')
+      }).catch(err => {
+        console.error('導入 auth store 失敗:', err)
+        // 備用方案：直接跳轉
+        alert('登入憑證已過期，請重新登入')
+        window.location.href = '/login'
+      })
+      
     } else if (error.response?.status === 403) {
       console.warn('🚫 權限不足')
     } else if (error.response?.status === 500) {
@@ -65,33 +83,15 @@ axiosClient.interceptors.response.use(
       console.error('🌐 網路連線錯誤')
     }
     
-    // 可以在這裡關閉 loading 狀態
-    // store.dispatch('setLoading', false)
-    
     return Promise.reject(error)
   }
 )
 
-// 導出 API 實例
 export default axiosClient
 
 // 也可以導出一些常用的方法
-export const get = (url, config) => api.get(url, config)
-export const post = (url, data, config) => api.post(url, data, config)
-export const put = (url, data, config) => api.put(url, data, config)
-export const del = (url, config) => api.delete(url, config)
-export const patch = (url, data, config) => api.patch(url, data, config)
-
-// 用於設置認證失敗的回調函數
-let authFailureCallback = null
-
-export const setAuthFailureCallback = (callback) => {
-  authFailureCallback = callback
-}
-
-// 觸發認證失敗回調
-export const triggerAuthFailure = () => {
-  if (authFailureCallback && typeof authFailureCallback === 'function') {
-    authFailureCallback()
-  }
-}
+export const get = (url, config) => axiosClient.get(url, config)
+export const post = (url, data, config) => axiosClient.post(url, data, config)
+export const put = (url, data, config) => axiosClient.put(url, data, config)
+export const del = (url, config) => axiosClient.delete(url, config)
+export const patch = (url, data, config) => axiosClient.patch(url, data, config)
