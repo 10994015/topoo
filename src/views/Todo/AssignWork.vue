@@ -141,12 +141,14 @@ const canSubmit = computed(() => {
 const fetchTodoDetail = async () => {
   try {
     isLoading.value = true
-    const response = await todoStore.fetchTodoDetail(todoId.value)
+    const response = await todoStore.fetchTodo(todoId.value)
+    console.log(todoStore.todoDetail);
+    
     todoDetail.value = todoStore.todoDetail
-    isEdit.value = todoDetail.value.todo_id
+    isEdit.value = !!todoDetail.value.repair_id
     // 初始化表單數據
     if (todoDetail.value) {
-      formData.repairId = todoDetail.value.id
+      formData.repairId = todoDetail.value.repair_id
       formData.assignUserId = todoDetail.value.assign_user_id || ''
       formData.importanceLevel = todoDetail.value.importance_level || ''
       formData.emergencyLevel = todoDetail.value.emergency_level || ''
@@ -478,6 +480,8 @@ const validateForm = () => {
 
 // 儲存表單
 const saveForm = async () => {
+  console.log(todoDetail.value);
+  
   if (!validateForm()) return
   console.log(formData);
 
@@ -497,7 +501,7 @@ const saveForm = async () => {
     let response = null;
     // 呼叫API進行案件指派
     if(isEdit.value){
-        submitData.todoId = todoDetail.value.todo_id
+        submitData.todoId = todoId.value // 使用 repair_id 作為 todoId
         response = await todoStore.editTodo(submitData)
 
     }else{
@@ -601,7 +605,35 @@ const fetchFileContent = async (fileId) => {
     throw error
   }
 }
+// 移除原有檔案
+const removeExistingFile = async (file) => {
+  try {
+    // 確認刪除操作
+    const confirmDelete = confirm(`確定要刪除檔案「${file.name}」嗎？`);
+    if (!confirmDelete) {
+      return;
+    }
 
+    console.log('刪除原有檔案:', file);
+    
+    // 使用 pinia store 的 removeTodoFile 方法
+    await todoStore.removeTodoFile(file.id);
+    
+    // 從原有檔案列表中移除
+    const index = existingFiles.value.findIndex(f => f.id === file.id);
+    if (index > -1) {
+      existingFiles.value.splice(index, 1);
+    }
+    
+    console.log('原有檔案刪除成功');
+    // 可選：顯示成功訊息
+    alert('檔案刪除成功');
+    
+  } catch (error) {
+    console.error('原有檔案刪除失敗:', error);
+    alert(`檔案刪除失敗：${error.message || '未知錯誤'}`);
+  }
+}
 // 檔案預覽事件處理
 const onFileDownloaded = (file) => {
   console.log(file);
@@ -659,29 +691,6 @@ onMounted(async () => {
 
         <!-- 表單內容 -->
         <div class="form-content">
-          <!-- 基本資訊顯示 -->
-          <div class="basic-info-section">
-            <h3 class="section-title">案件基本資訊</h3>
-            <div class="info-grid">
-              <div class="info-item">
-                <label class="info-label">案件標題</label>
-                <div class="info-value">{{ todoDetail.title }}</div>
-              </div>
-              <div class="info-item">
-                <label class="info-label">報修人員</label>
-                <div class="info-value">{{ todoDetail.repair_name }}</div>
-              </div>
-              <div class="info-item">
-                <label class="info-label">故障類別</label>
-                <div class="info-value">{{ todoDetail.repair_category }}</div>
-              </div>
-              <div class="info-item">
-                <label class="info-label">故障原因</label>
-                <div class="info-value">{{ todoDetail.repair_reason }}</div>
-              </div>
-            </div>
-          </div>
-
           <!-- 指派資訊表單 -->
           <div class="assign-form-section">
             <h3 class="section-title">案件指派資訊</h3>
@@ -823,6 +832,15 @@ onMounted(async () => {
                     >
                       👁
                     </button>
+                    <!-- 新增刪除按鈕 -->
+                    <button 
+                      type="button"
+                      @click.stop="removeExistingFile(file)"
+                      class="action-btn delete-btn"
+                      title="刪除檔案"
+                    >
+                      🗑
+                    </button>
                   </div>
                 </div>
               </div>
@@ -845,13 +863,34 @@ onMounted(async () => {
                   <div class="file-status">
                     <span class="uploaded-text">已上傳</span>
                   </div>
-                  <button 
-                    type="button"
-                    @click.stop="removeFile(file, true)"
-                    class="remove-btn"
-                  >
-                    ✕
-                  </button>
+                  <div class="file-actions">
+                    <!-- 新增下載和預覽按鈕 -->
+                    <button 
+                      type="button"
+                      @click.stop="downloadFile(file)"
+                      class="action-btn download-btn"
+                      title="下載"
+                    >
+                      ⬇
+                    </button>
+                    <button 
+                      type="button"
+                      @click="openFilePreview(file)"
+                      class="action-btn preview-btn"
+                      title="預覽"
+                    >
+                      👁
+                    </button>
+                    <!-- 刪除按鈕 -->
+                    <button 
+                      type="button"
+                      @click.stop="removeFile(file, true)"
+                      class="action-btn delete-btn"
+                      title="刪除檔案"
+                    >
+                      🗑
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -1382,7 +1421,73 @@ onMounted(async () => {
     border-radius: 8px;
     transition: all 0.3s;
     margin-bottom: 8px;
+    .file-actions {
+    display: flex;
+    gap: 8px;
+    margin-right: 8px;
+  }
 
+  .action-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &.download-btn {
+      background: #007bff;
+      color: white;
+
+      &:hover {
+        background: #0056b3;
+        transform: scale(1.05);
+      }
+    }
+
+    &.preview-btn {
+      background: #28a745;
+      color: white;
+
+      &:hover {
+        background: #1e7e34;
+        transform: scale(1.05);
+      }
+    }
+
+    // 新增刪除按鈕樣式
+    &.delete-btn {
+      background: #dc3545;
+      color: white;
+
+      &:hover {
+        background: #c82333;
+        transform: scale(1.05);
+      }
+
+      &:active {
+        transform: scale(0.95);
+      }
+    }
+  }
+
+  // 修改新上傳檔案的佈局，因為現在有更多按鈕
+  &.uploaded {
+    .file-status {
+      margin-right: 10px; // 減少間距，為按鈕騰出空間
+    }
+  }
+
+  // 確保原有檔案區域有足夠空間顯示所有按鈕
+  &.existing {
+    .file-actions {
+      min-width: 120px; // 確保有足夠空間容納三個按鈕
+    }
+  }
     &:last-child {
       margin-bottom: 0;
     }
@@ -2014,6 +2119,38 @@ onMounted(async () => {
       .user-details {
         gap: 8px;
       }
+    }
+  }
+}
+@media (max-width: 768px) {
+  .file-item {
+    .action-btn {
+      width: 28px;
+      height: 28px;
+      font-size: 12px;
+    }
+
+    .file-actions {
+      gap: 6px;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .file-item {
+    .action-btn {
+      width: 24px;
+      height: 24px;
+      font-size: 10px;
+    }
+
+    .file-actions {
+      gap: 4px;
+      min-width: 80px;
+    }
+
+    &.existing .file-actions {
+      min-width: 90px;
     }
   }
 }

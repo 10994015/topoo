@@ -79,6 +79,31 @@ export const useTodoStore = defineStore('todo', () => {
             throw error
         }
     }
+    // 獲取派工資料 - 對應 GET /api/backend/todo/{id}
+    const fetchTodo = async (todoId) => {
+        try {
+            console.log('獲取派工資料:', todoId);
+            
+            const response = await axiosClient.get(`/backend/todo/${todoId}`);
+            console.log('派工資料回應:', response.data);
+            todoDetail.value = response.data.data
+            return {
+                success: true,
+                data: response.data.data || response.data,
+                message: response.data.message
+            };
+        } catch (error) {
+            console.error('獲取派工資料失敗:', error);
+            
+            if (error.response) {
+                console.error('錯誤狀態:', error.response.status);
+                console.error('錯誤資料:', error.response.data);
+                throw new Error(error.response.data.message || '獲取派工資料失敗');
+            }
+            throw error;
+        }
+    }
+
     // 指派案件 - 對應 POST /api/backend/todo
     const assignWork = async (assignData) => {
         try {
@@ -352,5 +377,6 @@ export const useTodoStore = defineStore('todo', () => {
         fetchTodoProgress,
         downloadFile,
         viewFile,
+        fetchTodo,
     }
 })

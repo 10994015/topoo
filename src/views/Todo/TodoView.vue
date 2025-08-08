@@ -118,7 +118,7 @@ const handAssign = () => {
   console.log('指派案件')
   router.push({
     name: 'app.settings.assign-work',
-    params: { id: repairId.value }
+    params: { id: todoId.value }
   })
   // 可以呼叫 API 或顯示確認對話框
 }
