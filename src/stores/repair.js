@@ -219,8 +219,8 @@ export const useRepairStore = defineStore('repair', () => {
                     filename = filenameMatch[1];
                 }
             }
-            
-            link.setAttribute('download', filename);
+            decodeURIComponent(filename); // 解碼文件名
+            link.setAttribute('download', decodeURIComponent(filename));
             document.body.appendChild(link);
             link.click();
             

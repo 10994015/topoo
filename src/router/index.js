@@ -367,7 +367,7 @@ const router = createRouter({
               { text: '首頁', to: '/' },
               { text: '參數管理', to: '/settings/parameter-management' },
               { text: '故障類別管理', to: '/settings/parameter/repair-category-management' },
-              { text: '編輯類別管理', to: null },
+              { text: '編輯故障類別', to: null },
             ],
             permission: PERMISSIONS.REPAIR_CATEGORY_MANAGEMENT,
             permissionMode: 'Readonly' 
@@ -394,12 +394,12 @@ const router = createRouter({
           name: 'app.settings.repair-reason.edit',
           component: EditRepairReason,
           meta: { 
-            title: '編輯故障類別',
+            title: '編輯故障原因',
             breadcrumbs: [
               { text: '首頁', to: '/' },
               { text: '參數管理', to: '/settings/parameter-management' },
               { text: '故障類別管理', to: '/settings/parameter/repair-category-management' },
-              { text: '編輯類別原因', to: null },
+              { text: '編輯故障原因', to: null },
             ],
             permission: PERMISSIONS.REPAIR_REASON_MANAGEMENT,
             permissionMode: 'Readonly' 
@@ -536,7 +536,7 @@ const router = createRouter({
             title: '指派案件',
             breadcrumbs: [
               { text: '首頁', to: '/' },
-              { text: '派工管理', to: '/settings/repair-todo-management' },
+              { text: '待辦管理', to: '/settings/repair-todo-management' },
               { text: '承辦案件', to: null },
             ],
             permission: PERMISSIONS.REPAIR_TODO_MANAGEMENT,

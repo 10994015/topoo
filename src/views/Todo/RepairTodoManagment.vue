@@ -4,10 +4,12 @@ import { useRouter } from 'vue-router'
 import { useBackendRepairStore } from '@/stores/backend.repair' // 後端報修 store
 import { useRepairStore } from '@/stores/repair' // 借用報修 store 的選項資料
 import { formatDateTime } from '@/utils/dateUtils'
+import { useTodoStore } from '@/stores/todo'
 
 const router = useRouter()
 const backendRepairStore = useBackendRepairStore()
 const repairStore = useRepairStore()
+const todoStore = useTodoStore()
 
 // 搜尋表單
 const searchForm = reactive({
@@ -203,11 +205,11 @@ onMounted(async () => {
     // 載入選項資料
     await repairStore.fetchCategories()
     await repairStore.fetchReasons()
-    await repairStore.fetchStatuses()
+    await todoStore.fetchStatuses()
     
     categories.value = repairStore.categories.data || []
     reasons.value = repairStore.reasons.data || []
-    statuses.value = repairStore.statuses.data || []
+    statuses.value = todoStore.statuses.data || []
 
     // 載入待辦資料
     await getTodoData(searchForm, "repair_time", "desc", pageSize.value, currentPage.value);

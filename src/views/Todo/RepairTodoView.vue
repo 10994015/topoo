@@ -425,7 +425,7 @@ onMounted(async () => {
 
                 <!-- 操作按鈕 -->
                 <div class="handler-actions">
-                <button @click="handAssign" class="accept-btn" v-if="hasWriteRepairTodoPermission">
+                <button @click="handAssign" class="accept-btn" v-if="hasWriteRepairTodoPermission && repairDetail.repair_status !== '已完成' && repairDetail.repair_status !== '歸檔'">
                     {{ repairDetail.repair_status === '尚未承辦' ? '承辦案件' : '處理案件' }}
                 </button v-if="hasWriteRepairTodoPermission">
                 <button @click="restartTodo" class="reassign-btn" v-if="repairDetail.repair_status==='已完成' || repairDetail.repair_status==='歸檔'">
@@ -882,7 +882,7 @@ onMounted(async () => {
   background: white;
   border-radius: 12px;
   width: 90%;
-  max-width: 800px;
+  max-width: 1000px;
   max-height: 80vh;
   overflow: hidden;
   animation: slideUp 0.3s ease-out;

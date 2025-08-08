@@ -204,11 +204,11 @@ onMounted(async () => {
     // 載入選項資料
     await repairStore.fetchCategories()
     await repairStore.fetchReasons()
-    await repairStore.fetchStatuses()
+    await todoStore.fetchStatuses()
     
     categories.value = repairStore.categories.data || []
     reasons.value = repairStore.reasons.data || []
-    statuses.value = repairStore.statuses.data || []
+    statuses.value = todoStore.statuses.data || []
 
     // 載入待辦資料
     await getTodoData(searchForm, "repair_time", "desc", pageSize.value, currentPage.value);
@@ -230,7 +230,7 @@ onMounted(async () => {
           <input 
             type="text" 
             v-model="searchForm.q"
-            placeholder="輸入案件標題、報修人員帳號及姓名"
+            placeholder="輸入案件標題、報修人員帳號及姓名、承辦人員帳號及姓名"
             class="search-input"
             @keyup.enter="handleSearch"
             :disabled="isLoading"

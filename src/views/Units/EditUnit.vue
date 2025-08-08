@@ -775,7 +775,9 @@ const previewApiData = computed(() => {
     return { parentId: null, units: [] }
   }
 })
-
+const cancel = () => {
+  router.push('/settings/unit-management')
+}
 // 測試建構資料的方法
 const testBuildData = () => {
   console.log('=== 測試建構 API 資料 ===')
@@ -1168,7 +1170,7 @@ onMounted(async () => {
             <span v-if="isSaving">儲存中...</span>
             <span v-else>儲存</span>
           </button>
-          <button class="cancel-btn" @click="cancel">取消</button>
+          <button class="cancel-btn" @click="cancel">返回</button>
         </template>
         
         <!-- 編輯模式的按鈕 -->

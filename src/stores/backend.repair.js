@@ -241,10 +241,10 @@ export const useBackendRepairStore = defineStore('backend-repair', () => {
         }
     }
 
-    // 獲取處理狀態 /backend/repair/{id}/record/repair-category
+    // 獲取處理狀態 /backend/repair/{id}/record/repair-status
     const fetchStatuses = async (id) => {
         try {
-            const response = await axiosClient.get(`/backend/repair/${id}/record/repair-category`)
+            const response = await axiosClient.get(`/backend/repair/${id}/record/repair-status`)
             console.log(response.data);
             statuses.value = response.data;
         } catch (error) {

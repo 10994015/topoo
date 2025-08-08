@@ -66,7 +66,7 @@ export const useCategoryStore = defineStore('category', () => {
             params.pageSize = limit
             params.page = page
             
-            console.log(params.sortBy);
+            console.log(params);
             
             console.log('獲取類別列表參數:', params)
             

@@ -41,7 +41,7 @@ const hasFiles = computed(() => {
          existingFiles.value.length > 0
 })
 
-// 檢查是否有檔案正在上傳 (新增)
+// 檢查是否有檔案正在上傳
 const hasUploadingFiles = computed(() => {
   return selectedFiles.value.some(file => file.uploading)
 })
@@ -51,7 +51,7 @@ const isFormValid = computed(() => {
   return formData.repairStatusId && formData.content.trim().length > 0
 })
 
-// 計算屬性：是否可以提交表單 (新增)
+// 計算屬性：是否可以提交表單
 const canSubmit = computed(() => {
   return !isSaving.value && !hasUploadingFiles.value && isFormValid.value
 })
@@ -60,14 +60,12 @@ const canSubmit = computed(() => {
 const fetchCaseDetail = async () => {
   try {
     isLoading.value = true
-    // 模擬 API 調用 - 實際使用時替換為真實 API
     await backendRepairStore.fetchRepairDetail(caseId.value)
     
     caseDetail.value = backendRepairStore.repairDetail
     formData.repairId = caseDetail.value.id
 
     console.log(caseDetail.value);
-    
     
     // 設置已存在的檔案
     if (caseDetail.value.files && caseDetail.value.files.length > 0) {
@@ -80,7 +78,6 @@ const fetchCaseDetail = async () => {
     }
 
     console.log(existingFiles.value);
-    
     
   } catch (error) {
     console.error('獲取案件詳細資料失敗:', error)
@@ -167,7 +164,7 @@ const addFiles = async (files) => {
   }
 }
 
-// 上傳檔案到伺服器 (使用圖三的API) - 修改版本
+// 上傳檔案到伺服器
 const uploadFile = async (fileObj) => {
   try {
     fileObj.uploading = true
@@ -175,10 +172,8 @@ const uploadFile = async (fileObj) => {
     const fileFormData = new FormData()
     fileFormData.append('file', fileObj.file)
 
-    console.log('開始上傳檔案:', fileObj.name)
     const result = await backendRepairStore.saveTodoFiles(fileFormData)
-    console.log('上傳結果:', result)
-    
+ 
     if (result.data && result.data.length > 0) {
       const uploadedFile = result.data[0]
       
@@ -202,31 +197,17 @@ const uploadFile = async (fileObj) => {
       if (index > -1) {
         selectedFiles.value.splice(index, 1)
       }
-      
-      console.log('檔案上傳成功:', uploadedFile)
     }
   } catch (error) {
     console.error('檔案上傳失敗:', error)
-    
-    // 上傳失敗，從選擇列表中移除該檔案
-    const index = selectedFiles.value.findIndex(f => f.id === fileObj.id)
-    if (index > -1) {
-      selectedFiles.value.splice(index, 1)
-    }
-    
-    // 顯示錯誤訊息
-    alert(`檔案 "${fileObj.name}" 上傳失敗：${error.message || '未知錯誤'}`)
+    alert(`檔案 "${fileObj.name}" 上傳失敗`)
+    fileObj.uploading = false
   }
 }
 
 const removeFile = async (fileObj) => {
   try {
     if (fileObj.id && fileObj.isNew) {
-      // 模擬刪除 API 調用
-      // await fetch(`/api/backend/repair/record/file/${fileObj.id}`, {
-      //   method: 'DELETE'
-      // })
-      
       // 從新上傳列表中移除
       const index = uploadedFiles.value.findIndex(f => f.id === fileObj.id)
       if (index > -1) {
@@ -308,7 +289,6 @@ const saveRecord = async () => {
 
     const result = await backendRepairStore.createRepairWork(submitData)
     
-    
     if(result.success) {
       console.log('處理記錄儲存成功:', result.data)
       alert('處理記錄儲存成功！')
@@ -333,21 +313,22 @@ const cancel = () => {
 const downloadFile = async (file) => {
   console.log(file);
   
-    try {
-      if(!file.file_id){
-        file.file_id = file.id // 確保有 file_id
-      }
-        const response = await backendRepairStore.downloadFile(file.file_id);
-
-        if(response?.status === 400){
-            alert('下載失敗，請稍後重試。')
-            return
-        }
-        
-    } catch (error) {
-        alert('下載過程中發生錯誤:', error);
+  try {
+    if(!file.file_id){
+      file.file_id = file.id // 確保有 file_id
     }
+    const response = await backendRepairStore.downloadFile(file.file_id);
+
+    if(response?.status === 400){
+      alert('下載失敗，請稍後重試。')
+      return
+    }
+    
+  } catch (error) {
+    alert('下載過程中發生錯誤:', error);
+  }
 }
+
 // 檔案預覽相關變數
 const showFilePreview = ref(false)
 const selectedFile = ref(null)
@@ -407,12 +388,12 @@ const onPreviewLoadError = (error) => {
   console.error('預覽載入失敗:', error)
   alert('預覽失敗，請稍後重試')
 }
+
 onMounted(async () => {
   await fetchCaseDetail()
   await backendRepairStore.fetchStatuses(caseId.value);
   statusOptions.value = backendRepairStore.statuses.data
   console.log(statusOptions.value);
-  
 })
 </script>
 
@@ -440,237 +421,293 @@ onMounted(async () => {
           </div>
         </div>
 
-        <!-- 案件基本資訊 -->
-        <div class="case-info-section">
-          <h3 class="section-title">案件基本資訊</h3>
-          <div class="info-grid">
-            <div class="info-item">
-              <label class="info-label">案件標題</label>
-              <div class="info-value">{{ caseDetail.title }}</div>
-            </div>
-            <div class="info-item">
-              <label class="info-label">報修人員</label>
-              <div class="info-value">{{ caseDetail.repair_name || '無資料' }}</div>
-            </div>
-            <div class="info-item">
-              <label class="info-label">故障類別</label>
-              <div class="info-value">{{ caseDetail.repair_category }}</div>
-            </div>
-            <div class="info-item">
-              <label class="info-label">故障原因</label>
-              <div class="info-value">{{ caseDetail.repair_reason }}</div>
-            </div>
-            <div class="info-item">
-              <label class="info-label">重要程度</label>
-              <div class="info-value">
-                <span class="priority-badge" :class="getPriorityClass(caseDetail.importance_level)">
-                  {{ getPriorityLabel(caseDetail.importance_level) }}
-                </span>
+        <!-- 案件詳細資訊 -->
+        <div class="detail-content">
+          <!-- 案件基本資訊 -->
+          <div class="case-info-section">
+            <h3 class="section-title">案件基本資訊</h3>
+            <div class="info-grid">
+              <!-- 左欄 -->
+              <div class="info-column">
+                <div class="info-group">
+                  <label class="info-label">案件標題</label>
+                  <div class="info-value">{{ caseDetail.title }}</div>
+                </div>
+
+                <div class="info-group">
+                  <label class="info-label">故障類別</label>
+                  <div class="info-value">{{ caseDetail.repair_category }}</div>
+                </div>
+
+                <div class="info-group">
+                  <label class="info-label">故障原因</label>
+                  <div class="info-value">{{ caseDetail.repair_reason }}</div>
+                </div>
+
+                <div class="info-group" v-if="caseDetail.repair_category === '硬體' || caseDetail.repair_category === '軟體'">
+                  <label class="info-label">{{ caseDetail.repair_category === '軟體' ? '功能項目' : '設備項目' }}</label>
+                  <div class="info-value">{{ caseDetail.repair_item || '無' }}</div>
+                </div>
+              </div>
+
+              <!-- 右欄 -->
+              <div class="info-column">
+                <div class="info-group">
+                  <label class="info-label">報修人員</label>
+                  <div class="info-value">{{ caseDetail.repair_name || '無資料' }}</div>
+                </div>
+
+                <div class="info-group">
+                  <label class="info-label">報修時間</label>
+                  <div class="info-value">{{ caseDetail.repair_time }}</div>
+                </div>
+
+                <div class="info-group">
+                  <label class="info-label">填單時間</label>
+                  <div class="info-value">{{ caseDetail.created_at }}</div>
+                </div>
+
+                <div class="info-group" v-if="caseDetail.repair_category === '硬體' || caseDetail.repair_category === '軟體'">
+                  <label class="info-label">設備位置</label>
+                  <div class="info-value">{{ caseDetail.device_location || '無' }}</div>
+                </div>
               </div>
             </div>
-            <div class="info-item">
-              <label class="info-label">緊急程度</label>
-              <div class="info-value">
-                <span class="priority-badge" :class="getPriorityClass(caseDetail.emergency_level)">
-                  {{ getPriorityLabel(caseDetail.emergency_level) }}
-                </span>
+            
+            <!-- 問題描述 -->
+            <div class="description-section">
+              <label class="info-label">問題描述</label>
+              <div class="description-content">
+                {{ caseDetail.depiction }}
               </div>
             </div>
           </div>
-          
-          <!-- 問題描述 -->
-          <div class="description-section">
-            <label class="info-label">問題描述</label>
-            <div class="description-content">
-              {{ caseDetail.depiction }}
+
+          <!-- 承辦資訊區塊 -->
+          <div class="handler-section">
+            <h3 class="section-title">承辦資訊</h3>
+            
+            <div class="handler-content">
+              <!-- 重要程度 -->
+              <div class="priority-item">
+                <div class="priority-icon">📌</div>
+                <div class="priority-info">
+                  <span class="priority-label">重要程度</span>
+                  <span :class="[caseDetail.importance_level ? 'priority-badge' : '', getPriorityClass(caseDetail.importance_level)]">
+                    {{ getPriorityLabel(caseDetail.importance_level) }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- 緊急程度 -->
+              <div class="priority-item">
+                <div class="priority-icon">⚠️</div>
+                <div class="priority-info">
+                  <span class="priority-label">緊急程度</span>
+                  <span :class="[caseDetail.emergency_level ? 'priority-badge' : '', getPriorityClass(caseDetail.emergency_level)]">
+                    {{ getPriorityLabel(caseDetail.emergency_level) }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- 預計完成時間 -->
+              <div class="completion-time">
+                <span class="completion-label">預計完成時間</span>
+                <span class="completion-value">{{ caseDetail.estimated_completion_time || '-' }}</span>
+              </div>
+
+              <!-- 承辦人員 -->
+              <div class="completion-time">
+                <span class="completion-label">承辦人員</span>
+                <span class="completion-value">{{ caseDetail.repair_status == '尚未承辦' ? '-' : (caseDetail.assign_user_name || '-') }}</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        <!-- 處理資訊表單 -->
-        <div class="handle-form-section">
-          <h3 class="section-title">處理資訊</h3>
-          
-          <!-- 處理狀態選擇 -->
-          <div class="form-group">
-            <label class="form-label required">處理狀態</label>
-            <select v-model="formData.repairStatusId" class="form-select" @change="onStatusChange">
-              <option value="">選擇案件處理狀態</option>
-              <option 
-                v-for="status in statusOptions" 
-                :key="status.id" 
-                :value="status.id"
-              >
-                {{ status.name }}
-              </option>
-            </select>
-          </div>
+          <!-- 處理資訊表單 -->
+          <div class="handle-form-section">
+            <h3 class="section-title">處理資訊</h3>
+            
+            <!-- 處理狀態選擇 -->
+            <div class="form-group">
+              <label class="form-label required">處理狀態</label>
+              <select v-model="formData.repairStatusId" class="form-select" @change="onStatusChange">
+                <option value="">選擇案件處理狀態</option>
+                <option 
+                  v-for="status in statusOptions" 
+                  :key="status.id" 
+                  :value="status.id"
+                >
+                  {{ status.name }}
+                </option>
+              </select>
+            </div>
 
-          <!-- 處理描述 -->
-          <div class="form-group">
-            <label class="form-label required">問題描述</label>
-            <textarea 
-              v-model="formData.content"
-              class="form-textarea"
-              rows="6"
-              placeholder="請描述處理過程、解決方案或目前進度..."
-              :maxlength="500"
-            ></textarea>
-            <div class="char-count">
-              {{ formData.content.length }}/500
+            <!-- 處理描述 -->
+            <div class="form-group">
+              <label class="form-label required">處理描述</label>
+              <textarea 
+                v-model="formData.content"
+                class="form-textarea"
+                rows="6"
+                placeholder="請描述處理過程、解決方案或目前進度..."
+                :maxlength="500"
+              ></textarea>
+              <div class="char-count">
+                {{ formData.content.length }}/500
+              </div>
             </div>
           </div>
-        </div>
 
-        <!-- 檔案上傳區域 -->
-        <div class="file-upload-section">
-          <h3 class="section-title">相關檔案</h3>
-          
-          <!-- 檔案上傳區 -->
-          <div 
-            class="upload-area" 
-            :class="{ 'dragging': isDragging }"
-            @drop="handleDrop"
-            @dragover="handleDragOver"
-            @dragleave="handleDragLeave"
-            @click="triggerFileInput"
-          >
-            <div class="upload-icon">📤</div>
-            <div class="upload-text">
-              將檔案拖拉至此或點選上傳檔案<br>
-              上傳檔案會立即儲存至伺服器，檔案大小限制100MB
-            </div>
-            <button type="button" class="upload-btn">點選上傳檔案</button>
-            <input 
-              ref="fileInput"
-              type="file" 
-              multiple 
-              @change="handleFileSelect"
-              style="display: none"
+          <!-- 檔案上傳區域 -->
+          <div class="file-upload-section">
+            <h3 class="section-title">相關檔案</h3>
+            
+            <!-- 檔案上傳區 -->
+            <div 
+              class="upload-area" 
+              :class="{ 'dragging': isDragging }"
+              @drop="handleDrop"
+              @dragover="handleDragOver"
+              @dragleave="handleDragLeave"
+              @click="triggerFileInput"
             >
-          </div>
-
-          <!-- 檔案列表 -->
-          <div v-if="hasFiles" class="file-list">
-            <!-- 原有檔案 -->
-            <div v-if="existingFiles.length > 0" class="file-section">
-              <h4 class="file-section-title">原有檔案</h4>
-              <div 
-                v-for="file in existingFiles" 
-                :key="file.id"
-                class="file-item existing"
+              <div class="upload-icon">📤</div>
+              <div class="upload-text">
+                將檔案拖拉至此或點選上傳檔案<br>
+                上傳檔案會立即儲存至伺服器，檔案大小限制100MB
+              </div>
+              <button type="button" class="upload-btn">點選上傳檔案</button>
+              <input 
+                ref="fileInput"
+                type="file" 
+                multiple 
+                @change="handleFileSelect"
+                style="display: none"
               >
-                <div class="file-info">
-                  <span class="file-icon">{{ getFileIcon(file.name) }}</span>
-                  <div class="file-details">
-                    <span class="file-name">{{ file.name }}</span>
-                    <span class="file-size">{{ formatFileSize(file.size) }}</span>
+            </div>
+
+            <!-- 檔案列表 -->
+            <div v-if="hasFiles" class="file-list">
+              <!-- 原有檔案 -->
+              <div v-if="existingFiles.length > 0" class="file-section">
+                <h4 class="file-section-title">原有檔案</h4>
+                <div 
+                  v-for="file in existingFiles" 
+                  :key="file.id"
+                  class="file-item existing"
+                >
+                  <div class="file-info">
+                    <span class="file-icon">{{ getFileIcon(file.name) }}</span>
+                    <div class="file-details">
+                      <span class="file-name">{{ file.name }}</span>
+                      <span class="file-size">{{ formatFileSize(file.size) }}</span>
+                    </div>
+                  </div>
+                  <div class="file-actions">
+                    <button 
+                      type="button"
+                      @click="downloadFile(file)"
+                      class="action-btn download-btn"
+                      title="下載"
+                    >
+                      ⬇
+                    </button>
+                    <button 
+                      type="button"
+                      @click="openFilePreview(file)"
+                      class="action-btn preview-btn"
+                      title="預覽"
+                    >
+                      👁
+                    </button>
                   </div>
                 </div>
-                <div class="file-actions">
+              </div>
+
+              <!-- 新上傳的檔案 -->
+              <div v-if="uploadedFiles.length > 0" class="file-section">
+                <h4 class="file-section-title">新上傳檔案</h4>
+                <div 
+                  v-for="file in uploadedFiles" 
+                  :key="file.id"
+                  class="file-item uploaded"
+                >
+                  <div class="file-info">
+                    <span class="file-icon">{{ getFileIcon(file.name) }}</span>
+                    <div class="file-details">
+                      <span class="file-name">{{ file.name }}</span>
+                      <span class="file-size">{{ formatFileSize(file.size) }}</span>
+                    </div>
+                  </div>
+                  <div class="file-status">
+                    <span class="uploaded-text">已上傳</span>
+                  </div>
                   <button 
                     type="button"
-                    @click="downloadFile(file)"
-                    class="action-btn download-btn"
-                    title="下載"
+                    @click.stop="removeFile(file)"
+                    class="remove-btn"
                   >
-                    ⬇
+                    ✕
                   </button>
+                </div>
+              </div>
+
+              <!-- 上傳中的檔案 -->
+              <div v-if="selectedFiles.length > 0" class="file-section">
+                <h4 class="file-section-title">上傳中</h4>
+                <div 
+                  v-for="file in selectedFiles" 
+                  :key="file.id"
+                  class="file-item uploading"
+                >
+                  <div class="file-info">
+                    <span class="file-icon">{{ getFileIcon(file.name) }}</span>
+                    <div class="file-details">
+                      <span class="file-name">{{ file.name }}</span>
+                      <span class="file-size">{{ formatFileSize(file.size) }}</span>
+                    </div>
+                  </div>
+                  <div class="file-status">
+                    <span v-if="file.uploading" class="uploading-text">上傳中...</span>
+                    <span v-else-if="file.uploaded" class="uploaded-text">已上傳</span>
+                  </div>
                   <button 
                     type="button"
-                    @click="openFilePreview(file)"
-                    class="action-btn preview-btn"
-                    title="預覽"
+                    @click.stop="removeSelectedFile(file)"
+                    class="remove-btn"
+                    :disabled="file.uploading"
                   >
-                    👁
+                    ✕
                   </button>
                 </div>
-              </div>
-            </div>
-
-            <!-- 新上傳的檔案 -->
-            <div v-if="uploadedFiles.length > 0" class="file-section">
-              <h4 class="file-section-title">新上傳檔案</h4>
-              <div 
-                v-for="file in uploadedFiles" 
-                :key="file.id"
-                class="file-item uploaded"
-              >
-                <div class="file-info">
-                  <span class="file-icon">{{ getFileIcon(file.name) }}</span>
-                  <div class="file-details">
-                    <span class="file-name">{{ file.name }}</span>
-                    <span class="file-size">{{ formatFileSize(file.size) }}</span>
-                  </div>
-                </div>
-                <div class="file-status">
-                  <span class="uploaded-text">已上傳</span>
-                </div>
-                <button 
-                  type="button"
-                  @click.stop="removeFile(file)"
-                  class="remove-btn"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-
-            <!-- 上傳中的檔案 -->
-            <div v-if="selectedFiles.length > 0" class="file-section">
-              <h4 class="file-section-title">上傳中</h4>
-              <div 
-                v-for="file in selectedFiles" 
-                :key="file.id"
-                class="file-item uploading"
-              >
-                <div class="file-info">
-                  <span class="file-icon">{{ getFileIcon(file.name) }}</span>
-                  <div class="file-details">
-                    <span class="file-name">{{ file.name }}</span>
-                    <span class="file-size">{{ formatFileSize(file.size) }}</span>
-                  </div>
-                </div>
-                <div class="file-status">
-                  <span v-if="file.uploading" class="uploading-text">上傳中...</span>
-                  <span v-else-if="file.uploaded" class="uploaded-text">已上傳</span>
-                  <span v-else class="failed-text">上傳失敗</span>
-                </div>
-                <button 
-                  type="button"
-                  @click.stop="removeSelectedFile(file)"
-                  class="remove-btn"
-                  :disabled="file.uploading"
-                >
-                  ✕
-                </button>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- 操作按鈕 -->
-        <div class="action-buttons">
-          <button 
-            type="button"
-            @click="saveRecord" 
-            class="save-btn"
-            :disabled="!canSubmit"
-          >
-            <span v-if="isSaving">儲存中...</span>
-            <span v-else-if="hasUploadingFiles">檔案上傳中...</span>
-            <span v-else-if="!isFormValid">儲存</span>
-            <span v-else>儲存</span>
-          </button>
-          
-          <button 
-            type="button"
-            @click="cancel" 
-            class="cancel-btn"
-            :disabled="isSaving"
-          >
-            取消
-          </button>
+          <!-- 操作按鈕 -->
+          <div class="action-buttons">
+            <button 
+              type="button"
+              @click="saveRecord" 
+              class="save-btn"
+              :disabled="!canSubmit"
+            >
+              <span v-if="isSaving">儲存中...</span>
+              <span v-else-if="hasUploadingFiles">檔案上傳中...</span>
+              <span v-else-if="!isFormValid">儲存</span>
+              <span v-else>儲存</span>
+            </button>
+            
+            <button 
+              type="button"
+              @click="cancel" 
+              class="cancel-btn"
+              :disabled="isSaving"
+            >
+              取消
+            </button>
+          </div>
         </div>
       </div>
 
@@ -680,16 +717,17 @@ onMounted(async () => {
         <button @click="cancel" class="back-btn">返回</button>
       </div>
     </div>
+    
     <FilePreviewModal
-        :visible="showFilePreview"
-        :file="selectedFile"
-        :fetch-file-content="fetchFileContent"
-        :download-file="downloadFile"
-        @close="closeFilePreview"
-        @download="onFileDownloaded"
-        @load-success="onPreviewLoadSuccess"
-        @load-error="onPreviewLoadError"
-      />
+      :visible="showFilePreview"
+      :file="selectedFile"
+      :fetch-file-content="fetchFileContent"
+      :download-file="downloadFile"
+      @close="closeFilePreview"
+      @download="onFileDownloaded"
+      @load-success="onPreviewLoadSuccess"
+      @load-error="onPreviewLoadError"
+    />
   </div>
 </template>
 
@@ -734,9 +772,9 @@ onMounted(async () => {
   100% { transform: rotate(360deg); }
 }
 
-// 標題區域
+// 標題區域 - 改為藍紫色風格
 .handle-header {
-  background: #28a745;
+  background: #6c5ce7;
   color: white;
   padding: 25px 30px;
   display: flex;
@@ -776,7 +814,7 @@ onMounted(async () => {
 }
 
 // 內容區域
-.handle-content {
+.detail-content {
   padding: 30px;
 }
 
@@ -786,27 +824,35 @@ onMounted(async () => {
   color: #333;
   margin-bottom: 20px;
   padding-bottom: 8px;
-  border-bottom: 2px solid #28a745;
+  border-bottom: 2px solid #6c5ce7;
 }
 
-// 案件資訊區域
+// 案件資訊區域 - 採用與檢視頁面相同的網格布局
 .case-info-section {
   margin-bottom: 40px;
 
   .info-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 20px;
-    margin-bottom: 20px;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    margin-bottom: 30px;
   }
 
-  .info-item {
+  .info-column {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .info-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
     .info-label {
       font-size: 14px;
       font-weight: 500;
       color: #555;
-      margin-bottom: 8px;
-      display: block;
     }
 
     .info-value {
@@ -842,26 +888,136 @@ onMounted(async () => {
   }
 }
 
-// 優先級標籤
-.priority-badge {
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
-  
-  &.priority-normal {
-    background: #d4edda;
-    color: #155724;
+// 承辦資訊區塊樣式
+.handler-section {
+  margin-bottom: 40px;
+  background: #fafbfc;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+
+  .section-title {
+    border-bottom: 2px solid #6c5ce7;
+    margin-bottom: 20px;
   }
-  
-  &.priority-medium {
-    background: #fff3cd;
-    color: #856404;
+
+  .handler-content {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
   }
-  
-  &.priority-urgent {
-    background: #f8d7da;
-    color: #721c24;
+
+  .priority-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid #f8f9fa;
+
+    &:last-of-type {
+      border-bottom: none;
+    }
+
+    .priority-icon {
+      font-size: 20px;
+      width: 24px;
+      text-align: center;
+    }
+
+    .priority-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex: 1;
+    }
+
+    .priority-label {
+      font-size: 14px;
+      color: #666;
+      font-weight: 500;
+    }
+
+    .priority-badge {
+      padding: 6px 14px;
+      border-radius: 14px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.3s ease;
+    }
+
+    .priority-normal {
+      background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+      color: #155724;
+      border: 1px solid #c3e6cb;
+      box-shadow: 0 2px 4px rgba(21, 87, 36, 0.1);
+
+      &:hover {
+        background: linear-gradient(135deg, #c3e6cb 0%, #b8dcc8 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(21, 87, 36, 0.15);
+      }
+    }
+
+    .priority-medium {
+      background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+      color: #856404;
+      border: 1px solid #ffeaa7;
+      box-shadow: 0 2px 4px rgba(133, 100, 4, 0.1);
+
+      &:hover {
+        background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(133, 100, 4, 0.15);
+      }
+    }
+
+    .priority-urgent {
+      background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+      box-shadow: 0 2px 4px rgba(114, 28, 36, 0.1);
+      animation: pulse 2s infinite;
+
+      &:hover {
+        background: linear-gradient(135deg, #f5c6cb 0%, #f1b0b7 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(114, 28, 36, 0.15);
+      }
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 2px 4px rgba(114, 28, 36, 0.1); }
+      50% { box-shadow: 0 4px 12px rgba(114, 28, 36, 0.2); }
+      100% { box-shadow: 0 2px 4px rgba(114, 28, 36, 0.1); }
+    }
+  }
+
+  .completion-time {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 0;
+    margin: 15px 0;
+    border-top: 1px solid #f8f9fa;
+
+    .completion-label {
+      font-size: 14px;
+      color: #666;
+      font-weight: 500;
+    }
+
+    .completion-value {
+      font-size: 14px;
+      color: #333;
+      font-weight: 500;
+      font-family: 'Courier New', monospace;
+    }
   }
 }
 
@@ -919,7 +1075,7 @@ onMounted(async () => {
 
       &:focus {
         outline: none;
-        border-color: #28a745;
+        border-color: #6c5ce7;
       }
     }
 
@@ -959,8 +1115,8 @@ onMounted(async () => {
 
     &:hover,
     &.dragging {
-      border-color: #28a745;
-      background: #f0fff4;
+      border-color: #6c5ce7;
+      background: #f0f4ff;
     }
 
     .upload-icon {
@@ -977,7 +1133,7 @@ onMounted(async () => {
     }
 
     .upload-btn {
-      background: #28a745;
+      background: #6c5ce7;
       color: white;
       border: none;
       padding: 12px 24px;
@@ -988,7 +1144,7 @@ onMounted(async () => {
       transition: background 0.3s;
 
       &:hover {
-        background: #218838;
+        background: #5b4bcf;
       }
     }
   }
@@ -1012,7 +1168,7 @@ onMounted(async () => {
     margin-bottom: 15px;
     padding: 8px 12px;
     background: #f8f9fa;
-    border-left: 4px solid #28a745;
+    border-left: 4px solid #6c5ce7;
     border-radius: 4px;
   }
 
@@ -1037,8 +1193,8 @@ onMounted(async () => {
     }
 
     &.uploaded {
-      border-color: #28a745;
-      background: #f0fff4;
+      border-color: #6c5ce7;
+      background: #f0f4ff;
     }
 
     &.existing {
@@ -1084,12 +1240,7 @@ onMounted(async () => {
 
       .uploaded-text {
         font-size: 12px;
-        color: #155724;
-      }
-
-      .failed-text {
-        font-size: 12px;
-        color: #e74c3c;
+        color: #5b4bcf;
       }
     }
 
@@ -1112,21 +1263,21 @@ onMounted(async () => {
       justify-content: center;
 
       &.download-btn {
-        background: #007bff;
+        background: #6c5ce7;
         color: white;
 
         &:hover {
-          background: #0056b3;
+          background: #5b4bcf;
           transform: scale(1.05);
         }
       }
 
       &.preview-btn {
-        background: #28a745;
+        background: #00b894;
         color: white;
 
         &:hover {
-          background: #1e7e34;
+          background: #00a085;
           transform: scale(1.05);
         }
       }
@@ -1164,7 +1315,7 @@ onMounted(async () => {
   border-top: 1px solid #f0f0f0;
 
   .save-btn {
-    background: #28a745;
+    background: #6c5ce7;
     color: white;
     border: none;
     padding: 12px 30px;
@@ -1175,7 +1326,7 @@ onMounted(async () => {
     transition: all 0.3s;
 
     &:hover:not(:disabled) {
-      background: #218838;
+      background: #5b4bcf;
       transform: translateY(-1px);
     }
 
@@ -1199,8 +1350,8 @@ onMounted(async () => {
 
     &:hover:not(:disabled) {
       background: #f8f9fa;
-      border-color: #28a745;
-      color: #28a745;
+      border-color: #6c5ce7;
+      color: #6c5ce7;
     }
 
     &:disabled {
@@ -1225,7 +1376,7 @@ onMounted(async () => {
   }
 
   .back-btn {
-    background: #28a745;
+    background: #6c5ce7;
     color: white;
     border: none;
     padding: 12px 20px;
@@ -1236,7 +1387,7 @@ onMounted(async () => {
     transition: all 0.3s;
 
     &:hover {
-      background: #218838;
+      background: #5b4bcf;
     }
   }
 }
@@ -1254,12 +1405,13 @@ onMounted(async () => {
     gap: 15px;
   }
 
-  .handle-content {
+  .detail-content {
     padding: 20px;
   }
 
   .info-grid {
     grid-template-columns: 1fr;
+    gap: 25px;
   }
 
   .action-buttons {
@@ -1284,6 +1436,30 @@ onMounted(async () => {
 
     .file-info .file-icon {
       font-size: 20px;
+    }
+  }
+
+  .handler-section {
+    padding: 15px;
+
+    .handler-content {
+      padding: 15px;
+    }
+
+    .priority-info {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .completion-time {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .priority-item {
+      padding: 15px 0;
     }
   }
 }
@@ -1330,6 +1506,29 @@ onMounted(async () => {
   .form-textarea {
     font-size: 13px;
     padding: 10px 12px;
+  }
+
+  .handler-section {
+    padding: 15px;
+
+    .section-title {
+      font-size: 14px;
+    }
+
+    .priority-icon {
+      font-size: 18px;
+    }
+
+    .priority-label,
+    .completion-label,
+    .completion-value {
+      font-size: 13px;
+    }
+
+    .priority-badge {
+      font-size: 11px;
+      padding: 3px 8px;
+    }
   }
 }
 </style>

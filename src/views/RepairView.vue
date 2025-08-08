@@ -705,7 +705,7 @@ onMounted(async () => {
   background: white;
   border-radius: 12px;
   width: 90%;
-  max-width: 600px;
+  max-width: 1000px;
   max-height: 80vh;
   overflow: hidden;
   animation: slideUp 0.3s ease-out;

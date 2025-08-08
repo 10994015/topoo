@@ -546,18 +546,20 @@ onMounted(async () => {
         </div>
 
         <!-- 設備項目 -->
-        <div class="form-group" v-if="isHardwareOrSoftware.value">
-          <label class="form-label">{{ isHardwareOrSoftware.type==='軟體' ? '功能項目' : '設備項目' }}</label>
-          <input
-            type="text"
-            v-model="repairForm.repairItem"
-            placeholder="請輸入設備或項目名稱"
-            class="form-input"
-          />
+        <div class="form-row-2" >
+          <div class="form-group" v-if="isHardwareOrSoftware.value">
+            <label class="form-label">{{ isHardwareOrSoftware.type==='軟體' ? '功能項目' : '設備項目' }}</label>
+            <input
+              type="text"
+              v-model="repairForm.repairItem"
+              placeholder="請輸入設備或項目名稱"
+              class="form-input"
+            />
+          </div>
         </div>
 
         <!-- 問題描述 -->
-        <div class="form-group">
+        <div class="form-group" >
           <label class="form-label">
             問題描述
             <span class="char-count">{{ repairForm.depiction.length }}/500</span>
@@ -715,11 +717,11 @@ onMounted(async () => {
   padding: 30px;
   .form-container{
     display: grid;
-    grid-template-columns: 50% 50%;
-    justify-content: center;
-    gap: 20px;
+    grid-template-columns: 48% 48%;
+    justify-content: space-between;
     width: 100%;
   }
+  
   .form-row {
     width: 100%;
     flex: 1;
@@ -729,11 +731,16 @@ onMounted(async () => {
     gap: 25px;
     margin-bottom: 25px;
     
-
+   
     &:last-child {
       margin-bottom: 0;
     }
   }
+   .form-row-2{
+      width: 48%;
+      flex: 1;
+      padding-bottom: 25px;
+    }
 
   .form-group {
     display: flex;

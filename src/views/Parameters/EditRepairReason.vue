@@ -135,7 +135,7 @@ const validateForm = () => {
 // 載入類別列表
 const loadCategories = async () => {
   try {
-    await categoryStore.fetchCategories({ name: '' }, 'name', 'asc', 100, 1)
+    await categoryStore.fetchCategories({ name: '' }, 'sequence', 'asc', 100, 1)
     console.log(categoryStore.categories);
     
     categories.value = categoryStore.categories?.data.data || []
@@ -540,7 +540,7 @@ onMounted(async () => {
 
         <!-- 編輯模式的原因資料顯示 -->
         <div v-else class="info-card">
-          <h3 class="info-title">維修故障</h3>
+          <h3 class="info-title">編輯故障原因</h3>
           
           <div v-if="isLoadingDetail" class="loading-state">
             <div class="loading-spinner">⟳</div>
@@ -549,12 +549,13 @@ onMounted(async () => {
           
           <div v-else class="info-content">
             <div class="form-group">
-              <label for="editParentCategory" class="form-label">維修故障</label>
+              <label for="editParentCategory" class="form-label">故障類別</label>
               <select
                 id="editParentCategory"
                 v-model="formData.parentId"
                 :class="['form-select', { 'error': errors.parentId }]"
-                :disabled="isSaving"
+                :disabled="isSaving || isEditMode"
+                :style="isEditMode ? 'color:#000' : ''"
               >
                 <option value="">請選擇故障類別</option>
                 <option 

@@ -9,6 +9,7 @@ export const useTodoStore = defineStore('todo', () => {
     const todoDetail = ref(null) // 單一待辦詳細資料
     const users = ref(null) // 承辦人員列表
     const todoProgress = ref(null) // 待辦案件進度記錄
+    const statuses = ref(null) // 狀態列表
     // 獲取待辦報修案件列表
     const fetchTodos = async (searchForm = {
         q: '',
@@ -63,6 +64,16 @@ export const useTodoStore = defineStore('todo', () => {
         } catch (error) {
             console.error('獲取待辦列表失敗:', error);
             throw error;
+        }
+    }
+    const fetchStatuses = async () => {
+        try {
+            const response = await axiosClient.get('/backend/todo/repair-status')
+            console.log(response.data);
+            
+            statuses.value = response.data;
+        } catch (error) {
+            console.error('獲取類別失敗:', error);
         }
     }
     // 獲取單一報修詳細資料GET
@@ -366,6 +377,7 @@ export const useTodoStore = defineStore('todo', () => {
         isInitialized,
         todoDetail,
         todoProgress,
+        statuses,
         fetchTodos,
         fetchTodoDetail,
         assignWork,
@@ -378,5 +390,6 @@ export const useTodoStore = defineStore('todo', () => {
         downloadFile,
         viewFile,
         fetchTodo,
+        fetchStatuses,
     }
 })

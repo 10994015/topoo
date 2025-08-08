@@ -28,7 +28,7 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 const sortConfig = ref({
   field: 'sequence',
-  order: 'DESC'
+  order: 'asc'
 })
 
 // 類別列表資料
@@ -247,8 +247,10 @@ const handleSubmit = async () => {
       // 重新載入列表
       await loadCategoryList()
       
-      // 清除輸入框
-      handleReset()
+      if(!isEditMode.value){
+        // 清除輸入框
+        handleReset()
+      }
      
     } else {
       console.error('操作失敗:', result.message)

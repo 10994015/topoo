@@ -359,8 +359,37 @@ onUnmounted(() => {
   padding: 20px;
   background: #f8f9fa;
   position: relative;
-}
+  overflow-y: scroll;
+  &::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
 
+    &::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.05);
+      border-radius: 8px;
+      margin: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: linear-gradient(45deg, #6c5ce7, #a29bfe);
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background-clip: content-box;
+    }
+}
+// 額外的滾動條動畫效果
+@keyframes scrollbarGlow {
+  0% { 
+    box-shadow: 0 0 0 rgba(108, 92, 231, 0);
+  }
+  50% { 
+    box-shadow: 0 0 10px rgba(108, 92, 231, 0.3);
+  }
+  100% { 
+    box-shadow: 0 0 0 rgba(108, 92, 231, 0);
+  }
+}
 // 載入狀態
 .preview-loading {
   display: flex;
@@ -379,15 +408,23 @@ onUnmounted(() => {
 .image-preview {
   width: 100%;
   height: 100%;
+  overflow: auto; // 添加滾動條
   display: flex;
   justify-content: center;
+  align-items: flex-start; // 改為頂部對齊
+  padding: 20px; // 添加內邊距
+  box-sizing: border-box;
 
   img {
-    max-width: 90%;
-    max-height: 90%;
+    max-width: 100%;
+    height: auto; // 讓圖片保持原始比例
     width: auto;
-    height: auto;
     object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    
+    // 如果圖片很小，至少顯示一定尺寸
+    min-height: 200px;
   }
 }
 
@@ -521,5 +558,33 @@ onUnmounted(() => {
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+@media (max-width: 768px) {
+  .image-preview {
+    padding: 10px;
+    
+    // 手機版滾動條樣式
+    &::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.05);
+      border-radius: 8px;
+      margin: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: linear-gradient(45deg, #6c5ce7, #a29bfe);
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background-clip: content-box;
+    }
+    
+    img {
+      min-height: 150px;
+    }
+  }
 }
 </style>
