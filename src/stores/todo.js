@@ -97,7 +97,7 @@ export const useTodoStore = defineStore('todo', () => {
             
             const response = await axiosClient.get(`/backend/todo/${todoId}`);
             console.log('派工資料回應:', response.data);
-            todoDetail.value = response.data.data
+            // todoDetail.value = response.data.data
             return {
                 success: true,
                 data: response.data.data || response.data,

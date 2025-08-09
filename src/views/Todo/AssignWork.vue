@@ -141,21 +141,33 @@ const canSubmit = computed(() => {
 const fetchTodoDetail = async () => {
   try {
     isLoading.value = true
-    const response = await todoStore.fetchTodo(todoId.value)
+    await todoStore.fetchTodoDetail(todoId.value)
     console.log(todoStore.todoDetail);
     
     todoDetail.value = todoStore.todoDetail
-    isEdit.value = !!todoDetail.value.repair_id
+    isEdit.value = !!todoDetail.value.todo_id
+    console.log(isEdit.value);
+    
     // 初始化表單數據
     if (todoDetail.value) {
-      formData.repairId = todoDetail.value.repair_id
+      formData.repairId = todoDetail.value.id
       formData.assignUserId = todoDetail.value.assign_user_id || ''
       formData.importanceLevel = todoDetail.value.importance_level || ''
       formData.emergencyLevel = todoDetail.value.emergency_level || ''
       formData.estimatedCompletionTime = todoDetail.value.estimated_completion_time 
         ? new Date(todoDetail.value.estimated_completion_time).toISOString().slice(0, 16)
         : ''
-      
+
+      todoDetail.value.files = [];
+      if(isEdit.value){
+          formData.todoId = todoDetail.value.todo_id // 使用 todo_id 作為表單提交的 ID
+          // 加上已上傳的檔案 ID
+          const response = await todoStore.fetchTodo(todoDetail.value.todo_id)
+          console.log(response.data.files);
+          formData.fileIds = response.data.files.map(file => file.file_id)
+          existingFiles.value = response.data.files
+          console.log(existingFiles.value);
+      }
       // 設置已存在的檔案（原本就有的檔案）
       if (todoDetail.value.files && todoDetail.value.files.length > 0) {
         existingFiles.value = todoDetail.value.files.map(file => ({
@@ -177,6 +189,7 @@ const fetchTodoDetail = async () => {
       }
 
     }
+    
   } catch (error) {
     console.error('獲取報修詳細資料失敗:', error)
     alert('載入失敗，請稍後重試')
@@ -653,7 +666,6 @@ onMounted(async () => {
     await fetchTodoDetail()
     await fetchUsers();
     if (!formData.estimatedCompletionTime) {
-        console.log(123);
         
         const now = new Date();
         now.setDate(now.getDate() + 5);
@@ -802,16 +814,16 @@ onMounted(async () => {
             <div v-if="selectedFiles.length > 0 || uploadedFiles.length > 0 || existingFiles.length > 0" class="file-list">
               <!-- 原有檔案 -->
               <div v-if="existingFiles.length > 0" class="file-section">
-                <h4 class="file-section-title">原有檔案</h4>
+                <h4 class="file-section-title">派工檔案</h4>
                 <div 
                   v-for="file in existingFiles" 
                   :key="file.id"
                   class="file-item existing"
                 >
                   <div class="file-info">
-                    <span class="file-icon">{{ getFileIcon(file.name) }}</span>
+                    <span class="file-icon">{{ getFileIcon(file.file_name) }}</span>
                     <div class="file-details">
-                      <span class="file-name">{{ file.name }}</span>
+                      <span class="file-name">{{ file.original_name }}</span>
                       <span class="file-size">{{ formatFileSize(file.size) }}</span>
                     </div>
                   </div>
@@ -854,9 +866,9 @@ onMounted(async () => {
                   class="file-item uploaded"
                 >
                   <div class="file-info">
-                    <span class="file-icon">{{ getFileIcon(file.name) }}</span>
+                    <span class="file-icon">{{ getFileIcon(file.file_name) }}</span>
                     <div class="file-details">
-                      <span class="file-name">{{ file.name }}</span>
+                      <span class="file-name">{{ file.original_name }}</span>
                       <span class="file-size">{{ formatFileSize(file.size) }}</span>
                     </div>
                   </div>

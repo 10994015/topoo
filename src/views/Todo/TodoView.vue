@@ -115,7 +115,7 @@ const handAssign = () => {
     return
   }
   console.log(todoId.value);
-  const id = todoId.value || repairId.value
+  const id =  repairId.value
   // 實作承辦案件邏輯
   console.log('指派案件')
   router.push({
