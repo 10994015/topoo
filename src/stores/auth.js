@@ -51,7 +51,7 @@ export const useAuthStore = defineStore('auth', () => {
         isInitialized.value = false
         
         // 顯示提示訊息
-        alert(message)
+        // alert(message)
         
         // 跳轉到登入頁
         // 這裡需要動態導入 router 以避免循環依賴

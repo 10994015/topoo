@@ -114,11 +114,13 @@ const handAssign = () => {
     alert('您沒有權限指派案件')
     return
   }
+  console.log(todoId.value);
+  const id = todoId.value || repairId.value
   // 實作承辦案件邏輯
   console.log('指派案件')
   router.push({
     name: 'app.settings.assign-work',
-    params: { id: todoId.value }
+    params: { id: id }
   })
   // 可以呼叫 API 或顯示確認對話框
 }

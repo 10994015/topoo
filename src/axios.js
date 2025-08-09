@@ -69,7 +69,7 @@ axiosClient.interceptors.response.use(
       }).catch(err => {
         console.error('導入 auth store 失敗:', err)
         // 備用方案：直接跳轉
-        alert('登入憑證已過期，請重新登入')
+        // alert('登入憑證已過期，請重新登入')
         window.location.href = '/login'
       })
       
