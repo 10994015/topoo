@@ -277,7 +277,7 @@ export const useBackendRepairStore = defineStore('backend-repair', () => {
                 }
             }
             
-            link.setAttribute('download', filename);
+            link.setAttribute('download', decodeURIComponent(filename));
             document.body.appendChild(link);
             link.click();
             

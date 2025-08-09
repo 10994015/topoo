@@ -160,11 +160,12 @@ const fetchTodoDetail = async () => {
 
       todoDetail.value.files = [];
       if(isEdit.value){
-          formData.todoId = todoDetail.value.todo_id // 使用 todo_id 作為表單提交的 ID
+          
           // 加上已上傳的檔案 ID
           const response = await todoStore.fetchTodo(todoDetail.value.todo_id)
-          console.log(response.data.files);
+          console.log(response);
           formData.fileIds = response.data.files.map(file => file.file_id)
+          formData.todoId = response.data.id // 使用 todo_id 作為表單提交的 ID
           existingFiles.value = response.data.files
           console.log(existingFiles.value);
       }
@@ -514,7 +515,9 @@ const saveForm = async () => {
     let response = null;
     // 呼叫API進行案件指派
     if(isEdit.value){
-        submitData.todoId = todoId.value // 使用 repair_id 作為 todoId
+        submitData.todoId = formData.todoId // 使用 repair_id 作為 todoId
+        console.log(submitData);
+        
         response = await todoStore.editTodo(submitData)
 
     }else{
@@ -622,7 +625,7 @@ const fetchFileContent = async (fileId) => {
 const removeExistingFile = async (file) => {
   try {
     // 確認刪除操作
-    const confirmDelete = confirm(`確定要刪除檔案「${file.name}」嗎？`);
+    const confirmDelete = confirm(`確定要刪除檔案「${file.original_name}」嗎？`);
     if (!confirmDelete) {
       return;
     }
@@ -630,7 +633,7 @@ const removeExistingFile = async (file) => {
     console.log('刪除原有檔案:', file);
     
     // 使用 pinia store 的 removeTodoFile 方法
-    await todoStore.removeTodoFile(file.id);
+    await todoStore.removeTodoFile(file.file_id);
     
     // 從原有檔案列表中移除
     const index = existingFiles.value.findIndex(f => f.id === file.id);
@@ -859,16 +862,16 @@ onMounted(async () => {
 
               <!-- 新上傳的檔案 -->
               <div v-if="uploadedFiles.length > 0" class="file-section">
-                <h4 class="file-section-title">派工檔案</h4>
+                <h4 class="file-section-title">新上傳檔案</h4>
                 <div 
                   v-for="file in uploadedFiles" 
                   :key="file.id"
                   class="file-item uploaded"
                 >
                   <div class="file-info">
-                    <span class="file-icon">{{ getFileIcon(file.file_name) }}</span>
+                    <span class="file-icon">{{ getFileIcon(file.name) }}</span>
                     <div class="file-details">
-                      <span class="file-name">{{ file.original_name }}</span>
+                      <span class="file-name">{{ file.name }}</span>
                       <span class="file-size">{{ formatFileSize(file.size) }}</span>
                     </div>
                   </div>

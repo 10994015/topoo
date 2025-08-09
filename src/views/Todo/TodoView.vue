@@ -144,7 +144,13 @@ const deleteAssign = async () => {
 const levels = {
     1: '普級',
     2: '中級',
-    3: '緊急',
+    3: '高級',
+}
+
+const importanceLevels = {
+  1: '普級',
+  2: '保固級',
+  3: '急件'
 }
 const levelsMap = {
   1: 'priority-normal',
@@ -357,7 +363,7 @@ onMounted(async () => {
                 <div class="priority-icon">📌</div>
                 <div class="priority-info">
                     <span class="priority-label">重要程度</span>
-                    <span :class="[todoDetail.importance_level ? 'priority-badge' : '', levelsMap[todoDetail.importance_level] || '']">{{ levels[todoDetail.importance_level] || '-' }}</span>
+                    <span :class="[todoDetail.importance_level ? 'priority-badge' : '', levelsMap[todoDetail.importance_level] || '']">{{ importanceLevels[todoDetail.importance_level] || '-' }}</span>
                 </div>
                 </div>
 

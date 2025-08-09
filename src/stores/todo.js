@@ -340,7 +340,7 @@ export const useTodoStore = defineStore('todo', () => {
                 }
             }
             
-            link.setAttribute('download', filename);
+            link.setAttribute('download', decodeURIComponent(filename));
             document.body.appendChild(link);
             link.click();
             
