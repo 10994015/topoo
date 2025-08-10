@@ -10,20 +10,35 @@ const router = useRouter()
 const account = ref('')
 const password = ref('')
 const showPassword = ref(false)
-const isLoading = ref(false)  // 新增 loading 狀態
-const isGoogleLoading = ref(false)  // Google 登入 loading 狀態
-
+const isLoading = ref(false)
+const isGoogleLoading = ref(false)
 const errorMsg = ref('')
+
+// 取得 Google 登入按鈕的 ref
+const googleSignInButton = ref(null)
 
 const togglePassword = () => {
   showPassword.value = !showPassword.value
 }
 
-const handleLogin = async () => {
-  if (isLoading.value) return // 防止重複點擊
+// 觸發隱藏的 Google 登入按鈕
+const triggerGoogleLogin = () => {
+  if (isGoogleLoading.value || isLoading.value) return
   
-  isLoading.value = true  // 開始 loading
-  errorMsg.value = ''  // 清空錯誤訊息
+  if (googleSignInButton.value) {
+    // 查找實際的 Google 按鈕元素並點擊它
+    const googleBtn = googleSignInButton.value.$el.querySelector('div[role="button"]')
+    if (googleBtn) {
+      googleBtn.click()
+    }
+  }
+}
+
+const handleLogin = async () => {
+  if (isLoading.value) return
+  
+  isLoading.value = true
+  errorMsg.value = ''
   
   try {
     console.log(useAuthStore);
@@ -52,7 +67,7 @@ const handleLogin = async () => {
     errorMsg.value = '登入失敗，請稍後再試'
     alert('登入失敗，請稍後再試')
   } finally {
-    isLoading.value = false  // 結束 loading
+    isLoading.value = false
   }
 }
 
@@ -63,11 +78,10 @@ const handleRegister = () => {
 const handleGoogleSuccess = async (response) => {
   console.log("Google登入成功，收到credential:", response)
   
-  isGoogleLoading.value = true  // 開始 Google loading
-  errorMsg.value = ''  // 清空錯誤訊息
+  isGoogleLoading.value = true
+  errorMsg.value = ''
   
   try {
-    // 使用後端提供的API格式
     const result = await useAuthStore().googleLogin(response.credential)
     
     if (result.success) {
@@ -86,7 +100,7 @@ const handleGoogleSuccess = async (response) => {
     console.error('Google登入處理失敗:', error)
     alert('Google登入失敗，請稍後再試')
   } finally {
-    isGoogleLoading.value = false  // 結束 Google loading
+    isGoogleLoading.value = false
   }
 }
 
@@ -196,32 +210,41 @@ const handleGoogleError = (error) => {
           註冊
         </button>
         
-        <div class="google-login-wrapper">
+        <!-- 自定義的 Google 登入按鈕 -->
+        <button 
+          @click="triggerGoogleLogin"
+          :disabled="isLoading || isGoogleLoading"
+          class="custom-google-btn"
+        >
+          <svg 
+            v-if="isGoogleLoading" 
+            width="20" 
+            height="20" 
+            viewBox="0 0 24 24" 
+            class="loading-icon"
+          >
+            <path :d="mdiLoading" fill="currentColor"></path>
+          </svg>
+          <svg v-else width="20" height="20" viewBox="0 0 24 24" class="google-icon">
+            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+          </svg>
+          {{ isGoogleLoading ? '登入中...' : '使用 Google 帳號登入' }}
+        </button>
+        
+        <!-- 隱藏的原始 Google 登入按鈕 -->
+        <div class="hidden-google-wrapper">
           <GoogleSignInButton 
+            ref="googleSignInButton"
             @success="handleGoogleSuccess"
             @error="handleGoogleError"
             text="使用Google 帳號登入"
             theme="filled_blue"
             size="large"
-            style="display:block;width:100%"
             :disabled="isLoading || isGoogleLoading"
-          >
-            <template #default>
-              <div class="google-btn-content">
-                <svg 
-                  v-if="isGoogleLoading" 
-                  width="20" 
-                  height="20" 
-                  viewBox="0 0 24 24" 
-                  class="loading-icon"
-                >
-                  <path :d="mdiLoading" fill="currentColor"></path>
-                </svg>
-                <span v-else class="google-icon">G</span>
-                {{ isGoogleLoading ? '登入中...' : '使用Google 帳號登入' }}
-              </div>
-            </template>
-          </GoogleSignInButton>
+          />
         </div>
       </div>
     </div>
@@ -339,6 +362,7 @@ const handleGoogleError = (error) => {
 .form-group {
   margin-bottom: 1.5rem;
 }
+
 .error-message{
   margin-top: 0.5rem;
   color: #ef4444;
@@ -479,15 +503,56 @@ const handleGoogleError = (error) => {
   }
 }
 
-.google-login-wrapper {
-  position: relative;
-}
-
-.google-btn-content {
+/* 自定義 Google 登入按鈕樣式 */
+.custom-google-btn {
+  width: 100%;
+  background: #ffffff;
+  border: 2px solid #dadce0;
+  border-radius: 8px;
+  padding: 0.875rem;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
+  transition: all 0.3s ease;
+  color: #3c4043;
+  
+  &:hover:not(:disabled) {
+    background: #f8f9fa;
+    border-color: #c6c6c6;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #f5f5f5;
+    transform: none;
+  }
+  
+  .google-icon {
+    flex-shrink: 0;
+  }
+  
+  .loading-icon {
+    animation: spin 1s linear infinite;
+  }
+}
+
+/* 隱藏原始的 Google 登入按鈕 */
+.hidden-google-wrapper {
+  position: absolute;
+  left: -9999px;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
 }
 
 .loading-icon {
@@ -503,42 +568,8 @@ const handleGoogleError = (error) => {
   }
 }
 
-.google-btn {
-  width: 100%;
-  background: #1a73e8;
-  border: 2px solid #e5e7eb;
-  border-radius: 50px;
-  padding: 0.875rem;
-  font-size: 1rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  transition: all 0.3s ease;
-  
-  &:hover {
-    border-color: #d1d5db;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  }
-  
-  .google-icon {
-    width: 20px;
-    height: 20px;
-    background: #4285f4;
-    color: white;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    font-size: 0.8rem;
-  }
-}
-
 .right-panel {
   flex: 1;
-  // background: linear-gradient(135deg, #3730a3, #1e1b4b);
   background-image: url('/images/login-bg.svg');
   position: relative;
   overflow: hidden;
@@ -708,7 +739,6 @@ const handleGoogleError = (error) => {
 @media (max-width: 768px) {
   .login-container {
     flex-direction: column-reverse;
-    
   }
   
   .left-panel {
@@ -727,41 +757,6 @@ const handleGoogleError = (error) => {
   
   .welcome-card {
     padding: 1.5rem;
-  }
-}
-// 如果你希望按鈕與你的品牌色系一致
-.google-btn-brand {
-  width: 100%;
-  background: linear-gradient(135deg, #4285f4, #34a853);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 0.875rem;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  margin-bottom: 1.5rem;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 10px 20px rgba(66, 133, 244, 0.3);
-  }
-  
-  .google-icon {
-    width: 20px;
-    height: 20px;
-    background: white;
-    color: transparent;
-    background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAxOCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE3LjY0IDkuMjA0NTVDMTcuNjQgOC41NjYzNiAxNy41ODM2IDcuOTUyNzMgMTcuNDggNy4zNjM2NEg5VjEwLjg0NTVIMTMuODQzNkMxMy42MzUgMTEuOTcgMTMuMDAwOSAxMi45MjMgMTIuMDQ3NyAxMy41NjE0VjE1Ljg5NzNIMTQuOTU2NEMxNi42NTgxIDE0LjM0MjcgMTcuNjQgMTEuOTM2NCAxNy42NCA5LjIwNDU1WiIgZmlsbD0iIzQyODVGNCIvPgo8cGF0aCBkPSJNOS4wMDA0NSAxOC4wMDA0QzExLjQzMTggMTguMDAwNCAxMy40Njg2IDE3LjE5NCAxNC45NTY4IDE1Ljg5NzdMMTIuMDQ4MSAxMy41NjE4QzExLjI0MzIgMTQuMTAxNCA5Ljk2MzE4IDE0LjQzNjQgOS4wMDA0NSAxNC40MzY0QzYuNjU0MDkgMTQuNDM2NCA0LjY3MTgxIDEyLjg2NzcgMy45NjQwOSAxMC43MTA5SDEuMDkwNDVWMTMuMTA0NUM0LjEwMDQ1IDE3LjU5OTUgNi43MzE4MSAxOC4wMDA0IDkuMDAwNDUgMTguMDAwNFoiIGZpbGw9IiMzNEE4NTMiLz4KPHBhdGggZD0iTTMuOTY0MDkgMTAuNzEwOUM0LjM2NDA5IDkuNjA2ODIgNC4zNjQwOSA4LjM5MzE4IDMuOTY0MDkgNy4yODkwOVY0Ljg5NTQ1SDEuMDkwNDVDLTAuMzY4MTggNy44MDkwOSAtMC4zNjgxOCAxMC4xOTA5IDEuMDkwNDUgMTMuMTA0NUwzLjk2NDA5IDEwLjcxMDlaIiBmaWxsPSIjRkJCQzA0Ii8+CjxwYXRoIGQ9Ik05LjAwMDQ1IDMuNTYzNjRDMTAuMzc1IDMuNTYzNjQgMTEuNjE1IDQuMDUxMTQgMTIuNzUgNS4xMzQwOUwxNS4wMDUgMi44NzkwOUMxMy40NDU1IDEuNDEyMjcgMTEuMzgyNyAwLjU2MzE4NiA5LjAwMDQ1IDAuNTYzMTg2QzYuNzMxODEgMC41NjMxODYgNC4xMDA0NSAwLjk2NDA5MSAxLjA5MDQ1IDQuODk1NDVMNS4wMDQ5MSA3LjI4OTA5QzQuNjcxODEgNS4xMzIyNyA2LjY1NDA5IDMuNTYzNjQgOS4wMDA0NSAzLjU2MzY0WiIgZmlsbD0iI0VBNDMzNSIvPgo8L3N2Zz4=');
-    background-size: 18px 18px;
-    background-repeat: no-repeat;
-    background-position: center;
-    border-radius: 2px;
   }
 }
 </style>
