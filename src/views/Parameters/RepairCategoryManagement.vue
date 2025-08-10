@@ -390,7 +390,7 @@ onMounted(async () => {
                               title="編輯"
                               v-if="hasWriteManageRepairReasonPermission"
                             >
-                              編輯
+                              ✏️
                             </button>
                           </td>
                         </tr>
@@ -962,11 +962,11 @@ max-width: 500px;
   }
 
   &.edit-btn {
-    background: #ffc107;
-    color: #212529;
+    background:transparent;
 
     &:hover {
-      background: #e0a800;
+      background: transparent;
+      box-shadow:none;
     }
   }
 }

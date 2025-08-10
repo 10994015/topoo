@@ -2,6 +2,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { mdiEye, mdiEyeOff } from '@mdi/js'
 
 // 使用 router 和認證 store
 const router = useRouter()
@@ -300,7 +301,9 @@ onMounted(() => {
                     @click="showCurrentPassword = !showCurrentPassword"
                     class="password-toggle"
                   >
-                    {{ showCurrentPassword ? '🙈' : '👁️' }}
+                  <svg width="20" height="20" viewBox="0 0 24 24">
+                    <path :d="showCurrentPassword ? mdiEyeOff : mdiEye" fill="currentColor"></path>
+                  </svg>
                   </button>
                 </div>
                 <div v-if="errors.currentPassword" class="error-message">
@@ -328,7 +331,9 @@ onMounted(() => {
                     @click="showNewPassword = !showNewPassword"
                     class="password-toggle"
                   >
-                    {{ showNewPassword ? '🙈' : '👁️' }}
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                    <path :d="showNewPassword ? mdiEyeOff : mdiEye" fill="currentColor"></path>
+                  </svg>
                   </button>
                 </div>
                 
@@ -396,7 +401,9 @@ onMounted(() => {
                     @click="showConfirmPassword = !showConfirmPassword"
                     class="password-toggle"
                   >
-                    {{ showConfirmPassword ? '🙈' : '👁️' }}
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                    <path :d="showConfirmPassword ? mdiEyeOff : mdiEye" fill="currentColor"></path>
+                  </svg>
                   </button>
                 </div>
                 <div v-if="passwordForm.confirmPassword && !errors.confirmPassword && passwordForm.newPassword === passwordForm.confirmPassword" class="success-message">

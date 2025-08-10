@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { mdiEye, mdiEyeOff } from '@mdi/js'
 
 const router = useRouter()
 const route = useRoute()
@@ -160,12 +161,8 @@ const goToLogin = () => {
                   class="eye-button"
                   @click="togglePasswordVisibility"
                 >
-                  <svg v-if="showPassword" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M14.12 14.12C13.8454 14.4148 13.5141 14.6512 13.1462 14.8151C12.7782 14.9790 12.3809 15.0678 11.9784 15.0744C11.5759 15.0810 11.1753 15.0054 10.8016 14.8528C10.4279 14.7002 10.0887 14.4732 9.80385 14.1884C9.51897 13.9035 9.29195 13.5644 9.13937 13.1907C8.98679 12.8169 8.91123 12.4163 8.91783 12.0138C8.92443 11.6113 9.01306 11.214 9.17698 10.8461C9.34089 10.4781 9.57725 10.1468 9.872 9.872M17.94 17.94C16.2306 19.243 14.1491 19.9649 12 20C5 20 1 12 1 12C2.24389 9.68192 3.96914 7.65663 6.06 6.06M9.9 4.24C10.5883 4.0789 11.2931 3.99836 12 4C19 4 23 12 23 12C22.393 13.1356 21.6691 14.2048 20.84 15.19M14.12 14.12L9.9 4.24M14.12 14.12L20.84 15.19M9.9 4.24L6.06 6.06M6.06 6.06L1 1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                  <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                  <svg width="20" height="20" viewBox="0 0 24 24">
+                    <path :d="showPassword ? mdiEyeOff : mdiEye" fill="currentColor"></path>
                   </svg>
                 </button>
               </div>
@@ -187,12 +184,8 @@ const goToLogin = () => {
                   class="eye-button"
                   @click="toggleConfirmPasswordVisibility"
                 >
-                  <svg v-if="showConfirmPassword" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M14.12 14.12C13.8454 14.4148 13.5141 14.6512 13.1462 14.8151C12.7782 14.9790 12.3809 15.0678 11.9784 15.0744C11.5759 15.0810 11.1753 15.0054 10.8016 14.8528C10.4279 14.7002 10.0887 14.4732 9.80385 14.1884C9.51897 13.9035 9.29195 13.5644 9.13937 13.1907C8.98679 12.8169 8.91123 12.4163 8.91783 12.0138C8.92443 11.6113 9.01306 11.214 9.17698 10.8461C9.34089 10.4781 9.57725 10.1468 9.872 9.872M17.94 17.94C16.2306 19.243 14.1491 19.9649 12 20C5 20 1 12 1 12C2.24389 9.68192 3.96914 7.65663 6.06 6.06M9.9 4.24C10.5883 4.0789 11.2931 3.99836 12 4C19 4 23 12 23 12C22.393 13.1356 21.6691 14.2048 20.84 15.19M14.12 14.12L9.9 4.24M14.12 14.12L20.84 15.19M9.9 4.24L6.06 6.06M6.06 6.06L1 1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                  <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                  <svg width="20" height="20" viewBox="0 0 24 24">
+                    <path :d="showConfirmPassword ? mdiEyeOff : mdiEye" fill="currentColor"></path>
                   </svg>
                 </button>
               </div>

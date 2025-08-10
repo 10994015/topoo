@@ -3,6 +3,8 @@ import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import { GoogleSignInButton } from "vue3-google-signin"
+import { mdiEye, mdiEyeOff, mdiAccount, mdiLock } from '@mdi/js'
+
 const router = useRouter()
 
 const account = ref('')
@@ -90,7 +92,11 @@ const handleGoogleError = (error) => {
         
         <div class="form-group">
           <div class="input-wrapper">
-            <i class="user-icon">👤</i>
+            <i class="user-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" class="input-icon">
+                <path :d="mdiAccount" fill="currentColor"></path>
+              </svg>
+            </i>
             <input 
               v-model="account"
               type="text" 
@@ -102,7 +108,11 @@ const handleGoogleError = (error) => {
         
         <div class="form-group">
           <div class="input-wrapper">
-            <i class="lock-icon">🔒</i>
+            <i class="lock-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" class="input-icon">
+                <path :d="mdiLock" fill="currentColor"></path>
+              </svg>
+            </i>
             <input 
               v-model="password"
               :type="showPassword ? 'text' : 'password'"
@@ -115,7 +125,9 @@ const handleGoogleError = (error) => {
               @click="togglePassword"
               class="password-toggle"
             >
-              👁️
+              <svg width="20" height="20" viewBox="0 0 24 24">
+                <path :d="showPassword ? mdiEyeOff : mdiEye" fill="currentColor"></path>
+              </svg>
             </button>
           </div>
         </div>

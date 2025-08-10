@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useRepairStore } from '@/stores/repair'
 import { formatDate, formatDateTime } from '@/utils/dateUtils'
 import { useAuthStore } from '@/stores/auth'
+import { mdiEye, mdiEyeOff, mdiAccount, mdiLock } from '@mdi/js'
 const router = useRouter()
 
 const authStore = useAuthStore()

@@ -1,9 +1,9 @@
 <script setup>
 import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { User, Lock, Eye, EyeOff } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { GoogleSignInButton } from "vue3-google-signin"
+import { mdiEye, mdiEyeOff, mdiAccount, mdiLock } from '@mdi/js'
 
 const router = useRouter()
 
@@ -217,7 +217,9 @@ const goToLogin = () => {
             <!-- 帳號輸入 -->
             <div class="input-group">
               <div class="input-wrapper">
-                <User class="input-icon" :size="20" />
+                <svg width="20" height="20" viewBox="0 0 24 24" class="input-icon">
+                  <path :d="mdiAccount" fill="currentColor"></path>
+                </svg>
                 <input
                   type="text"
                   v-model="formData.credential"
@@ -232,7 +234,9 @@ const goToLogin = () => {
             <!-- 密碼輸入 -->
             <div class="input-group">
               <div class="input-wrapper">
-                <Lock class="input-icon" :size="20" />
+                <svg width="20" height="20" viewBox="0 0 24 24" class="input-icon">
+                  <path :d="mdiLock" fill="currentColor"></path>
+                </svg>
                 <input
                   :type="showPassword ? 'text' : 'password'"
                   v-model="formData.password"
@@ -245,8 +249,9 @@ const goToLogin = () => {
                   class="toggle-password"
                   @click="showPassword = !showPassword"
                 >
-                  <EyeOff v-if="showPassword" :size="20" />
-                  <Eye v-else :size="20" />
+                  <svg width="20" height="20" viewBox="0 0 24 24">
+                    <path :d="showPassword ? mdiEyeOff : mdiEye" fill="currentColor"></path>
+                  </svg>
                 </button>
               </div>
               <div v-if="errors.password" class="error-message">{{ errors.password }}</div>
@@ -278,7 +283,9 @@ const goToLogin = () => {
             <!-- 確認密碼 -->
             <div class="input-group">
               <div class="input-wrapper">
-                <Lock class="input-icon" :size="20" />
+                <svg width="20" height="20" viewBox="0 0 24 24" class="input-icon">
+                  <path :d="mdiLock" fill="currentColor"></path>
+                </svg>
                 <input
                   :type="showConfirmPassword ? 'text' : 'password'"
                   v-model="formData.confirmPassword"
@@ -291,8 +298,9 @@ const goToLogin = () => {
                   class="toggle-password"
                   @click="showConfirmPassword = !showConfirmPassword"
                 >
-                  <EyeOff v-if="showConfirmPassword" :size="20" />
-                  <Eye v-else :size="20" />
+                   <svg width="20" height="20" viewBox="0 0 24 24">
+                    <path :d="showConfirmPassword ? mdiEyeOff : mdiEye" fill="currentColor"></path>
+                  </svg>
                 </button>
               </div>
               <div v-if="errors.confirmPassword" class="error-message">{{ errors.confirmPassword }}</div>
