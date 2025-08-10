@@ -3,13 +3,15 @@ import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import { GoogleSignInButton } from "vue3-google-signin"
-import { mdiEye, mdiEyeOff, mdiAccount, mdiLock } from '@mdi/js'
+import { mdiEye, mdiEyeOff, mdiAccount, mdiLock, mdiLoading } from '@mdi/js'
 
 const router = useRouter()
 
 const account = ref('')
 const password = ref('')
 const showPassword = ref(false)
+const isLoading = ref(false)  // 新增 loading 狀態
+const isGoogleLoading = ref(false)  // Google 登入 loading 狀態
 
 const errorMsg = ref('')
 
@@ -18,36 +20,51 @@ const togglePassword = () => {
 }
 
 const handleLogin = async () => {
-  console.log(useAuthStore);
-  const result = await useAuthStore().login({
-    credential: account.value,
-    password: password.value
-  })
-
-  console.log(result);
+  if (isLoading.value) return // 防止重複點擊
   
-  if(result.success) {
-    if(result.statusCode === 202) {
-      const message = result.data.firstLogin ? '首次登入需重設密碼！' : '密碼已過期，請重新設定密碼！';
-      alert(message)
-      router.push(`/init-password/${result.data.changePwToken}`);
-      return;
+  isLoading.value = true  // 開始 loading
+  errorMsg.value = ''  // 清空錯誤訊息
+  
+  try {
+    console.log(useAuthStore);
+    const result = await useAuthStore().login({
+      credential: account.value,
+      password: password.value
+    })
+
+    console.log(result);
+    
+    if(result.success) {
+      if(result.statusCode === 202) {
+        const message = result.data.firstLogin ? '首次登入需重設密碼！' : '密碼已過期，請重新設定密碼！';
+        alert(message)
+        router.push(`/init-password/${result.data.changePwToken}`);
+        return;
+      }
+      console.log('登入成功');
+      router.push('/')
+    } else {
+      console.error('登入失敗', result.error);
+      errorMsg.value = result.error || '登入失敗，請檢查帳號或密碼'
     }
-    console.log('登入成功');
-    router.push('/')
-  } else {
-    console.error('登入失敗', result.error);
-    errorMsg.value = result.error || '登入失敗，請檢查帳號或密碼'
-    // 可以在這裡顯示錯誤訊息
-    alert(result.error || '登入失敗，請檢查帳號或密碼')
+  } catch (error) {
+    console.error('登入處理失敗:', error)
+    errorMsg.value = '登入失敗，請稍後再試'
+    alert('登入失敗，請稍後再試')
+  } finally {
+    isLoading.value = false  // 結束 loading
   }
 }
 
 const handleRegister = () => {
   router.push('/register')
 }
+
 const handleGoogleSuccess = async (response) => {
   console.log("Google登入成功，收到credential:", response)
+  
+  isGoogleLoading.value = true  // 開始 Google loading
+  errorMsg.value = ''  // 清空錯誤訊息
   
   try {
     // 使用後端提供的API格式
@@ -68,14 +85,16 @@ const handleGoogleSuccess = async (response) => {
   } catch (error) {
     console.error('Google登入處理失敗:', error)
     alert('Google登入失敗，請稍後再試')
+  } finally {
+    isGoogleLoading.value = false  // 結束 Google loading
   }
 }
+
 const handleGoogleError = (error) => {
   console.error("Google登入錯誤:", error)
   alert('Google登入失敗，請稍後再試')
+  isGoogleLoading.value = false
 }
-
-
 </script>
 
 <template>
@@ -105,6 +124,7 @@ const handleGoogleError = (error) => {
               type="text" 
               placeholder="請輸入帳號"
               class="form-input"
+              :disabled="isLoading"
             >
           </div>
         </div>
@@ -121,12 +141,14 @@ const handleGoogleError = (error) => {
               :type="showPassword ? 'text' : 'password'"
               placeholder="請輸入密碼"
               class="form-input"
+              :disabled="isLoading"
               @keyup.enter="handleLogin"
             >
             <button 
               type="button" 
               @click="togglePassword"
               class="password-toggle"
+              :disabled="isLoading"
             >
               <svg width="20" height="20" viewBox="0 0 24 24">
                 <path :d="showPassword ? mdiEyeOff : mdiEye" fill="currentColor"></path>
@@ -146,10 +168,20 @@ const handleGoogleError = (error) => {
         
         <button 
           @click="handleLogin"
-          
+          :disabled="isLoading"
           class="login-btn"
+          :class="{ 'loading': isLoading }"
         >
-          登入
+          <svg 
+            v-if="isLoading" 
+            width="20" 
+            height="20" 
+            viewBox="0 0 24 24" 
+            class="loading-icon"
+          >
+            <path :d="mdiLoading" fill="currentColor"></path>
+          </svg>
+          {{ isLoading ? '登入中...' : '登入' }}
         </button>
         
         <div class="divider">
@@ -158,23 +190,39 @@ const handleGoogleError = (error) => {
         
         <button 
           @click="handleRegister"
+          :disabled="isLoading || isGoogleLoading"
           class="register-btn"
         >
           註冊
         </button>
-        <GoogleSignInButton 
-          @success="handleGoogleSuccess"
-          @error="handleGoogleError"
-          text="使用Google 帳號登入"
-          theme="filled_blue"
-          size="large"
-          style="display:block;width:100%"
-        >
-          <template #default>
-            <span class="google-icon">G</span>
-            使用Google 帳號登入
-          </template>
-        </GoogleSignInButton>
+        
+        <div class="google-login-wrapper">
+          <GoogleSignInButton 
+            @success="handleGoogleSuccess"
+            @error="handleGoogleError"
+            text="使用Google 帳號登入"
+            theme="filled_blue"
+            size="large"
+            style="display:block;width:100%"
+            :disabled="isLoading || isGoogleLoading"
+          >
+            <template #default>
+              <div class="google-btn-content">
+                <svg 
+                  v-if="isGoogleLoading" 
+                  width="20" 
+                  height="20" 
+                  viewBox="0 0 24 24" 
+                  class="loading-icon"
+                >
+                  <path :d="mdiLoading" fill="currentColor"></path>
+                </svg>
+                <span v-else class="google-icon">G</span>
+                {{ isGoogleLoading ? '登入中...' : '使用Google 帳號登入' }}
+              </div>
+            </template>
+          </GoogleSignInButton>
+        </div>
       </div>
     </div>
     
@@ -330,6 +378,11 @@ const handleGoogleError = (error) => {
     &::placeholder {
       color: #9ca3af;
     }
+    
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
   }
   
   .password-toggle {
@@ -339,6 +392,11 @@ const handleGoogleError = (error) => {
     font-size: 1.1rem;
     color: #9ca3af;
     padding: 0;
+    
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
   }
 }
 
@@ -368,9 +426,24 @@ const handleGoogleError = (error) => {
   margin-bottom: 1.5rem;
   transition: all 0.3s ease;
   margin-top: 1rem;
-  &:hover {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  
+  &:hover:not(:disabled) {
     transform: translateY(-1px);
     box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+  }
+  
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+  }
+  
+  &.loading {
+    pointer-events: none;
   }
 }
 
@@ -394,9 +467,39 @@ const handleGoogleError = (error) => {
   margin-bottom: 1.5rem;
   transition: all 0.3s ease;
   
-  &:hover {
+  &:hover:not(:disabled) {
     transform: translateY(-1px);
     box-shadow: 0 10px 20px rgba(168, 85, 247, 0.3);
+  }
+  
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+.google-login-wrapper {
+  position: relative;
+}
+
+.google-btn-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.loading-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
 

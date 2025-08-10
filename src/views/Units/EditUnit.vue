@@ -554,7 +554,13 @@ const loadUsers = async (unitId = null, forceReload = false) => {
       })
       
       console.log('📡 發送 fetchUnitUsers API 請求...')
-      response = await unitStore.fetchUnitUsers(unitId, searchParams)
+      if(isInsertMode.value){
+        // 插入模式，查詢所有有資格的用戶
+        response = await unitStore.fetchEmptyUnitUsers(searchParams)
+      } else {
+        // 編輯模式或其他情況，查詢特定單位的用戶
+        response = await unitStore.fetchUnitUsers(unitId, searchParams)
+      }
       console.log('📡 fetchUnitUsers API 回應:', response)
     } else {
       // 沒有單位 ID，查詢所有有資格的用戶
@@ -1488,7 +1494,7 @@ onMounted(async () => {
                     type="checkbox" 
                     @change="toggleSelectAll"
                     :checked="availableUsers.length > 0 && availableUsers.every(user => user.isSelected)"
-                    :disabled="!isEditingUnitName || isLoadingUsers"
+                    :disabled="isEditMode && (!isEditingUnitName || isLoadingUsers)"
                   />
                 </th>
                 <th class="sortable">項次</th>
@@ -1518,7 +1524,7 @@ onMounted(async () => {
                     type="checkbox" 
                     :checked="user.isSelected"
                     @change="toggleUserSelection(user.id)"
-                    :disabled="!isEditingUnitName || isLoadingUsers"
+                    :disabled="isEditMode && (!isEditingUnitName || isLoadingUsers)"
                   />
                 </td>
                 <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
