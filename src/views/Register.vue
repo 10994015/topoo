@@ -3,7 +3,7 @@ import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { GoogleSignInButton } from "vue3-google-signin"
-import { mdiEye, mdiEyeOff, mdiAccount, mdiLock } from '@mdi/js'
+import { mdiEye, mdiEyeOff, mdiAccount, mdiLock, mdiLoading } from '@mdi/js'
 
 const router = useRouter()
 
@@ -26,6 +26,10 @@ const errors = reactive({
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
 const isLoading = ref(false)
+const isGoogleLoading = ref(false)
+
+// 取得 Google 登入按鈕的 ref
+const googleSignInButton = ref(null)
 
 // 密碼複雜度驗證
 const passwordValidation = computed(() => {
@@ -48,6 +52,19 @@ const isPasswordValid = computed(() => {
          validation.hasLower && 
          validation.hasSpecial
 })
+
+// 觸發隱藏的 Google 登入按鈕
+const triggerGoogleLogin = () => {
+  if (isGoogleLoading.value || isLoading.value) return
+  
+  if (googleSignInButton.value) {
+    // 查找實際的 Google 按鈕元素並點擊它
+    const googleBtn = googleSignInButton.value.$el.querySelector('div[role="button"]')
+    if (googleBtn) {
+      googleBtn.click()
+    }
+  }
+}
 
 const validateForm = () => {
   // 清除之前的錯誤
@@ -136,23 +153,13 @@ const handleSubmit = async () => {
 
     console.log('註冊結果:', result)
     
-    // 這裡添加註冊 API 調用
-    // const response = await registerAPI(formData)
-    
-    // 模擬 API 調用
     if(result.success) {
       console.log('註冊成功:', result.data)
-    //   goToLogin()
-    localStorage.setItem('registeredEmail', formData.email)
-    router.push('/email-verification')
-
+      localStorage.setItem('registeredEmail', formData.email)
+      router.push('/email-verification')
     } else {
       throw new Error(result.message || '註冊失敗')
-
     }
-    
-    // 註冊成功後導向登入頁
-    
   } catch (error) {
     console.error('註冊失敗:', error)
     alert('註冊失敗，請重試')
@@ -161,16 +168,12 @@ const handleSubmit = async () => {
   }
 }
 
-const handleGoogleLogin = () => {
-  console.log('Google 登入')
-  // 實作 Google 登入邏輯
-}
-
 const handleGoogleSuccess = async (response) => {
   console.log("Google登入成功，收到credential:", response)
   
+  isGoogleLoading.value = true
+  
   try {
-    // 使用後端提供的API格式
     const result = await useAuthStore().googleLogin(response.credential)
     
     if (result.success) {
@@ -188,16 +191,18 @@ const handleGoogleSuccess = async (response) => {
   } catch (error) {
     console.error('Google登入處理失敗:', error)
     alert('Google登入失敗，請稍後再試')
+  } finally {
+    isGoogleLoading.value = false
   }
 }
 
 const handleGoogleError = (error) => {
   console.error("Google登入錯誤:", error)
   alert('Google登入失敗，請稍後再試')
+  isGoogleLoading.value = false
 }
 
 const goToLogin = () => {
-  // 使用 router 導航到登入頁
   router.push('/login')
   console.log('導向登入頁')
 }
@@ -225,6 +230,7 @@ const goToLogin = () => {
                   v-model="formData.credential"
                   placeholder="請輸入帳號"
                   class="form-input"
+                  :disabled="isLoading"
                   required
                 />
               </div>
@@ -242,12 +248,14 @@ const goToLogin = () => {
                   v-model="formData.password"
                   placeholder="請輸入密碼"
                   class="form-input"
+                  :disabled="isLoading"
                   required
                 />
                 <button
                   type="button"
                   class="toggle-password"
                   @click="showPassword = !showPassword"
+                  :disabled="isLoading"
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24">
                     <path :d="showPassword ? mdiEyeOff : mdiEye" fill="currentColor"></path>
@@ -291,12 +299,14 @@ const goToLogin = () => {
                   v-model="formData.confirmPassword"
                   placeholder="請輸入確認密碼"
                   class="form-input"
+                  :disabled="isLoading"
                   required
                 />
                 <button
                   type="button"
                   class="toggle-password"
                   @click="showConfirmPassword = !showConfirmPassword"
+                  :disabled="isLoading"
                 >
                    <svg width="20" height="20" viewBox="0 0 24 24">
                     <path :d="showConfirmPassword ? mdiEyeOff : mdiEye" fill="currentColor"></path>
@@ -314,6 +324,7 @@ const goToLogin = () => {
                   v-model="formData.name"
                   placeholder="請輸入使用者姓名"
                   class="form-input"
+                  :disabled="isLoading"
                   required
                 />
               </div>
@@ -328,6 +339,7 @@ const goToLogin = () => {
                   v-model="formData.email"
                   placeholder="請輸入E-mail信箱"
                   class="form-input"
+                  :disabled="isLoading"
                   required
                 />
               </div>
@@ -341,8 +353,17 @@ const goToLogin = () => {
             <button 
               type="submit" 
               class="register-button"
-              :disabled="isLoading"
+              :disabled="isLoading || isGoogleLoading"
             >
+              <svg 
+                v-if="isLoading" 
+                width="20" 
+                height="20" 
+                viewBox="0 0 24 24" 
+                class="loading-icon"
+              >
+                <path :d="mdiLoading" fill="currentColor"></path>
+              </svg>
               {{ isLoading ? '註冊中...' : '註冊' }}
             </button>
 
@@ -357,21 +378,43 @@ const goToLogin = () => {
               <span>or</span>
             </div>
 
-            <!-- Google 登入按鈕 -->
-            <GoogleSignInButton 
-              style="display:block"
-              @success="handleGoogleSuccess"
-              @error="handleGoogleError"
-              text="使用Google 帳號登入"
-              theme="filled_blue"
-              size="large"
-              class="google-btn"
+            <!-- 自定義的 Google 登入按鈕 -->
+            <button 
+              type="button"
+              @click="triggerGoogleLogin"
+              :disabled="isLoading || isGoogleLoading"
+              class="custom-google-btn"
             >
-              <template #default>
-                <span class="google-icon">G</span>
-                使用Google 帳號登入
-              </template>
-            </GoogleSignInButton>
+              <svg 
+                v-if="isGoogleLoading" 
+                width="20" 
+                height="20" 
+                viewBox="0 0 24 24" 
+                class="loading-icon"
+              >
+                <path :d="mdiLoading" fill="currentColor"></path>
+              </svg>
+              <svg v-else width="20" height="20" viewBox="0 0 24 24" class="google-icon">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+              </svg>
+              {{ isGoogleLoading ? '登入中...' : '使用 Google 帳號登入' }}
+            </button>
+
+            <!-- 隱藏的原始 Google 登入按鈕 -->
+            <div class="hidden-google-wrapper">
+              <GoogleSignInButton 
+                ref="googleSignInButton"
+                @success="handleGoogleSuccess"
+                @error="handleGoogleError"
+                text="使用Google 帳號登入"
+                theme="filled_blue"
+                size="large"
+                :disabled="isLoading || isGoogleLoading"
+              />
+            </div>
           </div>
         </div>
       </form>
@@ -395,7 +438,7 @@ const goToLogin = () => {
   border-radius: 16px;
   padding: 60px 80px;
   width: 100%;
-  max-width: 800px; // 增加最大寬度以適應左右分欄
+  max-width: 800px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 
               0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
@@ -417,7 +460,6 @@ const goToLogin = () => {
   width: 100%;
 }
 
-// 新增：左右分欄佈局
 .form-layout {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -425,7 +467,6 @@ const goToLogin = () => {
   align-items: start;
 }
 
-// 左側輸入框區域
 .form-inputs {
   display: flex;
   flex-direction: column;
@@ -433,7 +474,6 @@ const goToLogin = () => {
   min-width: 300px;
 }
 
-// 右側按鈕區域
 .form-actions {
   display: flex;
   flex-direction: column;
@@ -480,6 +520,12 @@ const goToLogin = () => {
   &::placeholder {
     color: #9ca3af;
   }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #f5f5f5;
+  }
 }
 
 .toggle-password {
@@ -494,12 +540,16 @@ const goToLogin = () => {
   align-items: center;
   z-index: 2;
 
-  &:hover {
+  &:hover:not(:disabled) {
     color: #6b7280;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 }
 
-// 密碼強度提示樣式
 .password-requirements {
   margin-top: 8px;
   padding: 12px;
@@ -548,6 +598,10 @@ const goToLogin = () => {
   cursor: pointer;
   transition: all 0.3s ease;
   width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 
   &:hover:not(:disabled) {
     background: #7c3aed;
@@ -599,8 +653,65 @@ const goToLogin = () => {
   }
 }
 
-.google-btn {
+/* 自定義 Google 登入按鈕樣式 */
+.custom-google-btn {
   width: 100%;
+  background: #ffffff;
+  border: 2px solid #dadce0;
+  border-radius: 12px;
+  padding: 16px 24px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  transition: all 0.3s ease;
+  color: #3c4043;
+  
+  &:hover:not(:disabled) {
+    background: #f8f9fa;
+    border-color: #c6c6c6;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #f5f5f5;
+    transform: none;
+  }
+  
+  .google-icon {
+    flex-shrink: 0;
+  }
+}
+
+/* 隱藏原始的 Google 登入按鈕 */
+.hidden-google-wrapper {
+  position: absolute;
+  left: -9999px;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.loading-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .error-message {
