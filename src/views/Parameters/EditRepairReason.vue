@@ -28,8 +28,8 @@ const categories = ref([])
 const currentPage = ref(1)
 const pageSize = ref(10)
 const sortConfig = ref({
-  field: 'updated_at',
-  order: 'DESC'
+  field: 'sequence',
+  order: 'acs'
 })
 
 // 原因列表資料

@@ -24,7 +24,7 @@ const searchForm = reactive({
 const currentPage = ref(1)
 const pageSize = ref(10)
 const sortColumn = ref('sequence')
-const sortDirection = ref('desc')
+const sortDirection = ref('asc')
 
 // 載入狀態
 const isLoading = ref(true)
@@ -95,7 +95,7 @@ const toggleCategory = async (categoryId) => {
       currentPage: 1,
       pageSize: 5,
       sortColumn: 'sequence',
-      sortDirection: 'desc'
+      sortDirection: 'asc'
     })
     // 載入該類別的原因
     await loadCategoryReasons(categoryId)

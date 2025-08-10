@@ -706,7 +706,9 @@ onMounted(async () => {
       <div class="section-header" :style="{ background: `linear-gradient(135deg, ${dashboardStore.currentHeaderColor} 0%, ${adjustColor(dashboardStore.currentHeaderColor, -20)} 100%)` }">
         <h3>
           <span class="star-icon">⭐</span>
-          {{ hasTodoPermission || hasRepairTodoPermission ? '系統' : '個人' }}案件
+          <span v-if="hasTodoPermission">本月全系統 報修案件</span>
+          <span v-else-if="hasRepairTodoPermission">本月個人 承辦案件</span>
+          <span v-else>本月單位 報修案件</span>
         </h3>
         
         <!-- 搜尋類型切換按鈕 -->

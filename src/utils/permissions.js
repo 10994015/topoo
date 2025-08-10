@@ -13,7 +13,7 @@ export const PERMISSIONS = {
   REPAIR_STATUS_MANAGEMENT: '報修狀態管理',
   UNIT_MANAGEMENT: '單位管理',
   ACCOUNT_EXCEL_DOWNLOAD: '帳號查詢Excel下載',
-  REPAIR_NOTICE_EXCEL_DOWNLOAD: '完修通知發送紀錄Excel下載',
+  REPAIR_NOTICE_EXCEL_DOWNLOAD: '完修紀錄Excel下載',
   REPAIR_PROGRESS_SUMMARY_EXCEL_DOWNLOAD: '報修進度綜合表查詢Excel下載',
 }
 

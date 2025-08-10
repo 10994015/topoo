@@ -18,6 +18,8 @@ export const useReportStore = defineStore('report', () => {
             if (params.repairStatusId) queryParams.repairStatusId = params.repairStatusId
             if (params.emergencyLevel) queryParams.emergencyLevel = params.emergencyLevel
             if (params.importanceLevel) queryParams.importanceLevel = params.importanceLevel
+            if (params.overdueDays) queryParams.overdueDays = params.overdueDays
+
             if (params.startAt) {
                 const startDate = new Date(params.startAt);
                 startDate.setHours(0, 0, 0, 0); // 設為當天開始

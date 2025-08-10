@@ -12,6 +12,7 @@ export const useRepairStore = defineStore('repair', () => {
     const isInitialized = ref(false) // 標記是否已初始化檢查
     const repairDetail = ref(null); // 單一報修詳細資料
     const repairProgress = ref(null); // 報修進度記錄
+    const todoStatuses = ref(null); // 待辦事項狀態
     const fetchCategories = async () => {
         try {
             const response = await axiosClient.get('/enum/repair-category')
@@ -46,6 +47,16 @@ export const useRepairStore = defineStore('repair', () => {
             console.log(response.data);
             
             statuses.value = response.data;
+        } catch (error) {
+            console.error('獲取類別失敗:', error);
+        }
+    }
+    const fetchTodoStatuses = async () => {
+        try {
+            const response = await axiosClient.get('/backend/repair/repair-status')
+            console.log(response.data);
+            
+            todoStatuses.value = response.data;
         } catch (error) {
             console.error('獲取類別失敗:', error);
         }
@@ -259,6 +270,7 @@ export const useRepairStore = defineStore('repair', () => {
         repairs,
         repairDetail,
         repairProgress,
+        todoStatuses,
         fetchCategories,
         fetchReasons,
         fetchStatuses,
@@ -269,7 +281,8 @@ export const useRepairStore = defineStore('repair', () => {
         fetchRepairDetail,
         fetchRepairProgress,
         downloadFile,
-        viewFile
+        viewFile,
+        fetchTodoStatuses
     }
 
 

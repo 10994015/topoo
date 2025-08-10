@@ -100,8 +100,8 @@ export const useCategoryStore = defineStore('category', () => {
      */
     const fetchReasons = async (
         categoryId,
-        column = 'updated_at',
-        sortDirection = 'desc',
+        column = 'sequence',
+        sortDirection = 'acs',
         limit = 5,
         page = 1
     ) => {

@@ -205,11 +205,11 @@ onMounted(async () => {
     // 載入選項資料
     await repairStore.fetchCategories()
     await repairStore.fetchReasons()
-    await repairStore.fetchStatuses()
+    await repairStore.fetchTodoStatuses()
     
     categories.value = repairStore.categories.data || []
     reasons.value = repairStore.reasons.data || []
-    statuses.value = repairStore.statuses.data || []
+    statuses.value = repairStore.todoStatuses.data || []
 
     // 載入待辦資料
     await getTodoData(searchForm, "repair_time", "desc", pageSize.value, currentPage.value);

@@ -387,7 +387,7 @@ onMounted(async () => {
                 <button @click="handAssign" class="accept-btn" v-if="hasWriteTodoPermission">
                     {{ todoDetail.todo_id ? '編輯派工' : '案件派工'}}
                 </button>
-                <button @click="deleteAssign" class="reassign-btn" v-if="todoId">
+                <button @click="deleteAssign" class="reassign-btn" v-if="todoId && !(todoDetail.repair_status=='歸檔' || todoDetail.repair_status==='已完成')" :disabled="false">
                     刪除派工
                 </button>
                 </div>

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted, computed  } from 'vue'
+import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { useReportStore } from '@/stores/report'
 import { useRepairStore } from '@/stores/repair'
 import { useAuthStore } from '@/stores/auth'
@@ -25,15 +25,43 @@ const categories = ref([])
 const reasons = ref([])
 const statuses = ref([])
 
+// 計算允許的日期範圍（當前日期前後1年）
+const minDate = computed(() => {
+  const date = new Date()
+  date.setFullYear(date.getFullYear() - 1)
+  return date.toISOString().split('T')[0]
+})
+
+const maxDate = computed(() => {
+  const date = new Date()
+  date.setFullYear(date.getFullYear() + 1)
+  return date.toISOString().split('T')[0]
+})
+
+// 驗證日期是否在允許範圍內
+const validateDateRange = (dateValue) => {
+  if (!dateValue) return true
+  
+  const selectedDate = new Date(dateValue)
+  const currentDate = new Date()
+  const oneYearAgo = new Date()
+  const oneYearLater = new Date()
+  
+  oneYearAgo.setFullYear(currentDate.getFullYear() - 1)
+  oneYearLater.setFullYear(currentDate.getFullYear() + 1)
+  
+  return selectedDate >= oneYearAgo && selectedDate <= oneYearLater
+}
+
 // 帳號狀態選項
 const accountStatuses = [
-  { value: 'Open', label: '開啟' },
+  { value: 'Open', label: '啟用' },
   { value: 'UnderReview', label: '審核中' },
   { value: 'ReviewFailed', label: '審核未通過' },
-  { value: 'Invalid', label: '無效' },
-  { value: 'Lock', label: '鎖定' },
+  { value: 'Invalid', label: '停用' },
+  { value: 'Lock', label: '封鎖' },
   { value: 'Inconvenient', label: '不便' },
-  { value: 'Leave', label: '離職' }
+  { value: 'Leave', label: '請假' }
 ]
 
 // 報修進度綜合表表單
@@ -47,7 +75,8 @@ const repairProgressForm = reactive({
   startAt: '',
   endAt: '',
   repairUnit: '',
-  assignUserName: ''
+  assignUserName: '',
+  overdueDays:''
 })
 
 // 帳號管理報表表單
@@ -67,10 +96,57 @@ const completeRepairForm = reactive({
 
 // 緊急程度和重要程度選項
 const levelOptions = [
-  { value: '1', label: '低' },
-  { value: '2', label: '中' },
-  { value: '3', label: '高' }
+  { value: '1', label: '普級' },
+  { value: '2', label: '中級' },
+  { value: '3', label: '高級' }
 ]
+const levelImportanceOptions = [
+  { value: '1', label: '普級' },
+  { value: '2', label: '保固級' },
+  { value: '3', label: '急件' }
+]
+// 監聽日期變化並驗證
+watch(() => repairProgressForm.startAt, (newValue) => {
+  if (newValue && !validateDateRange(newValue)) {
+    alert('報修時間不能選擇超過當前時間1年的日期')
+    repairProgressForm.startAt = ''
+  }
+})
+
+watch(() => repairProgressForm.endAt, (newValue) => {
+  if (newValue && !validateDateRange(newValue)) {
+    alert('報修時間不能選擇超過當前時間1年的日期')
+    repairProgressForm.endAt = ''
+  }
+})
+
+watch(() => accountManagementForm.startAt, (newValue) => {
+  if (newValue && !validateDateRange(newValue)) {
+    alert('帳號建立時間不能選擇超過當前時間1年的日期')
+    accountManagementForm.startAt = ''
+  }
+})
+
+watch(() => accountManagementForm.endAt, (newValue) => {
+  if (newValue && !validateDateRange(newValue)) {
+    alert('帳號建立時間不能選擇超過當前時間1年的日期')
+    accountManagementForm.endAt = ''
+  }
+})
+
+watch(() => completeRepairForm.startAt, (newValue) => {
+  if (newValue && !validateDateRange(newValue)) {
+    alert('完修記錄建立時間不能選擇超過當前時間1年的日期')
+    completeRepairForm.startAt = ''
+  }
+})
+
+watch(() => completeRepairForm.endAt, (newValue) => {
+  if (newValue && !validateDateRange(newValue)) {
+    alert('完修記錄建立時間不能選擇超過當前時間1年的日期')
+    completeRepairForm.endAt = ''
+  }
+})
 
 // 重置表單
 const resetForm = (formType) => {
@@ -223,7 +299,7 @@ onMounted(async () => {
           <div class="form-field">
             <select v-model="repairProgressForm.importanceLevel" class="form-select" :disabled="isLoading">
               <option value="">重要程度</option>
-              <option v-for="level in levelOptions" :key="level.value" :value="level.value">
+              <option v-for="level in levelImportanceOptions" :key="level.value" :value="level.value">
                 {{ level.label }}
               </option>
             </select>
@@ -261,11 +337,13 @@ onMounted(async () => {
         
         <div class="form-row">
           <div class="date-field">
-            <label>案件建立時間</label>
+            <label>報修時間</label>
             <input 
               type="date" 
               v-model="repairProgressForm.startAt"
               class="date-input"
+              :min="minDate"
+              :max="maxDate"
               :disabled="isLoading"
             />
             <span class="date-separator">-</span>
@@ -273,20 +351,19 @@ onMounted(async () => {
               type="date" 
               v-model="repairProgressForm.endAt"
               class="date-input"
+              :min="minDate"
+              :max="maxDate"
               :disabled="isLoading"
             />
           </div>
           
           <div class="date-field">
-            <label>案件逾期時間</label>
+            <label>案件逾期日</label>
             <input 
-              type="date" 
-              class="date-input"
-              :disabled="isLoading"
-            />
-            <span class="date-separator">-</span>
-            <input 
-              type="date" 
+              min="0"
+              v-model="repairProgressForm.overdueDays"
+              placeholder="篩選條件為大於等於"
+              type="number" 
               class="date-input"
               :disabled="isLoading"
             />
@@ -317,6 +394,8 @@ onMounted(async () => {
               type="date" 
               v-model="accountManagementForm.startAt"
               class="date-input"
+              :min="minDate"
+              :max="maxDate"
               :disabled="isLoading"
             />
             <span class="date-separator">-</span>
@@ -324,6 +403,8 @@ onMounted(async () => {
               type="date" 
               v-model="accountManagementForm.endAt"
               class="date-input"
+              :min="minDate"
+              :max="maxDate"
               :disabled="isLoading"
             />
           </div>
@@ -362,6 +443,8 @@ onMounted(async () => {
               type="date" 
               v-model="completeRepairForm.startAt"
               class="date-input"
+              :min="minDate"
+              :max="maxDate"
               :disabled="isLoading"
             />
             <span class="date-separator">-</span>
@@ -369,6 +452,8 @@ onMounted(async () => {
               type="date" 
               v-model="completeRepairForm.endAt"
               class="date-input"
+              :min="minDate"
+              :max="maxDate"
               :disabled="isLoading"
             />
           </div>
