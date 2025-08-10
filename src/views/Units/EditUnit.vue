@@ -1465,19 +1465,18 @@ onMounted(async () => {
               placeholder="輸入帳號、姓名或暱稱"
               class="search-input"
               @keyup.enter="searchUsers"
-              :disabled="!currentUnitId"
             />
-            <button class="search-btn" @click="searchUsers" :disabled="isSearching || !currentUnitId">
+            <button class="search-btn" @click="searchUsers" :disabled="isSearching">
               <span v-if="isSearching">⟳</span>
               <span v-else>查詢</span>
             </button>
-            <button class="reset-btn" @click="resetSearch" :disabled="!currentUnitId">
+            <button class="reset-btn" @click="resetSearch">
               重置
             </button>
           </div>
 
           <div class="page-size-control">
-            <select v-model="pageSize" class="page-size-select" :disabled="!currentUnitId">
+            <select v-model="pageSize" class="page-size-select">
               <option value="10">10筆/頁</option>
               <option value="20">20筆/頁</option>
               <option value="50">50筆/頁</option>
