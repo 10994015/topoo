@@ -46,7 +46,7 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 const sortConfig = ref({
   field: 'sequence',
-  order: 'DESC'
+  order: 'asc'
 })
 
 // 維修狀態列表資料

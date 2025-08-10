@@ -371,7 +371,7 @@ onMounted(async () => {
         </div>
 
         <!-- 附件列表 -->
-        <div v-if="repairDetail.files && repairDetail.files.length > 0" class="attachments-section">
+        <div v-if="repairDetail.files && repairDetail.files.length > 0  && false" class="attachments-section">
           <h3 class="section-title">附件</h3>
           <div class="file-list">
             <div 
@@ -482,7 +482,7 @@ onMounted(async () => {
                       {{ record.content }}
                       </div>
 
-                      <!-- 附件區域 -->
+                      <!-- 附件區域 (暫時隱藏)-->
                       <div v-if="record.files && record.files.length > 0" class="timeline-files">
                         <div class="files-header">
                             <span class="files-icon">📎</span>
