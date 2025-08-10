@@ -5,6 +5,7 @@ import { useUnitStore } from '@/stores/unit'
 import { formatDateTime } from '@/utils/dateUtils'
 import { PERMISSIONS } from '@/utils/permissions'
 import { useAuthStore } from '@/stores/auth'
+import { mdiRoundedCorner } from '@mdi/js'
 
 const router = useRouter()
 const unitStore = useUnitStore()
@@ -25,6 +26,7 @@ const sortDirection = ref('desc')
 // 載入狀態
 const isLoading = computed(() => unitStore.isLoading)
 const isSearching = ref(false)
+const isDeleting = ref(false)
 
 // 資料來源改為從 store 取得
 const unitData = computed(() => unitStore.units)
@@ -269,6 +271,32 @@ const insertUnit = (id) => {
   router.push(`/settings/unit/unit-insert/${id}`)
 }
 
+// 刪除單位
+const deleteUnit = async (unitId, unitName) => {
+  if (!confirm(`確定要刪除單位「${unitName}」嗎？\n\n注意：刪除後將無法復原。`)) {
+    return
+  }
+
+  try {
+    isDeleting.value = true
+    console.log('開始刪除單位:', unitId)
+
+    const response = await unitStore.deleteUnit(unitId)
+    
+    if (response.success) {
+      alert('單位刪除成功')
+      
+      // 刪除成功後重新載入資料
+      await getUnitData()
+    }
+  } catch (error) {
+    console.error('刪除單位失敗:', error)
+    alert(`刪除失敗：${error.message || '請稍後再試'}`)
+  } finally {
+    isDeleting.value = false
+  }
+}
+
 // 判斷是否有下一個同層級的兄弟節點
 const hasNextSibling = (item, index) => {
   // 檢查下一個項目是否存在且層級大於等於當前層級
@@ -437,15 +465,21 @@ onMounted(async () => {
                 </span>
                 <span class="sort-icon neutral" v-else>⇅</span>
               </th>
+              <th>
+                展開
+              </th>
               <th v-if="hasWriteUnitPermission">
                 新增單位
+              </th>
+              <th v-if="hasWriteUnitPermission">
+                刪除
               </th>
             </tr>
           </thead>
           <tbody>
             <!-- Loading 狀態 -->
             <tr v-if="isLoading" class="loading-row">
-              <td colspan="6" class="loading-cell">
+              <td colspan="7" class="loading-cell">
                 <div class="loading-container">
                   <div class="loading-spinner large">⟳</div>
                   <div class="loading-text">資料載入中...</div>
@@ -455,7 +489,7 @@ onMounted(async () => {
             
             <!-- 搜尋中狀態 -->
             <tr v-else-if="isSearching" class="loading-row">
-              <td colspan="6" class="loading-cell">
+              <td colspan="7" class="loading-cell">
                 <div class="loading-container">
                   <div class="loading-spinner large">⟳</div>
                   <div class="loading-text">搜尋中...</div>
@@ -471,6 +505,9 @@ onMounted(async () => {
               </td>
               <td class="unit-name-cell">
                 <div class="unit-tree-item" :style="{ paddingLeft: `${(item.level - 1) * 20 + 10}px` }">
+                  <span v-if="item.level > 1" class="tree-connector">
+                    └
+                  </span>
                   <span 
                     class="expand-icon"
                     @click="toggleExpand(item.id)"
@@ -487,15 +524,45 @@ onMounted(async () => {
               <td>{{ item.level }}</td>
               <td>{{ formatDateTime(item.created_at) }}</td>
               <td>
-                <button v-if="hasWriteUnitPermission" class="action-btn edit-btn" @click="insertUnit(item.id)" title="新增單位">
+                <button 
+                  class="expand-btn"
+                  @click="toggleExpand(item.id, item.parentIndex - 1)"
+                  :disabled="isLoading || item.isLoading"
+                  :class="{
+                    'loading': item.isLoading,
+                    'expanded': !item.isExpanded && item.hasChildren,
+                    'collapsed': item.isExpanded,
+                    'no-children': item.hasChildren === false
+                  }"
+                  :title="item.isLoading ? '載入中...' : (item.isExpanded ? '收合' : '展開')" 
+                >
+                  <span v-if="item.isLoading" class="loading-spinner">⟳</span>
+                  <span v-else>{{ item.isExpanded ? '收合' : '展開' }}</span>
+                </button>
+              </td>
+              <td>
+                <button v-if="hasWriteUnitPermission && item.level<5" class="action-btn edit-btn" @click="insertUnit(item.id)" title="新增單位">
                   新增單位位階{{ item.level + 1 }}
                 </button>
+              </td>
+              <td>
+                <div v-if="hasWriteUnitPermission" class="action-buttons">
+                  <button 
+                    class="action-btn delete-btn" 
+                    @click="deleteUnit(item.id, item.name)" 
+                    :disabled="isDeleting"
+                    title="刪除單位"
+                  >
+                    <span v-if="isDeleting" class="loading-spinner">⟳</span>
+                    <span v-else>🗑️</span>
+                  </button>
+                </div>
               </td>
             </tr>
             
             <!-- 無資料狀態 -->
             <tr v-if="!isLoading && !isSearching && displayData.length === 0">
-              <td colspan="6" class="no-data">暫無資料</td>
+              <td colspan="7" class="no-data">暫無資料</td>
             </tr>
           </tbody>
         </table>
@@ -813,6 +880,84 @@ onMounted(async () => {
             padding: 15px 20px;
             font-size: 14px;
             color: #333;
+            
+            .expand-btn {
+              background: #17a2b8;
+              color: white;
+              border: none;
+              padding: 6px 12px;
+              border-radius: 4px;
+              font-size: 12px;
+              font-weight: 500;
+              cursor: pointer;
+              transition: all 0.3s ease;
+              text-decoration: none;
+              min-width: 60px;
+              position: relative;
+
+              &:hover:not(:disabled) {
+                transform: translateY(-1px);
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+              }
+
+              // 收合状态 - 浅灰色
+              &.collapsed {
+                background: #e9ecef;
+                color: #6c757d;
+                
+                &:hover:not(:disabled) {
+                  background: #dee2e6;
+                  color: #495057;
+                }
+              }
+
+              // 展开状态 - 保持原色
+              &.expanded {
+                background: #17a2b8;
+                color: white;
+                
+                &:hover:not(:disabled) {
+                  background: #138496;
+                }
+              }
+
+              &.no-children {
+                background: #f8f9fa !important;
+                color: #6c757d !important;
+                cursor: not-allowed !important;
+                
+                &:hover {
+                  transform: none;
+                  box-shadow: none;
+                }
+              }
+
+              // 加载状态
+              &.loading {
+                background: #ffc107;
+                color: #212529;
+                cursor: wait;
+                
+                &:hover {
+                  transform: none;
+                  background: #ffc107;
+                }
+                
+                .loading-spinner {
+                  display: inline-block;
+                  animation: spin 1s linear infinite;
+                  margin-right: 4px;
+                }
+              }
+
+              // 禁用状态
+              &:disabled {
+                opacity: 0.6;
+                cursor: not-allowed;
+                transform: none !important;
+                box-shadow: none !important;
+              }
+            }
           }
 
           .unit-name-cell {
@@ -824,7 +969,9 @@ onMounted(async () => {
               gap: 8px;
               position: relative;
               min-height: 50px; // 確保有足夠高度
-
+              .tree-connector{
+                color:#999;
+              }
               .expand-icon {
                 cursor: pointer;
                 font-size: 16px;
@@ -850,66 +997,12 @@ onMounted(async () => {
 
               .unit-name {
                 font-size: 14px;
-                color:#444;
+                color: #444;
                 z-index: 2;
                 text-decoration: none;
                 &:hover {
                   text-decoration: underline;
-                  color:#000;
-                }
-              }
-
-              // 測試用：明顯的紅色線條
-              &[data-level="2"] {
-                &::before {
-                  content: '';
-                  position: absolute;
-                  top: 50%;
-                  left: 10px;
-                  width: 15px;
-                  height: 3px;
-                  background: red;
-                  z-index: 5;
-                }
-              }
-
-              &[data-level="3"] {
-                &::before {
-                  content: '';
-                  position: absolute;
-                  top: 50%;
-                  left: 30px;
-                  width: 15px;
-                  height: 3px;
-                  background: blue;
-                  z-index: 5;
-                }
-              }
-
-              &[data-level="4"] {
-                &::before {
-                  content: '';
-                  position: absolute;
-                  top: 50%;
-                  left: 50px;
-                  width: 15px;
-                  height: 3px;
-                  background: green;
-                  z-index: 5;
-                }
-              }
-
-              // 垂直線測試
-              &[data-has-next="true"] {
-                &::after {
-                  content: '';
-                  position: absolute;
-                  left: calc(10px + (var(--level, 1) - 1) * 20px);
-                  top: 50%;
-                  height: 25px;
-                  width: 3px;
-                  background: purple;
-                  z-index: 5;
+                  color: #000;
                 }
               }
             }
@@ -953,12 +1046,29 @@ onMounted(async () => {
             }
           }
 
+          
           &.delete-btn {
+            background: #f8f9fa;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            color: #666;
+            transition: all 0.2s;
+
             &:hover {
-              background: #f8d7da;
-              color: #721c24;
+              background: #ffebee;
+              color: #d32f2f;
+              transform: scale(1.1);
             }
           }
+        }
+
+        .action-buttons {
+          display: flex;
+          gap: 8px;
+          align-items: center;
         }
       }
     }
@@ -1065,7 +1175,7 @@ onMounted(async () => {
 
   .table-container {
     .data-table {
-      min-width: 800px;
+      min-width: 900px; // 增加寬度以容納新的操作欄
     }
   }
 
@@ -1075,5 +1185,15 @@ onMounted(async () => {
     min-width: 28px;
     height: 28px;
   }
+
+  .action-buttons {
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 </style>

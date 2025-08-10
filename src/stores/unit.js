@@ -416,6 +416,52 @@ export const useUnitStore = defineStore('unit', () => {
             throw error;
         }
     }
+    // 如果沒有單位ID 則用該funcion 查用戶
+    const fetchEmptyUnitUsers = async (searchParams = {}) => {
+        try {
+            console.log('查詢所有有資格用戶:', searchParams);
+            
+            const params = {
+                // 可選參數
+                q: searchParams.q || undefined,
+                sortBy: searchParams.sortBy || 'name',
+                sortOrder: searchParams.sortOrder || 'ASC',
+                page: searchParams.page || 1,
+                pageSize: searchParams.pageSize || 10
+            };
+            
+            // 移除 undefined 值
+            Object.keys(params).forEach(key => {
+                if (params[key] === undefined) {
+                    delete params[key];
+                }
+            });
+            
+            console.log('查詢用戶 API 參數:', params);
+            
+            const response = await axiosClient.get('/backend/unit/user', { 
+                params: params
+            });
+            
+            console.log('所有有資格用戶查詢回應:', response.data);
+            
+            return {
+                success: true,
+                data: response.data,
+                message: response.data.message
+            };
+        } catch (error) {
+            console.error('查詢所有有資格用戶失敗:', error);
+            
+            if (error.response) {
+                console.error('錯誤狀態:', error.response.status);
+                console.error('錯誤資料:', error.response.data);
+                throw new Error(error.response.data.message || '查詢所有有資格用戶失敗');
+            }
+            throw error;
+        }
+    }
+
 
     // 新增單位 - 對應 POST /api/backend/unit/
     const createUnit = async (unitData) => {
@@ -521,6 +567,7 @@ export const useUnitStore = defineStore('unit', () => {
         fetchUnitUsers,
         createUnit,
         updateUnit,
-        deleteUnit
+        deleteUnit,
+        fetchEmptyUnitUsers
     }
 })

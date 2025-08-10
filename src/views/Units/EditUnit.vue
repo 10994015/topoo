@@ -36,6 +36,11 @@ const formData = reactive({
     }
   ]
 })
+// 備份資料
+const backupData = reactive({
+  originalUnitName: '',
+  originalUserSelections: []
+})
 
 // 編輯模式專用資料
 const editUnitData = ref(null)
@@ -524,24 +529,8 @@ const toggleLayerType = async (layerIndex) => {
 
 // 載入用戶資料
 const loadUsers = async (unitId = null, forceReload = false) => {
-  if (!unitId) {
-    console.log('沒有單位 ID，清空用戶列表')
-    availableUsers.value = []
-    totalUsers.value = 0
-    totalPages.value = 0
-    return
-  }
-
   try {
     isLoadingUsers.value = true
-    console.log('🔄 載入單位用戶:', { 
-      unitId, 
-      forceReload,
-      isEditMode: isEditMode.value, 
-      editUnitId: editUnitData.value?.id,
-      unitName: editUnitData.value?.name,
-      timestamp: new Date().toLocaleTimeString()
-    })
     
     const searchParams = {
       q: searchKeyword.value || undefined,
@@ -551,25 +540,67 @@ const loadUsers = async (unitId = null, forceReload = false) => {
       pageSize: pageSize.value
     }
     
-    console.log('📡 發送 fetchUnitUsers API 請求...')
-    const response = await unitStore.fetchUnitUsers(unitId, searchParams)
-    console.log('📡 fetchUnitUsers API 回應:', response)
+    let response
+    
+    if (unitId) {
+      // 有單位 ID，查詢特定單位的用戶
+      console.log('🔄 載入單位用戶:', { 
+        unitId, 
+        forceReload,
+        isEditMode: isEditMode.value, 
+        editUnitId: editUnitData.value?.id,
+        unitName: editUnitData.value?.name,
+        timestamp: new Date().toLocaleTimeString()
+      })
+      
+      console.log('📡 發送 fetchUnitUsers API 請求...')
+      response = await unitStore.fetchUnitUsers(unitId, searchParams)
+      console.log('📡 fetchUnitUsers API 回應:', response)
+    } else {
+      // 沒有單位 ID，查詢所有有資格的用戶
+      console.log('🔄 載入所有有資格用戶:', { 
+        forceReload,
+        searchParams,
+        timestamp: new Date().toLocaleTimeString()
+      })
+      
+      console.log('📡 發送 fetchEmptyUnitUsers API 請求...')
+      response = await unitStore.fetchEmptyUnitUsers(searchParams)
+      console.log('📡 fetchEmptyUnitUsers API 回應:', response)
+    }
     
     if (response.success && response.data && response.data.data) {
       const usersData = response.data.data
       console.log('📊 原始用戶資料:', usersData)
       
       // 處理用戶資料，加入 isSelected 狀態
-      const processedUsers = usersData.data.map(user => ({
-        id: user.id,
-        account: user.credential,
-        name: user.name,
-        nick_name: user.nick_name,
-        repair_unit: user.repair_unit,
-        status: user.is_join ? '已加入' : '未加入',
-        is_join: user.is_join,
-        isSelected: user.is_join // 已加入的預設選中
-      }))
+      let processedUsers
+      
+      if (unitId) {
+        // 有單位 ID 的情況：根據 is_join 設定 isSelected
+        processedUsers = usersData.data.map(user => ({
+          id: user.id,
+          account: user.credential,
+          name: user.name,
+          nick_name: user.nick_name,
+          repair_unit: user.repair_unit,
+          status: user.is_join ? '已加入' : '未加入',
+          is_join: user.is_join,
+          isSelected: user.is_join // 已加入的預設選中
+        }))
+      } else {
+        // 沒有單位 ID 的情況：所有用戶預設未選中
+        processedUsers = usersData.data.map(user => ({
+          id: user.id,
+          account: user.credential,
+          name: user.name,
+          nick_name: user.nick_name,
+          repair_unit: user.repair_unit,
+          status: '未加入',
+          is_join: false, // 預設未加入任何特定單位
+          isSelected: false // 預設未選中
+        }))
+      }
       
       console.log('🔄 更新 availableUsers.value...')
       availableUsers.value = processedUsers
@@ -579,20 +610,28 @@ const loadUsers = async (unitId = null, forceReload = false) => {
       totalPages.value = usersData.totalPages || 0
       currentPage.value = usersData.page || 1
       
-      console.log(`✅ 用戶載入完成:`, {
-        unitId,
-        unitName: editUnitData.value?.name,
-        totalUsers: availableUsers.value.length,
-        joinedUsers: availableUsers.value.filter(u => u.isSelected).length,
-        notJoinedUsers: availableUsers.value.filter(u => !u.isSelected).length,
-        timestamp: new Date().toLocaleTimeString()
-      })
-      
-      // 如果是編輯模式，額外顯示加入狀態詳情
-      if (isEditMode.value) {
-        console.log('📊 編輯模式用戶狀態詳情:')
-        availableUsers.value.forEach(user => {
-          console.log(`- ${user.name} (${user.account}): ${user.is_join ? '已加入' : '未加入'}`)
+      if (unitId) {
+        console.log(`✅ 單位用戶載入完成:`, {
+          unitId,
+          unitName: editUnitData.value?.name,
+          totalUsers: availableUsers.value.length,
+          joinedUsers: availableUsers.value.filter(u => u.isSelected).length,
+          notJoinedUsers: availableUsers.value.filter(u => !u.isSelected).length,
+          timestamp: new Date().toLocaleTimeString()
+        })
+        
+        // 如果是編輯模式，額外顯示加入狀態詳情
+        if (isEditMode.value) {
+          console.log('📊 編輯模式用戶狀態詳情:')
+          availableUsers.value.forEach(user => {
+            console.log(`- ${user.name} (${user.account}): ${user.is_join ? '已加入' : '未加入'}`)
+          })
+        }
+      } else {
+        console.log(`✅ 所有用戶載入完成:`, {
+          totalUsers: availableUsers.value.length,
+          allUsersAvailable: true,
+          timestamp: new Date().toLocaleTimeString()
         })
       }
       
@@ -907,21 +946,79 @@ const saveForm = async () => {
 }
 
 // 編輯模式：切換單位名稱編輯狀態
+// 2. 修改 toggleEditUnitName 函數
 const toggleEditUnitName = () => {
   if(!hasWriteUnitPermission.value){
     alert('您沒有權限編輯單位名稱')
     return
   }
-  isEditingUnitName.value = !isEditingUnitName.value
   
-  // 找到目標單位層級並更新鎖定狀態
-  const targetLayer = formData.unitLayers.find(layer => layer.isTarget)
-  if (targetLayer) {
-    targetLayer.isLocked = !isEditingUnitName.value
+  if (!isEditingUnitName.value) {
+    // 進入編輯模式 - 備份當前資料
+    console.log('進入編輯模式，備份當前資料')
+    
+    // 備份單位名稱
+    const targetLayer = formData.unitLayers.find(layer => layer.isTarget)
+    if (targetLayer) {
+      backupData.originalUnitName = targetLayer.inputValue
+    }
+    
+    // 備份用戶選擇狀態
+    backupData.originalUserSelections = availableUsers.value.map(user => ({
+      id: user.id,
+      isSelected: user.isSelected
+    }))
+    
+    console.log('備份資料:', {
+      unitName: backupData.originalUnitName,
+      userSelectionsCount: backupData.originalUserSelections.length
+    })
+    
+    // 設定編輯模式
+    isEditingUnitName.value = true
+    
+    // 找到目標單位層級並解鎖
+    if (targetLayer) {
+      targetLayer.isLocked = false
+    }
+  } else {
+    // 取消編輯模式 - 恢復備份資料
+    console.log('取消編輯模式，恢復備份資料')
+    
+    // 恢復單位名稱
+    const targetLayer = formData.unitLayers.find(layer => layer.isTarget)
+    if (targetLayer && backupData.originalUnitName !== '') {
+      targetLayer.inputValue = backupData.originalUnitName
+      console.log('恢復單位名稱:', backupData.originalUnitName)
+    }
+    
+    // 恢復用戶選擇狀態
+    if (backupData.originalUserSelections.length > 0) {
+      backupData.originalUserSelections.forEach(backup => {
+        const user = availableUsers.value.find(u => u.id === backup.id)
+        if (user) {
+          user.isSelected = backup.isSelected
+        }
+      })
+      console.log('恢復用戶選擇狀態完成')
+    }
+    
+    // 設定為非編輯模式
+    isEditingUnitName.value = false
+    
+    // 鎖定目標單位層級
+    if (targetLayer) {
+      targetLayer.isLocked = true
+    }
+    
+    // 清空備份資料
+    backupData.originalUnitName = ''
+    backupData.originalUserSelections = []
   }
   
-  console.log('切換編輯狀態:', isEditingUnitName.value)
+  console.log('編輯模式狀態:', isEditingUnitName.value)
 }
+
 
 // 重新載入編輯頁面資料
 const reloadEditPageData = async () => {
@@ -1000,12 +1097,6 @@ const saveUnitNameChange = async () => {
     }
     
     console.log('單位名稱更新 API 資料:', editData)
-    console.log('用戶狀態詳情:', availableUsers.value.map(user => ({
-      name: user.name,
-      account: user.account,
-      isSelected: user.isSelected,
-      will_be_in_unit: user.isSelected
-    })))
     
     const response = await unitStore.updateUnit(editUnitData.value.id, editData)
     
@@ -1018,8 +1109,14 @@ const saveUnitNameChange = async () => {
       isEditingUnitName.value = false
       targetLayer.isLocked = true
       
-      alert('單位名稱更新成功！')
-      reloadEditPageData();
+      // 清空備份資料（因為已經成功儲存）
+      backupData.originalUnitName = ''
+      backupData.originalUserSelections = []
+      
+      alert('單位更新成功！')
+      await reloadEditPageData();
+      
+      // 更新當前用戶的 repair_unit
       const currentUser = availableUsers.value.find(user => user.id === authStore.user.id);
       if (currentUser) {
         if (currentUser.isSelected) {
@@ -1032,8 +1129,6 @@ const saveUnitNameChange = async () => {
       } else {
         console.log('当前用户不在此单位的用户列表中');
       }
-
-      
       
     } else {
       alert('更新失敗：' + (response.message || '未知錯誤'))
@@ -1045,6 +1140,7 @@ const saveUnitNameChange = async () => {
     isSaving.value = false
   }
 }
+
 
 // 刪除單位
 const deleteUnit = async () => {
@@ -1131,6 +1227,10 @@ onMounted(async () => {
         type: formData.unitLayers[0].type, 
         options: formData.unitLayers[0].options.length 
       })
+      
+      // 創建模式：初始載入所有有資格的用戶
+      console.log('🚀 創建模式：載入所有有資格的用戶')
+      await loadUsers(null) // 沒有單位 ID，載入所有用戶
     }
     
     console.log('🚀 初始化完成，最終層級狀態:', formData.unitLayers.map(l => ({ 
@@ -1147,11 +1247,19 @@ onMounted(async () => {
     if (!isEditMode.value) {
       formData.unitLayers[0].type = 'input'
       formData.unitLayers[0].isLocked = false
+      
+      // fallback 時也嘗試載入用戶
+      try {
+        await loadUsers(null)
+      } catch (userError) {
+        console.error('❌ fallback 載入用戶失敗:', userError)
+      }
     }
   } finally {
     isLoading.value = false
   }
 })
+
 </script>
 
 <template>
@@ -1202,6 +1310,15 @@ onMounted(async () => {
             :disabled="isSaving"
           >
             刪除單位
+          </button>
+          <!-- 返回 -->
+          <button 
+            v-if="!isEditingUnitName"
+            class="cancel-btn" 
+            @click="cancel"
+            :disabled="isSaving"
+          >
+            <span>返回</span>
           </button>
           <button 
             v-else
@@ -1339,7 +1456,7 @@ onMounted(async () => {
             <input 
               v-model="searchKeyword"
               type="text" 
-              placeholder="輸入帳號、姓名或網稱"
+              placeholder="輸入帳號、姓名或暱稱"
               class="search-input"
               @keyup.enter="searchUsers"
               :disabled="!currentUnitId"
@@ -1371,12 +1488,13 @@ onMounted(async () => {
                     type="checkbox" 
                     @change="toggleSelectAll"
                     :checked="availableUsers.length > 0 && availableUsers.every(user => user.isSelected)"
+                    :disabled="!isEditingUnitName || isLoadingUsers"
                   />
                 </th>
                 <th class="sortable">項次</th>
                 <th class="sortable">帳號</th>
                 <th class="sortable">姓名</th>
-                <th class="sortable">網稱</th>
+                <th class="sortable">暱稱</th>
                 <th class="sortable">單位</th>
                 <th class="sortable">狀態</th>
               </tr>
@@ -1400,13 +1518,14 @@ onMounted(async () => {
                     type="checkbox" 
                     :checked="user.isSelected"
                     @change="toggleUserSelection(user.id)"
+                    :disabled="!isEditingUnitName || isLoadingUsers"
                   />
                 </td>
                 <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
                 <td>{{ user.account }}</td>
                 <td>{{ user.name }}</td>
                 <td>{{ user.nick_name }}</td>
-                <td>{{ user.repair_unit }}</td>
+                <td>{{ user.repair_unit || '-' }}</td>
                 <td>
                   <span :class="['status-badge', user.is_join ? 'status-active' : 'status-inactive']">
                     {{ user.status }}
@@ -1415,12 +1534,11 @@ onMounted(async () => {
               </tr>
               
               <!-- 無資料狀態 -->
-              <tr v-if="!isLoadingUsers && !currentUnitId">
-                <td colspan="7" class="no-data">請先選擇單位以載入用戶資料</td>
-              </tr>
-              
-              <tr v-else-if="!isLoadingUsers && currentUnitId && availableUsers.length === 0">
-                <td colspan="7" class="no-data">此單位暫無有資格的用戶</td>
+              <tr v-if="!isLoadingUsers && availableUsers.length === 0">
+                <td colspan="7" class="no-data">
+                  <span v-if="currentUnitId">此單位暫無有資格的用戶</span>
+                  <span v-else>暫無有資格的用戶</span>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -1429,9 +1547,10 @@ onMounted(async () => {
         <div class="table-footer">
           <div class="results-info">
             <span v-if="isLoadingUsers">載入中...</span>
-            <span v-else-if="!currentUnitId">請選擇單位</span>
             <span v-else>
               顯示第 {{ (currentPage - 1) * pageSize + 1 }} 到 {{ Math.min(currentPage * pageSize, totalUsers) }} 筆結果 共 {{ totalUsers }} 項
+              <span v-if="currentUnitId" class="unit-context">（當前單位）</span>
+              <span v-else class="all-users-context">（所有有資格用戶）</span>
             </span>
           </div>
           <div class="pagination">
@@ -1530,8 +1649,8 @@ onMounted(async () => {
     }
 
     .edit-btn {
-      background: #ffc107;
-      color: #212529;
+      background: #6C5CE7;
+      color: #fff;
       border: none;
       padding: 12px 20px;
       border-radius: 6px;
@@ -1541,7 +1660,7 @@ onMounted(async () => {
       transition: all 0.3s;
 
       &:hover:not(:disabled) {
-        background: #e0a800;
+        background: #5b4bcf;
         transform: translateY(-1px);
       }
 
