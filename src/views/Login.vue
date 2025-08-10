@@ -11,6 +11,8 @@ const account = ref('')
 const password = ref('')
 const showPassword = ref(false)
 
+const errorMsg = ref('')
+
 const togglePassword = () => {
   showPassword.value = !showPassword.value
 }
@@ -35,6 +37,7 @@ const handleLogin = async () => {
     router.push('/')
   } else {
     console.error('登入失敗', result.error);
+    errorMsg.value = result.error || '登入失敗，請檢查帳號或密碼'
     // 可以在這裡顯示錯誤訊息
     alert(result.error || '登入失敗，請檢查帳號或密碼')
   }
@@ -131,7 +134,9 @@ const handleGoogleError = (error) => {
             </button>
           </div>
         </div>
-        
+        <div v-if="errorMsg" class="error-message">
+          <span class="error-text">{{ errorMsg }}</span>
+        </div>
         <router-link 
           to="/forgot-password" 
           class="forgot-password"
@@ -285,6 +290,13 @@ const handleGoogleError = (error) => {
 
 .form-group {
   margin-bottom: 1.5rem;
+}
+.error-message{
+  margin-top: 0.5rem;
+  color: #ef4444;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 20px;
 }
 
 .input-wrapper {
