@@ -608,6 +608,32 @@ const loadUsers = async (unitId = null, forceReload = false) => {
         }))
       }
       
+      // ✨ 新增：將已加入的用戶排序置頂
+      if (unitId) {
+        // 將用戶分為兩組：已加入的和未加入的
+        const joinedUsers = processedUsers.filter(user => user.is_join)
+        const notJoinedUsers = processedUsers.filter(user => !user.is_join)
+        
+        // 對兩組分別按照姓名排序（保持原有的排序邏輯）
+        const sortUsers = (users) => {
+          return users.sort((a, b) => {
+            return a.name.localeCompare(b.name, 'zh-Hant', { numeric: true })
+          })
+        }
+        
+        // 合併：已加入的用戶在前，未加入的用戶在後
+        processedUsers = [
+          ...sortUsers(joinedUsers),
+          ...sortUsers(notJoinedUsers)
+        ]
+        
+        console.log('🔝 用戶排序完成:', {
+          joinedCount: joinedUsers.length,
+          notJoinedCount: notJoinedUsers.length,
+          totalCount: processedUsers.length
+        })
+      }
+      
       console.log('🔄 更新 availableUsers.value...')
       availableUsers.value = processedUsers
       
@@ -628,9 +654,9 @@ const loadUsers = async (unitId = null, forceReload = false) => {
         
         // 如果是編輯模式，額外顯示加入狀態詳情
         if (isEditMode.value) {
-          console.log('📊 編輯模式用戶狀態詳情:')
-          availableUsers.value.forEach(user => {
-            console.log(`- ${user.name} (${user.account}): ${user.is_join ? '已加入' : '未加入'}`)
+          console.log('📊 編輯模式用戶狀態詳情（已按加入狀態排序）:')
+          availableUsers.value.forEach((user, index) => {
+            console.log(`${index + 1}. ${user.name} (${user.account}): ${user.is_join ? '✅ 已加入' : '❌ 未加入'}`)
           })
         }
       } else {
@@ -660,6 +686,7 @@ const loadUsers = async (unitId = null, forceReload = false) => {
     console.log('🏁 loadUsers 函數執行完成，isLoadingUsers:', isLoadingUsers.value)
   }
 }
+
 
 // 用戶搜尋
 const searchUsers = async () => {

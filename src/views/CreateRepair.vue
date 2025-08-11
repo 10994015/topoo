@@ -50,7 +50,8 @@ const errors = reactive({
   title: '',
   repairCategoryId: '',
   repairReasonId: '',
-  repairTime: ''
+  repairTime: '',
+  depiction: '' // 新增問題描述的錯誤訊息
 })
 
 // 提交狀態
@@ -345,6 +346,12 @@ const validateForm = () => {
     isValid = false
   }
 
+  // 新增問題描述驗證
+  if (!repairForm.depiction.trim()) {
+    errors.depiction = '請輸入問題描述'
+    isValid = false
+  }
+
   return isValid
 }
 
@@ -445,7 +452,6 @@ onMounted(async () => {
   }
 })
 </script>
-
 <template>
   <div class="new-repair-page">
     <div class="repair-form-container">
@@ -559,18 +565,22 @@ onMounted(async () => {
         </div>
 
         <!-- 問題描述 -->
-        <div class="form-group" >
+        <div class="form-group required" >
           <label class="form-label">
-            問題描述
-            <span class="char-count">{{ repairForm.depiction.length }}/500</span>
+            <div >
+              問題描述 ({{ repairForm.depiction.length }}/500)
+            </div>
+            <span class="char-count"></span>
           </label>
           <textarea
             v-model="repairForm.depiction"
-            placeholder="11/05/08 發現系統登入人員名稱無法顯示，目前所有人員皆無法正常登入，麻煩盡快協助確認。"
+            placeholder="114/05/08 發現系統登入人員名稱無法顯示驗證碼，目前所有人員皆無法正常登入，錯誤畫面如附件所示。"
             class="form-textarea"
+            :class="{ error: errors.depiction }"
             rows="5"
             maxlength="500"
           ></textarea>
+          <span v-if="errors.depiction" class="error-message">{{ errors.depiction }}</span>
         </div>
 
         <!-- 檔案上傳區域 -->
@@ -663,7 +673,6 @@ onMounted(async () => {
     </div>
   </div>
 </template>
-
 <style lang="scss" scoped>
 .new-repair-page {
   min-height: 100vh;
