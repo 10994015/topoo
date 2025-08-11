@@ -263,7 +263,9 @@ const handleSubmenuClick = () => {
       }"
     >
       <div class="logo-section">
-        <h1 class="logo">TOPOO</h1>
+        <h1 class="logo">
+          <router-link to="/">TOPOO</router-link>
+        </h1>
         
         <!-- 手機版關閉按鈕 -->
         <button 
@@ -409,6 +411,10 @@ const handleSubmenuClick = () => {
       font-weight: 800;
       margin: 0 0 8px 0;
       letter-spacing: 2px;
+      a{
+        color:#fff;
+        text-decoration: none;
+      }
     }
 
     .system-name {
