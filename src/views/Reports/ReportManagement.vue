@@ -105,6 +105,54 @@ const levelImportanceOptions = [
   { value: '2', label: '保固級' },
   { value: '3', label: '急件' }
 ]
+
+// 監聽報修進度綜合表的維修類別變化
+watch(() => repairProgressForm.repairCategoryId, async (newCategoryId, oldCategoryId) => {
+  if (newCategoryId !== oldCategoryId) {
+    // 清空當前選擇的維修原因
+    repairProgressForm.repairReasonId = ''
+    
+    // 如果選擇了類別，則獲取對應的維修原因
+    if (newCategoryId) {
+      try {
+        await repairStore.fetchReasons(newCategoryId)
+        reasons.value = repairStore.reasons.data || []
+      } catch (error) {
+        console.error('獲取維修原因失敗:', error)
+        await repairStore.fetchReasons()
+        reasons.value = repairStore.reasons.data || []
+      }
+    } else {
+      
+      await repairStore.fetchReasons()
+      reasons.value = repairStore.reasons.data || []
+    }
+  }
+})
+
+// 監聽完修記錄報表的維修類別變化
+watch(() => completeRepairForm.repairCategoryId, async (newCategoryId, oldCategoryId) => {
+  if (newCategoryId !== oldCategoryId) {
+    // 清空當前選擇的維修原因
+    completeRepairForm.repairReasonId = ''
+    
+    // 如果選擇了類別，則獲取對應的維修原因
+    if (newCategoryId) {
+      try {
+        await repairStore.fetchReasons(newCategoryId)
+        reasons.value = repairStore.reasons.data || []
+      } catch (error) {
+        console.error('獲取維修原因失敗:', error)
+        await repairStore.fetchReasons()
+        reasons.value = repairStore.reasons.data || []
+      }
+    } else {
+      await repairStore.fetchReasons()
+      reasons.value = repairStore.reasons.data || []
+    }
+  }
+})
+
 // 監聽日期變化並驗證
 watch(() => repairProgressForm.startAt, (newValue) => {
   if (newValue && !validateDateRange(newValue)) {
@@ -149,7 +197,7 @@ watch(() => completeRepairForm.endAt, (newValue) => {
 })
 
 // 重置表單
-const resetForm = (formType) => {
+const resetForm = async (formType) => {
   switch (formType) {
     case 'repair-progress':
       Object.keys(repairProgressForm).forEach(key => {
@@ -166,6 +214,15 @@ const resetForm = (formType) => {
         completeRepairForm[key] = ''
       })
       break
+  }
+  
+  // 重置時，重新獲取所有維修原因（不帶類別ID）
+  try {
+    await repairStore.fetchReasons()
+    reasons.value = repairStore.reasons.data || []
+  } catch (error) {
+    console.error('重置時獲取維修原因失敗:', error)
+    reasons.value = []
   }
 }
 
@@ -198,8 +255,17 @@ const downloadReport = async (reportType) => {
 }
 
 // 切換標籤
-const switchTab = (tabName) => {
+const switchTab = async (tabName) => {
   activeTab.value = tabName
+  
+  // 切換標籤時重新獲取所有維修原因
+  try {
+    await repairStore.fetchReasons()
+    reasons.value = repairStore.reasons.data || []
+  } catch (error) {
+    console.error('切換標籤時獲取維修原因失敗:', error)
+    reasons.value = []
+  }
 }
 
 // 初始化數據
@@ -208,7 +274,7 @@ onMounted(async () => {
     // 載入下拉選項數據
     await Promise.all([
       repairStore.fetchCategories(),
-      repairStore.fetchReasons(),
+      repairStore.fetchReasons(), // 初始載入時獲取所有維修原因
       repairStore.fetchStatuses()
     ])
     
@@ -380,6 +446,13 @@ onMounted(async () => {
             <span v-else>📥</span>
             下載
           </button>
+          <button 
+            class="reset-btn"
+            @click="resetForm('repair-progress')"
+            :disabled="isLoading"
+          >
+            重置
+          </button>
         </div>
       </div>
     </section>
@@ -428,6 +501,13 @@ onMounted(async () => {
             <span v-if="reportStore.isLoading" class="loading-spinner">⟳</span>
             <span v-else>📥</span>
             下載
+          </button>
+          <button 
+            class="reset-btn"
+            @click="resetForm('account-management')"
+            :disabled="isLoading"
+          >
+            重置
           </button>
         </div>
       </div>
@@ -486,6 +566,13 @@ onMounted(async () => {
             <span v-if="reportStore.isLoading" class="loading-spinner">⟳</span>
             <span v-else>📥</span>
             下載
+          </button>
+          <button 
+            class="reset-btn"
+            @click="resetForm('complete-repair')"
+            :disabled="isLoading"
+          >
+            重置
           </button>
         </div>
       </div>
@@ -649,6 +736,7 @@ onMounted(async () => {
     .form-actions {
       margin-top: 30px;
       display: flex;
+      gap: 15px;
       justify-content: flex-start;
 
       .download-btn {
@@ -674,6 +762,30 @@ onMounted(async () => {
           background: #ccc;
           cursor: not-allowed;
           transform: none;
+        }
+      }
+
+      .reset-btn {
+        background: white;
+        color: #666;
+        border: 1px solid #ddd;
+        padding: 12px 20px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+
+        &:hover:not(:disabled) {
+          background: #f8f9fa;
+          border-color: #6c5ce7;
+          color: #6c5ce7;
+        }
+
+        &:disabled {
+          background: #f8f9fa;
+          color: #ccc;
+          cursor: not-allowed;
         }
       }
     }
@@ -720,6 +832,17 @@ onMounted(async () => {
     .date-separator {
       align-self: center;
       margin: 5px 0;
+    }
+  }
+
+  .form-actions {
+    flex-direction: column;
+    gap: 10px;
+
+    .download-btn,
+    .reset-btn {
+      width: 100%;
+      justify-content: center;
     }
   }
 }

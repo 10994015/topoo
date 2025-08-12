@@ -40,6 +40,7 @@ const emergencyLevels = ref([
   { id: '2', name: '中級' },
   { id: '3', name: '高級' }
 ]);
+
 // 分頁設定
 const currentPage = ref(1)
 const pageSize = ref(10)
@@ -54,6 +55,31 @@ const isSearching = ref(false)
 const todoData = ref([]);
 const totalItems = ref(0)
 const totalPages = ref(0)
+
+// 監聽維修類別變化，重新獲取對應的維修原因
+watch(() => searchForm.repairCategoryId, async (newCategoryId, oldCategoryId) => {
+  // 如果類別ID發生變化
+  if (newCategoryId !== oldCategoryId) {
+    // 清空當前選擇的維修原因
+    searchForm.repairReasonId = ''
+    
+    // 如果選擇了類別，則獲取對應的維修原因
+    if (newCategoryId) {
+      try {
+        await repairStore.fetchReasons(newCategoryId)
+        reasons.value = repairStore.reasons.data || []
+      } catch (error) {
+        console.error('獲取維修原因失敗:', error)
+        await repairStore.fetchReasons()
+        reasons.value = repairStore.reasons.data || []
+      }
+    } else {
+      
+      await repairStore.fetchReasons()
+      reasons.value = repairStore.reasons.data || []
+    }
+  }
+})
 
 const startItem = computed(() => {
   return totalItems.value === 0 ? 0 : (currentPage.value - 1) * pageSize.value + 1
@@ -115,7 +141,7 @@ watch(pageSize, async (newSize) => {
   await getTodoData(searchForm, sortColumn.value, sortDirection.value, newSize, currentPage.value);
 })
 
-const handleReset = () => {
+const handleReset = async () => {
   searchForm.q = ''
   searchForm.repairCategoryId = ''
   searchForm.repairReasonId = ''
@@ -125,6 +151,15 @@ const handleReset = () => {
   searchForm.startAt = ''
   searchForm.endAt = ''
   currentPage.value = 1
+  
+  // 重置時，重新獲取所有維修原因（不帶類別ID）
+  try {
+    await repairStore.fetchReasons()
+    reasons.value = repairStore.reasons.data || []
+  } catch (error) {
+    console.error('重置時獲取維修原因失敗:', error)
+    reasons.value = []
+  }
 }
 
 const sortBy = async (column) => {
@@ -145,6 +180,7 @@ const goToPage = async (page) => {
     currentPage.value = page
   }
 }
+
 const getImportanceLevelText = (level) => {
   const levelMap = {
     '1': '普級',
@@ -153,6 +189,7 @@ const getImportanceLevelText = (level) => {
   }
   return levelMap[level] || level
 }
+
 const getEmergencyLevelText = (level) => {
   const levelMap = {
     '1': '普級',
@@ -161,6 +198,7 @@ const getEmergencyLevelText = (level) => {
   }
   return levelMap[level] || level
 }
+
 const getLevelClass = (level) => {
   const levelClassMap = {
     '1': 'level-low',
@@ -204,7 +242,7 @@ onMounted(async () => {
   try {
     // 載入選項資料
     await repairStore.fetchCategories()
-    await repairStore.fetchReasons()
+    await repairStore.fetchReasons() // 初始載入時獲取所有維修原因
     await repairStore.fetchTodoStatuses()
     
     categories.value = repairStore.categories.data || []

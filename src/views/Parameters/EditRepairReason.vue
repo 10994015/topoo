@@ -407,7 +407,7 @@ const deleteReason = async (item) => {
       
       // 如果刪除的是當前編輯的原因，跳轉到新增模式
       if (isEditMode.value && item.id === reasonId.value) {
-        router.push(`/create-reason/${categoryId.value}`)
+        router.push(`/settings/parameter/repair-category-management`)
       }
     } else {
       console.error('刪除失敗:', result.message)

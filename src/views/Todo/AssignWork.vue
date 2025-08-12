@@ -526,7 +526,7 @@ const saveForm = async () => {
     
     if (response.success) {
       alert('儲存成功！')
-      router.go(-1) // 返回上一頁
+      router.push('/settings/todo-management')
     } else {
       throw new Error(response.message || '儲存失敗')
     }

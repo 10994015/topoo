@@ -38,6 +38,31 @@ const repairData = ref([]);
 const totalItems = ref(0)
 const totalPages = ref(0)
 
+// 監聽維修類別變化，重新獲取對應的維修原因
+watch(() => searchForm.repairCategoryId, async (newCategoryId, oldCategoryId) => {
+  // 如果類別ID發生變化
+  if (newCategoryId !== oldCategoryId) {
+    // 清空當前選擇的維修原因
+    searchForm.repairReasonId = ''
+    
+    // 如果選擇了類別，則獲取對應的維修原因
+    if (newCategoryId) {
+      try {
+        await repairStore.fetchReasons(newCategoryId)
+        reasons.value = repairStore.reasons.data
+      } catch (error) {
+        console.error('獲取維修原因失敗:', error)
+        await repairStore.fetchReasons()
+        reasons.value = repairStore.reasons.data
+      }
+    } else {
+      
+      await repairStore.fetchReasons()
+      reasons.value = repairStore.reasons.data
+    }
+  }
+})
+
 const startItem = computed(() => {
   return totalItems.value === 0 ? 0 : (currentPage.value - 1) * pageSize.value + 1
 })
@@ -101,7 +126,7 @@ watch(pageSize, async (newSize) => {
   await getRepairData(searchForm, sortColumn.value, sortDirection.value, newSize, currentPage.value);
 })
 
-const handleReset = () => {
+const handleReset = async () => {
   searchForm.title = ''
   searchForm.repairCategoryId = ''
   searchForm.repairReasonId = ''
@@ -109,6 +134,15 @@ const handleReset = () => {
   searchForm.startAt = ''
   searchForm.endAt = ''
   currentPage.value = 1
+  
+  // 重置時，重新獲取所有維修原因（不帶類別ID）
+  try {
+    await repairStore.fetchReasons()
+    reasons.value = repairStore.reasons.data
+  } catch (error) {
+    console.error('重置時獲取維修原因失敗:', error)
+    reasons.value = []
+  }
 }
 
 const sortBy = async (column) => {
@@ -162,7 +196,7 @@ onMounted(async ()=>{
   console.log('onMounted: RepairSystem');
   try {
     await repairStore.fetchCategories()
-    await repairStore.fetchReasons()
+    await repairStore.fetchReasons() // 初始載入時獲取所有維修原因
     await repairStore.fetchStatuses()
     await getRepairData(searchForm, "repair_time", "desc", pageSize.value, currentPage.value);
 
@@ -900,11 +934,6 @@ onMounted(async ()=>{
     gap: 15px;
     align-items: stretch;
   }
-
-  .pagination-section {
-    flex-direction: column;
-    gap: 15px;
-    text-align: center;
-  }
 }
+
 </style>
