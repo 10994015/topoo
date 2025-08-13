@@ -361,8 +361,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
                 monthlyStats.value.completedCases = response.data.data.completing_repair || 0
                 monthlyStats.value.newReports = response.data.data.remaining_repair || 0
                 monthlyStats.value.totalRepairs = response.data.data.all_repair || 0
-                monthlyStats.value.completionRate = response.data.data.rate * 100 || 0
-
+                monthlyStats.value.completionRate = Math.round((response.data.data.rate * 100) * 100) / 100 || 0
 
             } else {
                 console.warn('系統報修 API 響應狀態異常:', response.data)

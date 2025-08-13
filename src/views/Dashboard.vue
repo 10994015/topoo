@@ -440,7 +440,13 @@ const viewCase = (caseId) => {
 // 查看詳細資訊
 const viewDetails = () => {
   console.log('查看詳細資訊')
-  router.push('/repair-system')
+  let url = '/repair-system'
+  if(hasTodoPermission.value) {
+    url = 'settings/todo-management'
+  }else if(hasRepairTodoPermission.value) {
+    url = 'settings/repair-todo-management'
+  }
+  router.push(url)
 }
 
 // 監聽 store 數據變化，重新創建圖表
