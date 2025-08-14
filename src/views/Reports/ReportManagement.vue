@@ -394,7 +394,7 @@ onMounted(async () => {
             <input 
               type="text" 
               v-model="repairProgressForm.assignUserName"
-              placeholder="承辦人員"
+              placeholder="承辦人員姓名或帳號"
               class="form-input"
               :disabled="isLoading"
             />
