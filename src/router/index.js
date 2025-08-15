@@ -795,6 +795,7 @@ router.beforeEach(async (to, from, next) => {
 })
 // 🎯 在路由切換後更新網頁標題
 router.afterEach((to, from) => {
+  window.scrollTo(0, 0)
   // 設定網頁標題
   const systemName = 'TOPOO 線上報修系統'
   

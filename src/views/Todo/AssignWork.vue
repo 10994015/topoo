@@ -666,8 +666,6 @@ const onPreviewLoadError = (error) => {
   alert('預覽失敗，請稍後重試')
 }
 onMounted(async () => {
-    window.scrollTo(0, 0)
-
     await fetchTodoDetail()
     await fetchUsers();
     if (!formData.estimatedCompletionTime) {
