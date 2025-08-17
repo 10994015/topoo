@@ -20,7 +20,7 @@ const checkScreenSize = () => {
   isMobile.value = window.innerWidth <= 768
   // 桌面版自動展開側邊欄
   if (!isMobile.value) {
-    isSidebarOpen.value = true
+    isSidebarOpen.value = false
   }
 }
 
@@ -266,16 +266,6 @@ const handleSubmenuClick = () => {
         <h1 class="logo">
           <router-link to="/">TOPOO</router-link>
         </h1>
-        
-        <!-- 手機版關閉按鈕 -->
-        <button 
-          v-if="isMobile"
-          @click="closeSidebar"
-          class="close-btn"
-          aria-label="關閉選單"
-        >
-          ✕
-        </button>
       </div>
       
       <nav class="nav-menu">

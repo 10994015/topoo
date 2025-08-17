@@ -14,6 +14,10 @@ const showCurrentPassword = ref(false)
 const showNewPassword = ref(false)
 const showConfirmPassword = ref(false)
 
+// RWD 狀態管理
+const isMobile = ref(false)
+const isTablet = ref(false)
+
 // 密碼表單
 const passwordForm = reactive({
   currentPassword: '',
@@ -33,6 +37,13 @@ const userInfo = reactive({
   account: '',
   email: ''
 })
+
+// RWD 檢測
+const checkScreenSize = () => {
+  const width = window.innerWidth
+  isMobile.value = width < 768
+  isTablet.value = width >= 768 && width < 1024
+}
 
 // 密碼驗證規則
 const validatePassword = (password) => {
@@ -234,12 +245,16 @@ const goBack = () => {
 
 // 生命週期
 onMounted(() => {
+  // 初始化 RWD 檢測
+  checkScreenSize()
+  window.addEventListener('resize', checkScreenSize)
+  
   loadUserInfo();
 })
 </script>
 
 <template>
-  <div class="change-password-page">
+  <div class="change-password-page" :class="{ 'mobile-layout': isMobile, 'tablet-layout': isTablet }">
     <!-- 操作按鈕區域 -->
     <div class="action-buttons">
       <button 
@@ -280,7 +295,141 @@ onMounted(() => {
           </div>
         </div>
         
-        <table class="data-table">
+        <!-- 手機版卡片樣式 -->
+        <div v-if="isMobile" class="mobile-form">
+          <!-- 目前密碼 -->
+          <div class="form-card">
+            <label class="form-label">目前密碼 *</label>
+            <div class="password-input-wrapper">
+              <input 
+                :type="showCurrentPassword ? 'text' : 'password'"
+                v-model="passwordForm.currentPassword"
+                @blur="validateForm"
+                @input="validateForm"
+                class="form-input"
+                :class="{ error: errors.currentPassword }"
+                placeholder="請輸入目前密碼"
+                autocomplete="current-password"
+              />
+              <button 
+                type="button" 
+                @click="showCurrentPassword = !showCurrentPassword"
+                class="password-toggle"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24">
+                  <path :d="showCurrentPassword ? mdiEyeOff : mdiEye" fill="currentColor"></path>
+                </svg>
+              </button>
+            </div>
+            <div v-if="errors.currentPassword" class="error-message">
+              {{ errors.currentPassword }}
+            </div>
+          </div>
+
+          <!-- 新密碼 -->
+          <div class="form-card">
+            <label class="form-label">新密碼 *</label>
+            <div class="password-input-wrapper">
+              <input 
+                :type="showNewPassword ? 'text' : 'password'"
+                v-model="passwordForm.newPassword"
+                @input="handleNewPasswordChange"
+                @blur="validateForm"
+                class="form-input"
+                :class="{ error: errors.newPassword }"
+                placeholder="請輸入新密碼（8-20字元）"
+                autocomplete="new-password"
+              />
+              <button 
+                type="button" 
+                @click="showNewPassword = !showNewPassword"
+                class="password-toggle"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24">
+                  <path :d="showNewPassword ? mdiEyeOff : mdiEye" fill="currentColor"></path>
+                </svg>
+              </button>
+            </div>
+            
+            <!-- 密碼強度指示器 -->
+            <div v-if="passwordForm.newPassword" class="password-strength">
+              <div class="strength-bar">
+                <div 
+                  class="strength-fill" 
+                  :class="passwordStrengthClass"
+                  :style="{ width: (passwordStrength / 4) * 100 + '%' }"
+                ></div>
+              </div>
+              <span class="strength-text" :class="passwordStrengthClass">
+                密碼強度：{{ passwordStrengthText }}
+              </span>
+            </div>
+            
+            <div v-if="errors.newPassword" class="error-message">
+              {{ errors.newPassword }}
+            </div>
+            
+            <!-- 密碼建議 -->
+            <div class="password-tips">
+              <p class="tips-title">密碼複雜度要求：</p>
+              <ul class="tips-list">
+                <li :class="{ completed: passwordValidation?.length }">
+                  長度介於8至20字元之間
+                </li>
+                <li :class="{ completed: passwordValidation?.hasNumber }">
+                  包含至少一個數字
+                </li>
+                <li :class="{ completed: passwordValidation?.hasUppercase }">
+                  包含至少一個英文大寫字母
+                </li>
+                <li :class="{ completed: passwordValidation?.hasLowercase }">
+                  包含至少一個英文小寫字母
+                </li>
+                <li :class="{ completed: passwordValidation?.hasSpecialChar }">
+                  包含至少一個特殊符號（如：!@#$%^&*等）
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- 確認新密碼 -->
+          <div class="form-card">
+            <label class="form-label">確認新密碼 *</label>
+            <div class="password-input-wrapper">
+              <input 
+                :type="showConfirmPassword ? 'text' : 'password'"
+                v-model="passwordForm.confirmPassword"
+                @blur="validateForm"
+                @input="validateForm"
+                class="form-input"
+                :class="{ 
+                  error: errors.confirmPassword,
+                  success: passwordForm.confirmPassword && passwordForm.newPassword === passwordForm.confirmPassword && !errors.confirmPassword
+                }"
+                placeholder="請再次輸入新密碼"
+                autocomplete="new-password"
+              />
+              <button 
+                type="button" 
+                @click="showConfirmPassword = !showConfirmPassword"
+                class="password-toggle"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24">
+                  <path :d="showConfirmPassword ? mdiEyeOff : mdiEye" fill="currentColor"></path>
+                </svg>
+              </button>
+            </div>
+            <div v-if="passwordForm.confirmPassword && !errors.confirmPassword && passwordForm.newPassword === passwordForm.confirmPassword" class="success-message">
+              ✓ 密碼一致
+            </div>
+            <div v-if="errors.confirmPassword" class="error-message">
+              {{ errors.confirmPassword }}
+            </div>
+          </div>
+        </div>
+
+        <!-- 平板/桌面版表格樣式 -->
+        <table v-else class="data-table">
           <tbody>
             <tr class="table-row">
               <td class="label-cell">目前密碼 *</td>
@@ -301,9 +450,9 @@ onMounted(() => {
                     @click="showCurrentPassword = !showCurrentPassword"
                     class="password-toggle"
                   >
-                  <svg width="20" height="20" viewBox="0 0 24 24">
-                    <path :d="showCurrentPassword ? mdiEyeOff : mdiEye" fill="currentColor"></path>
-                  </svg>
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                      <path :d="showCurrentPassword ? mdiEyeOff : mdiEye" fill="currentColor"></path>
+                    </svg>
                   </button>
                 </div>
                 <div v-if="errors.currentPassword" class="error-message">
@@ -332,8 +481,8 @@ onMounted(() => {
                     class="password-toggle"
                   >
                     <svg width="20" height="20" viewBox="0 0 24 24">
-                    <path :d="showNewPassword ? mdiEyeOff : mdiEye" fill="currentColor"></path>
-                  </svg>
+                      <path :d="showNewPassword ? mdiEyeOff : mdiEye" fill="currentColor"></path>
+                    </svg>
                   </button>
                 </div>
                 
@@ -402,8 +551,8 @@ onMounted(() => {
                     class="password-toggle"
                   >
                     <svg width="20" height="20" viewBox="0 0 24 24">
-                    <path :d="showConfirmPassword ? mdiEyeOff : mdiEye" fill="currentColor"></path>
-                  </svg>
+                      <path :d="showConfirmPassword ? mdiEyeOff : mdiEye" fill="currentColor"></path>
+                    </svg>
                   </button>
                 </div>
                 <div v-if="passwordForm.confirmPassword && !errors.confirmPassword && passwordForm.newPassword === passwordForm.confirmPassword" class="success-message">
@@ -426,74 +575,28 @@ onMounted(() => {
   background-color: #f5f5f5;
   min-height: 100vh;
   padding: 0;
-}
 
-// 頁面標題區域
-.page-header {
-  background: white;
-  padding: 20px 30px;
-  border-bottom: 1px solid #e0e0e0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-
-  .header-left {
-    .page-title {
-      font-size: 24px;
-      font-weight: 600;
-      margin: 0 0 8px 0;
-      color: #333;
+  &.mobile-layout {
+    .content-container {
+      grid-template-columns: 1fr;
+      gap: 15px;
+      padding: 15px;
     }
 
-    .breadcrumb {
-      font-size: 14px;
-      color: #666;
+    .user-card {
+      order: 1;
+    }
 
-      .separator {
-        margin: 0 8px;
-        color: #999;
-      }
+    .password-table {
+      order: 2;
     }
   }
 
-  .header-right {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-
-    .user-info {
-      display: flex;
-      align-items: center;
-      cursor: pointer;
-      color: #6c5ce7;
-      font-weight: 500;
-
-      .username {
-        margin-right: 8px;
-      }
-
-      .dropdown-arrow {
-        font-size: 12px;
-      }
-    }
-
-    .icon-btn {
-      width: 32px;
-      height: 32px;
-      border: 1px solid #ddd;
-      background: white;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all 0.3s;
-
-      &:hover {
-        border-color: #6c5ce7;
-        color: #6c5ce7;
-      }
+  &.tablet-layout {
+    .content-container {
+      grid-template-columns: 280px 1fr;
+      gap: 16px;
+      padding: 16px 20px;
     }
   }
 }
@@ -505,6 +608,7 @@ onMounted(() => {
   display: flex;
   gap: 15px;
   border-bottom: 1px solid #e0e0e0;
+  flex-wrap: wrap;
 
   .save-btn {
     background: #6c5ce7;
@@ -516,14 +620,18 @@ onMounted(() => {
     font-weight: 500;
     cursor: pointer;
     transition: all 0.3s;
+    white-space: nowrap;
 
     &:hover:not(:disabled) {
       background: #5b4bcf;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     }
 
     &:disabled {
       background: #9ca3af;
       cursor: not-allowed;
+      transform: none;
     }
   }
 
@@ -537,15 +645,19 @@ onMounted(() => {
     font-size: 14px;
     cursor: pointer;
     transition: all 0.3s;
+    white-space: nowrap;
 
     &:hover:not(:disabled) {
       border-color: #6c5ce7;
       color: #6c5ce7;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     }
 
     &:disabled {
       color: #999;
       cursor: not-allowed;
+      transform: none;
     }
   }
 }
@@ -556,7 +668,8 @@ onMounted(() => {
   grid-template-columns: 300px 1fr;
   gap: 20px;
   padding: 20px 30px;
-  max-width: 1200px;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 // 用戶資訊卡片
@@ -566,22 +679,42 @@ onMounted(() => {
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   height: fit-content;
+  transition: all 0.3s;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
 
   .user-avatar {
     width: 80px;
     height: 80px;
     border-radius: 50%;
-    background: #6c5ce7;
+    background: linear-gradient(135deg, #6c5ce7 0%, #5b4bcf 100%);
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
     margin: 0 auto 20px;
     box-shadow: 0 4px 12px rgba(108, 92, 231, 0.3);
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+      border-radius: 50%;
+    }
 
     .avatar-initials {
       font-size: 32px;
       font-weight: bold;
+      position: relative;
+      z-index: 1;
     }
   }
 
@@ -606,6 +739,7 @@ onMounted(() => {
       font-size: 12px;
       color: #666;
       margin: 0;
+      word-break: break-all;
     }
   }
 }
@@ -620,7 +754,7 @@ onMounted(() => {
   .table-header {
     padding: 25px 30px;
     border-bottom: 1px solid #f0f0f0;
-    background: #fafbfc;
+    background: linear-gradient(135deg, #fafbfc 0%, #f8f9fa 100%);
 
     .table-title {
       font-size: 18px;
@@ -638,6 +772,37 @@ onMounted(() => {
 
       .notice-icon {
         font-size: 16px;
+        animation: pulse 2s infinite;
+      }
+    }
+  }
+
+  // 手機版卡片樣式
+  .mobile-form {
+    padding: 20px;
+
+    .form-card {
+      background: #fafbfc;
+      border: 1px solid #f0f0f0;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      transition: all 0.3s;
+
+      &:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      .form-label {
+        display: block;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 12px;
+        font-size: 14px;
       }
     }
   }
@@ -648,6 +813,11 @@ onMounted(() => {
 
     .table-row {
       border-bottom: 1px solid #f0f0f0;
+      transition: background-color 0.3s;
+
+      &:hover {
+        background: rgba(108, 92, 231, 0.02);
+      }
 
       &:last-child {
         border-bottom: none;
@@ -661,264 +831,598 @@ onMounted(() => {
         color: #333;
         border-right: 1px solid #f0f0f0;
         vertical-align: top;
+        position: relative;
+
+        &::after {
+          content: '';
+          position: absolute;
+          right: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 2px;
+          height: 60%;
+          background: linear-gradient(to bottom, transparent, #6c5ce7, transparent);
+          opacity: 0.3;
+        }
       }
 
       .value-cell {
         padding: 25px;
         vertical-align: top;
-
-        .password-input-wrapper {
-          position: relative;
-          display: flex;
-          align-items: center;
-
-          .form-input {
-            width: 100%;
-            max-width: 400px;
-            padding: 12px 45px 12px 15px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 14px;
-            transition: all 0.3s;
-
-            &:focus {
-              outline: none;
-              border-color: #6c5ce7;
-              box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.1);
-            }
-
-            &.error {
-              border-color: #dc3545;
-              box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
-            }
-
-            &.success {
-              border-color: #28a745;
-              box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
-            }
-          }
-
-          .password-toggle {
-            position: absolute;
-            right: 12px;
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 16px;
-            color: #666;
-            z-index: 2;
-
-            &:hover {
-              color: #6c5ce7;
-            }
-          }
-        }
-
-        // 密碼強度指示器
-        .password-strength {
-          margin-top: 10px;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-
-          .strength-bar {
-            width: 200px;
-            height: 4px;
-            background: #e9ecef;
-            border-radius: 2px;
-            overflow: hidden;
-
-            .strength-fill {
-              height: 100%;
-              transition: all 0.3s ease;
-              border-radius: 2px;
-
-              &.weak {
-                background: #dc3545;
-              }
-
-              &.medium {
-                background: #ffc107;
-              }
-
-              &.strong {
-                background: #28a745;
-              }
-            }
-          }
-
-          .strength-text {
-            font-size: 12px;
-            font-weight: 500;
-
-            &.weak {
-              color: #dc3545;
-            }
-
-            &.medium {
-              color: #ffc107;
-            }
-
-            &.strong {
-              color: #28a745;
-            }
-          }
-        }
-
-        // 密碼建議
-        .password-tips {
-          margin-top: 15px;
-          padding: 15px;
-          background: #f8f9fa;
-          border-radius: 6px;
-          border-left: 4px solid #6c5ce7;
-
-          .tips-title {
-            font-size: 12px;
-            font-weight: 600;
-            color: #333;
-            margin: 0 0 8px 0;
-          }
-
-          .tips-list {
-            margin: 0;
-            padding-left: 15px;
-            list-style: none;
-
-            li {
-              font-size: 12px;
-              color: #666;
-              margin-bottom: 4px;
-              position: relative;
-
-              &::before {
-                content: '○';
-                position: absolute;
-                left: -15px;
-                color: #ddd;
-              }
-
-              &.completed {
-                color: #28a745;
-                font-weight: 500;
-
-                &::before {
-                  content: '✓';
-                  color: #28a745;
-                }
-              }
-
-              &:last-child {
-                margin-bottom: 0;
-              }
-            }
-          }
-        }
-
-        .error-message {
-          color: #dc3545;
-          font-size: 12px;
-          margin-top: 5px;
-          display: flex;
-          align-items: center;
-          gap: 5px;
-
-          &::before {
-            content: '⚠️';
-            font-size: 14px;
-          }
-        }
-
-        .success-message {
-          color: #28a745;
-          font-size: 12px;
-          margin-top: 5px;
-          font-weight: 500;
-        }
       }
     }
   }
+}
+
+// 密碼輸入框樣式
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  .form-input {
+    width: 100%;
+    max-width: 400px;
+    padding: 12px 45px 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: all 0.3s;
+    background: white;
+
+    &:focus {
+      outline: none;
+      border-color: #6c5ce7;
+      box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.1);
+      transform: translateY(-1px);
+    }
+
+    &.error {
+      border-color: #dc3545;
+      box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+    }
+
+    &.success {
+      border-color: #28a745;
+      box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+    }
+
+    &::placeholder {
+      color: #999;
+    }
+  }
+
+  .password-toggle {
+    position: absolute;
+    right: 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    color: #666;
+    z-index: 2;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s;
+
+    &:hover {
+      color: #6c5ce7;
+      background: rgba(108, 92, 231, 0.1);
+    }
+  }
+}
+
+// 密碼強度指示器
+.password-strength {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  .strength-bar {
+    width: 200px;
+    height: 4px;
+    background: #e9ecef;
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(90deg, rgba(255,255,255,0.3) 0%, transparent 100%);
+      border-radius: 2px;
+    }
+
+    .strength-fill {
+      height: 100%;
+      transition: all 0.3s ease;
+      border-radius: 2px;
+      position: relative;
+
+      &.weak {
+        background: linear-gradient(90deg, #dc3545 0%, #e74c3c 100%);
+      }
+
+      &.medium {
+        background: linear-gradient(90deg, #ffc107 0%, #f39c12 100%);
+      }
+
+      &.strong {
+        background: linear-gradient(90deg, #28a745 0%, #27ae60 100%);
+      }
+    }
+  }
+
+  .strength-text {
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+
+    &.weak {
+      color: #dc3545;
+    }
+
+    &.medium {
+      color: #ffc107;
+    }
+
+    &.strong {
+      color: #28a745;
+    }
+  }
+}
+
+// 密碼建議
+.password-tips {
+  margin-top: 15px;
+  padding: 15px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #f1f3f4 100%);
+  border-radius: 6px;
+  border-left: 4px solid #6c5ce7;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, rgba(108, 92, 231, 0.02) 0%, transparent 100%);
+    pointer-events: none;
+  }
+
+  .tips-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #333;
+    margin: 0 0 8px 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  .tips-list {
+    margin: 0;
+    padding-left: 15px;
+    list-style: none;
+    position: relative;
+    z-index: 1;
+
+    li {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 4px;
+      position: relative;
+      transition: all 0.3s;
+      padding-left: 5px;
+
+      &::before {
+        content: '○';
+        position: absolute;
+        left: -15px;
+        color: #ddd;
+        transition: all 0.3s;
+      }
+
+      &.completed {
+        color: #28a745;
+        font-weight: 500;
+        transform: translateX(2px);
+
+        &::before {
+          content: '✓';
+          color: #28a745;
+          animation: checkmark 0.3s ease;
+        }
+      }
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+}
+
+// 訊息樣式
+.error-message {
+  color: #dc3545;
+  font-size: 12px;
+  margin-top: 5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  animation: shake 0.3s ease;
+
+  &::before {
+    content: '⚠️';
+    font-size: 14px;
+  }
+}
+
+.success-message {
+  color: #28a745;
+  font-size: 12px;
+  margin-top: 5px;
+  font-weight: 500;
+  animation: fadeIn 0.3s ease;
+}
+
+// 動畫
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+@keyframes checkmark {
+  0% { transform: scale(0); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; transform: translateY(-10px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 
 // 響應式設計
-@media (max-width: 768px) {
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 15px;
 
-    .header-right {
-      align-self: flex-end;
+// 平板樣式 (768px - 1024px)
+@media (max-width: 1024px) and (min-width: 768px) {
+  .change-password-page {
+    &.tablet-layout {
+      .action-buttons {
+        padding: 16px 20px;
+      }
+
+      .user-card {
+        padding: 20px;
+
+        .user-avatar {
+          width: 70px;
+          height: 70px;
+          margin-bottom: 16px;
+
+          .avatar-initials {
+            font-size: 28px;
+          }
+        }
+
+        .user-details {
+          .user-name {
+            font-size: 16px;
+          }
+        }
+      }
+
+      .password-table {
+        .table-header {
+          padding: 20px 25px;
+
+          .table-title {
+            font-size: 16px;
+          }
+
+          .security-notice {
+            font-size: 13px;
+          }
+        }
+
+        .data-table {
+          .table-row {
+            .label-cell {
+              width: 160px;
+              padding: 20px;
+              font-size: 13px;
+            }
+
+            .value-cell {
+              padding: 20px;
+            }
+          }
+        }
+      }
     }
   }
 
-  .action-buttons {
-    flex-wrap: wrap;
+  .password-strength .strength-bar {
+    width: 160px;
   }
+}
 
-  .content-container {
-    grid-template-columns: 1fr;
-    padding: 15px 20px;
-    gap: 15px;
+// 手機樣式 (< 768px)
+@media (max-width: 767px) {
+  .change-password-page {
+    &.mobile-layout {
+      .action-buttons {
+        padding: 15px;
+        gap: 10px;
+
+        .save-btn,
+        .reset-btn,
+        .back-btn {
+          flex: 1;
+          padding: 12px 16px;
+          font-size: 13px;
+          min-width: 0;
+        }
+      }
+
+      .content-container {
+        padding: 15px;
+        gap: 15px;
+      }
+
+      .user-card {
+        padding: 20px;
+        border-radius: 8px;
+
+        .user-avatar {
+          width: 70px;
+          height: 70px;
+          margin-bottom: 16px;
+
+          .avatar-initials {
+            font-size: 28px;
+          }
+        }
+
+        .user-details {
+          .user-name {
+            font-size: 16px;
+            margin-bottom: 6px;
+          }
+
+          .user-account {
+            font-size: 13px;
+            margin-bottom: 3px;
+          }
+
+          .user-email {
+            font-size: 11px;
+          }
+        }
+      }
+
+      .password-table {
+        .table-header {
+          padding: 20px;
+
+          .table-title {
+            font-size: 16px;
+            margin-bottom: 8px;
+          }
+
+          .security-notice {
+            font-size: 13px;
+          }
+        }
+
+        .mobile-form {
+          padding: 15px;
+
+          .form-card {
+            padding: 16px;
+            margin-bottom: 16px;
+            border-radius: 8px;
+
+            .form-label {
+              font-size: 13px;
+              margin-bottom: 10px;
+            }
+
+            .password-input-wrapper .form-input {
+              max-width: none;
+              padding: 12px 40px 12px 12px;
+              font-size: 16px; // 避免iOS縮放
+            }
+          }
+        }
+      }
+
+      .password-strength {
+        .strength-bar {
+          width: 150px;
+        }
+
+        .strength-text {
+          font-size: 11px;
+        }
+      }
+
+      .password-tips {
+        padding: 12px;
+        margin-top: 12px;
+
+        .tips-title {
+          font-size: 11px;
+          margin-bottom: 6px;
+        }
+
+        .tips-list li {
+          font-size: 11px;
+          margin-bottom: 3px;
+        }
+      }
+    }
   }
+}
 
-  .password-table {
-    .data-table {
-      .table-row {
-        .label-cell {
-          width: 120px;
-          padding: 20px 15px;
+// 超小屏幕樣式 (< 480px)
+@media (max-width: 479px) {
+  .change-password-page {
+    &.mobile-layout {
+      .action-buttons {
+        padding: 12px;
+        flex-direction: column;
+
+        .save-btn,
+        .reset-btn,
+        .back-btn {
+          width: 100%;
+          padding: 14px 20px;
           font-size: 14px;
         }
+      }
 
-        .value-cell {
-          padding: 20px 15px;
+      .content-container {
+        padding: 12px;
+        gap: 12px;
+      }
 
-          .password-input-wrapper .form-input {
-            max-width: none;
-          }
+      .user-card {
+        padding: 16px;
 
-          .password-strength .strength-bar {
-            width: 150px;
+        .user-avatar {
+          width: 60px;
+          height: 60px;
+          margin-bottom: 12px;
+
+          .avatar-initials {
+            font-size: 24px;
           }
         }
       }
-    }
-  }
-}
 
-// 極小螢幕
-@media (max-width: 480px) {
-  .content-container {
-    padding: 15px;
-  }
+      .password-table {
+        .table-header {
+          padding: 16px;
 
-  .password-table {
-    .data-table {
-      .table-row {
-        display: block;
-        border-bottom: 2px solid #f0f0f0;
+          .table-title {
+            font-size: 15px;
+          }
 
-        .label-cell,
-        .value-cell {
-          display: block;
+          .security-notice {
+            font-size: 12px;
+          }
+        }
+
+        .mobile-form {
+          padding: 12px;
+
+          .form-card {
+            padding: 14px;
+            margin-bottom: 12px;
+
+            .password-input-wrapper .form-input {
+              padding: 14px 40px 14px 12px;
+            }
+          }
+        }
+      }
+
+      .password-strength {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+
+        .strength-bar {
           width: 100%;
-          border-right: none;
-          border-bottom: 1px solid #f0f0f0;
+          height: 6px;
         }
+      }
 
-        .label-cell {
-          background: #f8f9fa;
-          padding: 12px 20px 8px;
-          font-size: 12px;
-          font-weight: 600;
-        }
+      .password-tips {
+        padding: 10px;
 
-        .value-cell {
-          padding: 8px 20px 20px;
+        .tips-list {
+          padding-left: 12px;
+
+          li {
+            font-size: 10px;
+          }
         }
       }
     }
   }
 }
+
+// 橫屏平板樣式
+@media (orientation: landscape) and (max-width: 1024px) and (min-width: 768px) {
+  .change-password-page.tablet-layout {
+    .content-container {
+      grid-template-columns: 260px 1fr;
+    }
+  }
+}
+
+// 高分辨率屏幕優化
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .form-input, .user-card, .password-table {
+    border-width: 0.5px;
+  }
+}
+
+// 列印樣式
+@media print {
+  .change-password-page {
+    background: white;
+    padding: 0;
+
+    .action-buttons {
+      display: none;
+    }
+
+    .content-container {
+      grid-template-columns: 1fr;
+      gap: 20px;
+      padding: 20px;
+    }
+
+    .password-table {
+      box-shadow: none;
+      border: 1px solid #ddd;
+
+      .password-tips {
+        background: white;
+        border: 1px solid #ddd;
+      }
+    }
+
+    .password-toggle {
+      display: none;
+    }
+  }
+}
+
+// 無障礙樣式
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 </style>

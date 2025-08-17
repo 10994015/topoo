@@ -1297,6 +1297,7 @@ onMounted(async () => {
 
 <template>
   <div class="create-unit-page">
+    <!-- 頁面標題區域 - 響應式設計 -->
     <div class="page-header">
       <h2>
         <span v-if="isCreateMode">新增單位群組</span>
@@ -1304,7 +1305,9 @@ onMounted(async () => {
         <span v-else-if="isEditMode">{{ hasWriteUnitPermission ? '編輯單位' : '檢視單位' }}</span>
         <span v-else>單位群組資訊</span>
       </h2>
-      <div class="header-actions">
+      
+      <!-- 桌面版和平板版按鈕群組 -->
+      <div class="header-actions desktop-tablet-actions">
         <!-- 非編輯模式的按鈕 -->
         <template v-if="!isEditMode">
           <button class="save-btn" @click="saveForm" :disabled="isSaving">
@@ -1365,6 +1368,59 @@ onMounted(async () => {
       </div>
     </div>
 
+    <!-- 手機版專用的浮動按鈕 -->
+    <div class="mobile-action-buttons">
+      <!-- 非編輯模式的按鈕 -->
+      <template v-if="!isEditMode">
+        <button class="mobile-save-btn" @click="saveForm" :disabled="isSaving">
+          <span class="btn-icon">💾</span>
+          <span class="btn-text">儲存</span>
+        </button>
+      </template>
+      
+      <!-- 編輯模式的按鈕 -->
+      <template v-else>
+        <button 
+          v-if="!isEditingUnitName && hasWriteUnitPermission"
+          class="mobile-edit-btn" 
+          @click="toggleEditUnitName"
+          :disabled="isSaving"
+        >
+          <span class="btn-icon">✏️</span>
+          <span class="btn-text">編輯</span>
+        </button>
+        <button 
+          v-else
+          class="mobile-save-btn" 
+          @click="saveUnitNameChange"
+          :disabled="isSaving"
+        >
+          <span class="btn-icon">💾</span>
+          <span class="btn-text">{{ isSaving ? '儲存中...' : '儲存' }}</span>
+        </button>
+        
+        <button 
+          v-if="!isEditingUnitName && hasWriteUnitPermission"
+          class="mobile-delete-btn" 
+          @click="deleteUnit"
+          :disabled="isSaving"
+        >
+          <span class="btn-icon">🗑️</span>
+          <span class="btn-text">刪除</span>
+        </button>
+      </template>
+      
+      <!-- 返回按鈕 - 手機版固定顯示 -->
+      <button 
+        class="mobile-back-btn" 
+        @click="isEditingUnitName ? toggleEditUnitName() : cancel()"
+        :disabled="isSaving"
+      >
+        <span class="btn-icon">{{ isEditingUnitName ? '❌' : '⬅️' }}</span>
+        <span class="btn-text">{{ isEditingUnitName ? '取消' : '返回' }}</span>
+      </button>
+    </div>
+
     <!-- 載入狀態 -->
     <div v-if="isLoading" class="loading-container">
       <div class="loading-spinner">⟳</div>
@@ -1372,94 +1428,211 @@ onMounted(async () => {
     </div>
 
     <div v-else class="form-container">
-      <!-- 單位階層選擇 -->
+      <!-- 單位階層選擇區域 -->
       <section class="unit-section">
-        <!-- 編輯模式單位資訊卡片 -->
+        <!-- 編輯模式單位資訊卡片 - 響應式 -->
         <div v-if="isEditMode" class="unit-info-card">
           <div class="unit-info-header">
             <h3>單位群組資訊</h3>
           </div>
           <div class="unit-info-content">
-            <div class="info-row">
-              <label class="info-label">單位</label>
-              <div class="info-value">{{ unitPath }}</div>
+            <!-- 桌面版和平板版 - 橫向佈局 -->
+            <div class="info-grid desktop-tablet-grid">
+              <div class="info-row">
+                <label class="info-label">單位</label>
+                <div class="info-value">{{ unitPath }}</div>
+              </div>
+              <div class="info-row">
+                <label class="info-label">人數</label>
+                <div class="info-value">{{ unitUsersCount }}</div>
+              </div>
+              <div class="info-row">
+                <label class="info-label">新增時間</label>
+                <div class="info-value">{{ formatDateTime(editUnitData?.created_at) || 'N/A' }}</div>
+              </div>
             </div>
-            <div class="info-row">
-              <label class="info-label">人數</label>
-              <div class="info-value">{{ unitUsersCount }}</div>
-            </div>
-            <div class="info-row">
-              <label class="info-label">新增時間</label>
-              <div class="info-value">{{ formatDateTime(editUnitData?.created_at) || 'N/A' }}</div>
+            
+            <!-- 手機版 - 縱向卡片式佈局 -->
+            <div class="info-grid mobile-grid">
+              <div class="info-card">
+                <div class="info-card-icon">🏢</div>
+                <div class="info-card-content">
+                  <div class="info-card-label">單位</div>
+                  <div class="info-card-value">{{ unitPath }}</div>
+                </div>
+              </div>
+              
+              <div class="info-card">
+                <div class="info-card-icon">👥</div>
+                <div class="info-card-content">
+                  <div class="info-card-label">人數</div>
+                  <div class="info-card-value">{{ unitUsersCount }}</div>
+                </div>
+              </div>
+              
+              <div class="info-card">
+                <div class="info-card-icon">📅</div>
+                <div class="info-card-content">
+                  <div class="info-card-label">新增時間</div>
+                  <div class="info-card-value">{{ formatDateTime(editUnitData?.created_at) || 'N/A' }}</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="form-row">
-          <label class="form-label">單位</label>
-          <div class="unit-layers">
-            <div 
-              v-for="(layer, index) in formData.unitLayers" 
-              :key="index"
-              class="layer-container"
-            >
-              <!-- Select 模式 -->
-              <div v-if="layer.type === 'select'" class="layer-item">
-                <select 
-                  v-model="layer.selectedId"
-                  @change="handleLayerChange(index)"
-                  :disabled="layer.isLoading || layer.isLocked"
-                  :class="['layer-select', { 'locked': layer.isLocked, 'target': layer.isTarget }]"
+        <!-- 單位選擇表單 -->
+        <div class="unit-form-section">
+          <!-- 桌面版和平板版 - 原有佈局 -->
+          <div class="desktop-tablet-form">
+            <div class="form-row">
+              <label class="form-label">單位</label>
+              <div class="unit-layers">
+                <div 
+                  v-for="(layer, index) in formData.unitLayers" 
+                  :key="index"
+                  class="layer-container"
                 >
-                  <option value="">請選擇單位</option>
-                  <option 
-                    v-for="option in layer.options" 
-                    :key="option.id" 
-                    :value="option.id"
+                  <!-- Select 模式 -->
+                  <div v-if="layer.type === 'select'" class="layer-item">
+                    <select 
+                      v-model="layer.selectedId"
+                      @change="handleLayerChange(index)"
+                      :disabled="layer.isLoading || layer.isLocked"
+                      :class="['layer-select', { 'locked': layer.isLocked, 'target': layer.isTarget }]"
+                    >
+                      <option value="">請選擇單位</option>
+                      <option 
+                        v-for="option in layer.options" 
+                        :key="option.id" 
+                        :value="option.id"
+                      >
+                        {{ option.name }}
+                      </option>
+                    </select>
+                    <button 
+                      class="toggle-btn" 
+                      @click="toggleLayerType(index)"
+                      :title="getToggleButtonTitle(layer)"
+                      :disabled="layer.isLocked || isEditMode"
+                      :class="{ 'locked': layer.isLocked || isEditMode }"
+                    >
+                      <span v-if="layer.isLocked || isEditMode">🔒</span>
+                      <span v-else>✏️</span>
+                    </button>
+                  </div>
+
+                  <!-- Input 模式 -->
+                  <div v-else class="layer-item">
+                    <input 
+                      v-model="layer.inputValue"
+                      @input="handleLayerChange(index)"
+                      :placeholder="getInputPlaceholder(layer)"
+                      :disabled="layer.isLocked"
+                      :class="['layer-input', { 
+                        'locked': layer.isLocked, 
+                        'target': layer.isTarget,
+                        'editable': layer.isTarget && isEditMode && isEditingUnitName
+                      }]"
+                    />
+                    <button 
+                      class="toggle-btn" 
+                      @click="toggleLayerType(index)"
+                      :title="getToggleButtonTitle(layer)"
+                      :disabled="layer.isLoading || layer.isLocked || isEditMode"
+                      :class="{ 'locked': layer.isLocked || isEditMode }"
+                    >
+                      <span v-if="layer.isLocked || isEditMode">🔒</span>
+                      <span v-else-if="layer.isLoading">⟳</span>
+                      <span v-else>📋</span>
+                    </button>
+                  </div>
+
+                  <!-- 層級分隔符 -->
+                  <span v-if="index < formData.unitLayers.length - 1" class="layer-separator">></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 手機版 - 卡片式佈局 -->
+          <div class="mobile-form">
+            <div class="mobile-form-header">
+              <h4>單位層級設定</h4>
+              <span class="layer-count">{{ formData.unitLayers.length }}/5</span>
+            </div>
+            
+            <div class="mobile-layers">
+              <div 
+                v-for="(layer, index) in formData.unitLayers" 
+                :key="index"
+                class="mobile-layer-card"
+                :class="{ 
+                  'locked': layer.isLocked, 
+                  'target': layer.isTarget,
+                  'editable': layer.isTarget && isEditMode && isEditingUnitName
+                }"
+              >
+                <div class="mobile-layer-header">
+                  <div class="layer-info">
+                    <span class="layer-type-badge" :class="layer.type">
+                      {{ layer.type === 'select' ? '選擇' : '輸入' }}
+                    </span>
+                  </div>
+                  
+                  <button 
+                    v-if="!layer.isLocked && !isEditMode"
+                    class="mobile-toggle-btn" 
+                    @click="toggleLayerType(index)"
+                    :disabled="layer.isLoading"
                   >
-                    {{ option.name }}
-                  </option>
-                </select>
-                <button 
-                  class="toggle-btn" 
-                  @click="toggleLayerType(index)"
-                  :title="getToggleButtonTitle(layer)"
-                  :disabled="layer.isLocked || isEditMode"
-                  :class="{ 'locked': layer.isLocked || isEditMode }"
-                >
-                  <span v-if="layer.isLocked || isEditMode">🔒</span>
-                  <span v-else>✏️</span>
-                </button>
-              </div>
+                    <span v-if="layer.isLoading">⟳</span>
+                    <span v-else-if="layer.type === 'select'">✏️</span>
+                    <span v-else>📋</span>
+                  </button>
+                  
+                  <span v-else-if="layer.isLocked || isEditMode" class="lock-indicator">
+                    🔒
+                  </span>
+                </div>
 
-              <!-- Input 模式 -->
-              <div v-else class="layer-item">
-                <input 
-                  v-model="layer.inputValue"
-                  @input="handleLayerChange(index)"
-                  :placeholder="getInputPlaceholder(layer)"
-                  :disabled="layer.isLocked"
-                  :class="['layer-input', { 
-                    'locked': layer.isLocked, 
-                    'target': layer.isTarget,
-                    'editable': layer.isTarget && isEditMode && isEditingUnitName
-                  }]"
-                />
-                <button 
-                  class="toggle-btn" 
-                  @click="toggleLayerType(index)"
-                  :title="getToggleButtonTitle(layer)"
-                  :disabled="layer.isLoading || layer.isLocked || isEditMode"
-                  :class="{ 'locked': layer.isLocked || isEditMode }"
-                >
-                  <span v-if="layer.isLocked || isEditMode">🔒</span>
-                  <span v-else-if="layer.isLoading">⟳</span>
-                  <span v-else>📋</span>
-                </button>
-              </div>
+                <div class="mobile-layer-content">
+                  <!-- Select 模式 -->
+                  <div v-if="layer.type === 'select'" class="mobile-select-container">
+                    <select 
+                      v-model="layer.selectedId"
+                      @change="handleLayerChange(index)"
+                      :disabled="layer.isLoading || layer.isLocked"
+                      class="mobile-layer-select"
+                    >
+                      <option value="">請選擇單位</option>
+                      <option 
+                        v-for="option in layer.options" 
+                        :key="option.id" 
+                        :value="option.id"
+                      >
+                        {{ option.name }}
+                      </option>
+                    </select>
+                  </div>
 
-              <!-- 層級分隔符 -->
-              <span v-if="index < formData.unitLayers.length - 1" class="layer-separator">></span>
+                  <!-- Input 模式 -->
+                  <div v-else class="mobile-input-container">
+                    <input 
+                      v-model="layer.inputValue"
+                      @input="handleLayerChange(index)"
+                      :placeholder="getInputPlaceholder(layer)"
+                      :disabled="layer.isLocked"
+                      class="mobile-layer-input"
+                    />
+                  </div>
+                </div>
+
+                <!-- 特殊狀態指示 -->
+                <div v-if="layer.isTarget" class="target-indicator">
+                  <span class="target-badge">目標單位</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1471,20 +1644,22 @@ onMounted(async () => {
             @click="addManualLayer"
             :disabled="formData.unitLayers.length >= 5"
           >
-            + 添加新層級
+            <span class="btn-icon">➕</span>
+            <span class="btn-text">添加新層級</span>
           </button>
         </div>
+
         <!-- 單位路徑預覽 -->
         <div v-if="unitPath" class="unit-path-preview">
           <label class="form-label">單位路徑預覽</label>
           <div class="path-display">{{ unitPath }}</div>
         </div>
-
       </section>
 
       <!-- 用戶管理區域 -->
       <section class="users-section">
-        <div class="users-header">
+        <!-- 桌面版和平板版標題區 -->
+        <div class="users-header desktop-tablet-header">
           <div class="search-area">
             <input 
               v-model="searchKeyword"
@@ -1510,8 +1685,42 @@ onMounted(async () => {
             </select>
           </div>
         </div>
-        <!-- 用戶表格 -->
-        <div class="users-table-container">
+
+        <!-- 手機版搜尋區 -->
+        <div class="mobile-search-section">
+          <div class="mobile-search-header">
+            <h4>用戶管理</h4>
+            <div class="search-controls">
+              <select v-model="pageSize" class="mobile-page-size">
+                <option value="10">10筆</option>
+                <option value="20">20筆</option>
+                <option value="50">50筆</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="mobile-search-bar">
+            <div class="search-input-group">
+              <input 
+                v-model="searchKeyword"
+                type="text" 
+                placeholder="搜尋帳號、姓名或暱稱"
+                class="mobile-search-input"
+                @keyup.enter="searchUsers"
+              />
+              <button class="mobile-search-btn" @click="searchUsers" :disabled="isSearching">
+                <span v-if="isSearching">⟳</span>
+                <span v-else>🔍</span>
+              </button>
+            </div>
+            <button class="mobile-reset-btn" @click="resetSearch">
+              重置
+            </button>
+          </div>
+        </div>
+
+        <!-- 桌面版和平板版用戶表格 -->
+        <div class="users-table-container desktop-tablet-table">
           <table class="users-table">
             <thead>
               <tr>
@@ -1576,6 +1785,94 @@ onMounted(async () => {
           </table>
         </div>
 
+        <!-- 手機版用戶卡片列表 -->
+        <div class="mobile-users-list">
+          <!-- 全選控制 -->
+          <div v-if="hasWriteUnitPermission && availableUsers.length > 0" class="mobile-select-all">
+            <label class="select-all-checkbox">
+              <input 
+                type="checkbox" 
+                @change="toggleSelectAll"
+                :checked="availableUsers.every(user => user.isSelected)"
+                :disabled="isEditMode && (!isEditingUnitName || isLoadingUsers)"
+              />
+              <span class="select-all-text">全選/取消全選</span>
+            </label>
+          </div>
+
+          <!-- 載入狀態 -->
+          <div v-if="isLoadingUsers" class="mobile-loading">
+            <div class="loading-spinner large">⟳</div>
+            <div class="loading-text">載入用戶資料中...</div>
+          </div>
+          
+          <!-- 用戶卡片 -->
+          <div v-else class="user-cards">
+            <div 
+              v-for="(user, index) in availableUsers" 
+              :key="user.id" 
+              class="user-card"
+              :class="{ 
+                selected: user.isSelected, 
+                'existing-member': user.is_join,
+                disabled: isEditMode && (!isEditingUnitName || isLoadingUsers)
+              }"
+              @click="hasWriteUnitPermission && (!isEditMode || isEditingUnitName) && !isLoadingUsers ? toggleUserSelection(user.id) : null"
+            >
+              <!-- 卡片標題 -->
+              <div class="user-card-header">
+                <div class="user-basic-info">
+                  <div class="user-name">{{ user.name }}</div>
+                  <div class="user-account">{{ user.account }}</div>
+                </div>
+                
+                <div class="card-controls">
+                  <span class="user-index">#{{ (currentPage - 1) * pageSize + index + 1 }}</span>
+                  <input 
+                    v-if="hasWriteUnitPermission"
+                    type="checkbox" 
+                    :checked="user.isSelected"
+                    @click.stop
+                    @change="toggleUserSelection(user.id)"
+                    :disabled="isEditMode && (!isEditingUnitName || isLoadingUsers)"
+                    class="user-checkbox"
+                  />
+                </div>
+              </div>
+
+              <!-- 卡片內容 -->
+              <div class="user-card-content">
+                <div class="user-field">
+                  <span class="field-label">暱稱</span>
+                  <span class="field-value">{{ user.nick_name || '-' }}</span>
+                </div>
+                
+                <div class="user-field">
+                  <span class="field-label">所屬單位</span>
+                  <span class="field-value">{{ user.repair_unit || '-' }}</span>
+                </div>
+                
+                <div class="user-field">
+                  <span class="field-label">狀態</span>
+                  <span :class="['status-badge mobile-status', user.is_join ? 'status-active' : 'status-inactive']">
+                    {{ user.status }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 無資料狀態 -->
+          <div v-if="!isLoadingUsers && availableUsers.length === 0" class="mobile-no-data">
+            <div class="no-data-icon">👥</div>
+            <div class="no-data-text">
+              <span v-if="currentUnitId">此單位暫無有資格的用戶</span>
+              <span v-else>暫無有資格的用戶</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 分頁和統計資訊 -->
         <div class="table-footer">
           <div class="results-info">
             <span v-if="isLoadingUsers">載入中...</span>
@@ -1585,6 +1882,7 @@ onMounted(async () => {
               <span v-else class="all-users-context">（所有有資格用戶）</span>
             </span>
           </div>
+          
           <div class="pagination">
             <button 
               class="page-btn" 
@@ -1628,48 +1926,102 @@ onMounted(async () => {
     </div>
   </div>
 </template>
-
 <style lang="scss" scoped>
+// 響應式斷點
+$breakpoint-mobile: 480px;
+$breakpoint-tablet: 768px;
+$breakpoint-desktop: 1024px;
+
+// 顏色定義
+$primary-color: #6c5ce7;
+$primary-hover: #5b4bcf;
+$success-color: #28a745;
+$success-hover: #218838;
+$danger-color: #dc3545;
+$danger-hover: #c82333;
+$warning-color: #ffc107;
+$warning-bg: #fff3cd;
+$warning-text: #856404;
+
+// 基礎樣式
 .create-unit-page {
-  padding: 20px;
+  padding: 16px;
   background-color: #f5f5f5;
   min-height: 100vh;
+
+  @media (min-width: $breakpoint-tablet) {
+    padding: 20px;
+  }
+
+  @media (min-width: $breakpoint-desktop) {
+    padding: 24px;
+  }
 }
 
+// 頁面標題區域
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
-  padding: 20px 30px;
+  margin-bottom: 20px;
+  padding: 16px 20px;
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 
+  @media (max-width: $breakpoint-mobile) {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+    padding: 16px;
+  }
+
+  @media (min-width: $breakpoint-tablet) {
+    margin-bottom: 30px;
+    padding: 20px 30px;
+  }
+
   h2 {
     margin: 0;
     color: #333;
-    font-size: 24px;
+    font-size: 18px;
     font-weight: 600;
+
+    @media (min-width: $breakpoint-tablet) {
+      font-size: 22px;
+    }
+
+    @media (min-width: $breakpoint-desktop) {
+      font-size: 24px;
+    }
   }
 
-  .header-actions {
-    display: flex;
-    gap: 10px;
+  // 桌面版和平板版按鈕群組
+  .desktop-tablet-actions {
+    display: none;
 
-    .save-btn {
-      background: #6c5ce7;
+    @media (min-width: $breakpoint-tablet) {
+      display: flex;
+      gap: 10px;
+    }
+
+    .save-btn, .edit-btn {
+      background: $primary-color;
       color: white;
       border: none;
-      padding: 12px 30px;
+      padding: 10px 20px;
       border-radius: 6px;
       font-size: 14px;
       font-weight: 500;
       cursor: pointer;
       transition: all 0.3s;
 
+      @media (min-width: $breakpoint-desktop) {
+        padding: 12px 30px;
+      }
+
       &:hover:not(:disabled) {
-        background: #5b4bcf;
+        background: $primary-hover;
         transform: translateY(-1px);
       }
 
@@ -1680,58 +2032,23 @@ onMounted(async () => {
       }
     }
 
-    .edit-btn {
-      background: #6C5CE7;
-      color: #fff;
-      border: none;
-      padding: 12px 20px;
-      border-radius: 6px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.3s;
-
-      &:hover:not(:disabled) {
-        background: #5b4bcf;
-        transform: translateY(-1px);
-      }
-
-      &:disabled {
-        background: #ccc;
-        cursor: not-allowed;
-        transform: none;
-      }
-    }
-    .cancel-btn{
-        background: #f8f9fa;
-        color: #666;
-        border: 1px solid #ddd;
-        padding: 12px 20px;
-        border-radius: 6px;
-        font-size: 14px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.3s;
-    
-        &:hover {
-            background: #e9ecef;
-            border-color: #6c5ce7;
-            color: #6c5ce7;
-        }
-    }
     .delete-btn {
-      background: #dc3545;
+      background: $danger-color;
       color: white;
       border: none;
-      padding: 12px 20px;
+      padding: 10px 20px;
       border-radius: 6px;
       font-size: 14px;
       font-weight: 500;
       cursor: pointer;
       transition: all 0.3s;
 
+      @media (min-width: $breakpoint-desktop) {
+        padding: 12px 20px;
+      }
+
       &:hover:not(:disabled) {
-        background: #c82333;
+        background: $danger-hover;
         transform: translateY(-1px);
       }
 
@@ -1743,41 +2060,142 @@ onMounted(async () => {
     }
 
     .cancel-btn {
-      background: white;
+      background: #f8f9fa;
       color: #666;
       border: 1px solid #ddd;
-      padding: 12px 20px;
+      padding: 10px 20px;
       border-radius: 6px;
       font-size: 14px;
       font-weight: 500;
       cursor: pointer;
       transition: all 0.3s;
 
+      @media (min-width: $breakpoint-desktop) {
+        padding: 12px 20px;
+      }
+
       &:hover {
-        background: #f8f9fa;
-        border-color: #6c5ce7;
-        color: #6c5ce7;
+        background: #e9ecef;
+        border-color: $primary-color;
+        color: $primary-color;
       }
     }
   }
 }
 
+// 手機版浮動按鈕
+.mobile-action-buttons {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  z-index: 1000;
+  padding: 0 16px;
+
+  @media (min-width: $breakpoint-tablet) {
+    display: none;
+  }
+
+  .mobile-save-btn, .mobile-edit-btn, .mobile-delete-btn, .mobile-back-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    border-radius: 50px;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    transition: all 0.3s;
+    min-width: 64px;
+    height: 64px;
+
+    .btn-icon {
+      font-size: 20px;
+      margin-bottom: 2px;
+    }
+
+    .btn-text {
+      font-size: 10px;
+      font-weight: 500;
+      line-height: 1;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+  }
+
+  .mobile-save-btn, .mobile-edit-btn {
+    background: $primary-color;
+    color: white;
+
+    &:hover:not(:disabled) {
+      background: $primary-hover;
+      transform: translateY(-2px);
+    }
+  }
+
+  .mobile-delete-btn {
+    background: $danger-color;
+    color: white;
+
+    &:hover:not(:disabled) {
+      background: $danger-hover;
+      transform: translateY(-2px);
+    }
+  }
+
+  .mobile-back-btn {
+    background: #f8f9fa;
+    color: #666;
+    border: 1px solid #ddd;
+
+    &:hover:not(:disabled) {
+      background: #e9ecef;
+      transform: translateY(-2px);
+    }
+  }
+}
+
+// 載入狀態
 .loading-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 20px;
+  padding: 40px 20px;
   color: #666;
 
+  @media (min-width: $breakpoint-tablet) {
+    padding: 60px 20px;
+  }
+
   .loading-spinner {
-    font-size: 32px;
+    font-size: 24px;
     animation: spin 1s linear infinite;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
+
+    @media (min-width: $breakpoint-tablet) {
+      font-size: 32px;
+      margin-bottom: 16px;
+    }
+
+    &.large {
+      font-size: 32px;
+    }
   }
 
   .loading-text {
-    font-size: 16px;
+    font-size: 14px;
+
+    @media (min-width: $breakpoint-tablet) {
+      font-size: 16px;
+    }
   }
 }
 
@@ -1786,189 +2204,455 @@ onMounted(async () => {
   100% { transform: rotate(360deg); }
 }
 
+// 表單容器
 .form-container {
   display: flex;
   flex-direction: column;
-  gap: 30px;
+  gap: 20px;
+
+  @media (min-width: $breakpoint-tablet) {
+    gap: 30px;
+  }
 }
 
+// 單位選擇區域
 .unit-section {
   background: white;
-  padding: 30px;
+  padding: 20px;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 
+  @media (min-width: $breakpoint-tablet) {
+    padding: 30px;
+  }
+
+  // 單位資訊卡片
   .unit-info-card {
     background: #f8f9fa;
     border: 1px solid #dee2e6;
     border-radius: 8px;
-    margin-bottom: 25px;
+    margin-bottom: 20px;
     overflow: hidden;
 
+    @media (min-width: $breakpoint-tablet) {
+      margin-bottom: 25px;
+    }
+
     .unit-info-header {
-      background: #6c5ce7;
+      background: $primary-color;
       color: white;
-      padding: 15px 20px;
+      padding: 12px 16px;
+
+      @media (min-width: $breakpoint-tablet) {
+        padding: 15px 20px;
+      }
       
       h3 {
         margin: 0;
-        font-size: 16px;
+        font-size: 14px;
         font-weight: 600;
+
+        @media (min-width: $breakpoint-tablet) {
+          font-size: 16px;
+        }
       }
     }
 
     .unit-info-content {
-      padding: 20px;
+      padding: 16px;
 
-      .info-row {
+      @media (min-width: $breakpoint-tablet) {
+        padding: 20px;
+      }
+
+      // 桌面版和平板版 - 橫向佈局
+      .desktop-tablet-grid {
+        display: none;
+
+        @media (min-width: $breakpoint-tablet) {
+          display: block;
+        }
+
+        .info-row {
+          display: flex;
+          align-items: center;
+          padding: 8px 0;
+          border-bottom: 1px solid #e9ecef;
+
+          &:last-child {
+            border-bottom: none;
+          }
+
+          .info-label {
+            min-width: 80px;
+            font-weight: 500;
+            color: #495057;
+            font-size: 14px;
+          }
+
+          .info-value {
+            flex: 1;
+            color: #212529;
+            font-size: 14px;
+            font-weight: 500;
+          }
+        }
+      }
+
+      // 手機版 - 縱向卡片式佈局
+      .mobile-grid {
         display: flex;
-        align-items: center;
-        padding: 8px 0;
-        border-bottom: 1px solid #e9ecef;
+        flex-direction: column;
+        gap: 12px;
 
-        &:last-child {
-          border-bottom: none;
+        @media (min-width: $breakpoint-tablet) {
+          display: none;
         }
 
-        .info-label {
-          min-width: 80px;
-          font-weight: 500;
-          color: #495057;
-          font-size: 14px;
-        }
+        .info-card {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px;
+          background: white;
+          border-radius: 6px;
+          border: 1px solid #e9ecef;
 
-        .info-value {
-          flex: 1;
-          color: #212529;
-          font-size: 14px;
-          font-weight: 500;
+          .info-card-icon {
+            font-size: 20px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8f9fa;
+            border-radius: 50%;
+          }
+
+          .info-card-content {
+            flex: 1;
+
+            .info-card-label {
+              font-size: 12px;
+              color: #6c757d;
+              margin-bottom: 2px;
+            }
+
+            .info-card-value {
+              font-size: 14px;
+              font-weight: 500;
+              color: #212529;
+            }
+          }
         }
       }
     }
   }
 
-  .form-row {
-    display: flex;
-    align-items: center;
-    margin-bottom: 20px;
-    gap: 20px;
+  // 單位表單區域
+  .unit-form-section {
+    .desktop-tablet-form {
+      display: none;
 
-    &:last-child {
-      margin-bottom: 0;
+      @media (min-width: $breakpoint-tablet) {
+        display: block;
+      }
+
+      .form-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+        gap: 20px;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+
+        .form-label {
+          min-width: 100px;
+          font-weight: 500;
+          color: #333;
+          font-size: 14px;
+        }
+
+        .unit-layers {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+
+        .layer-container {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .layer-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          position: relative;
+        }
+
+        .layer-select,
+        .layer-input {
+          padding: 10px 12px;
+          border: 1px solid #ddd;
+          border-radius: 6px;
+          font-size: 14px;
+          min-width: 160px;
+          transition: border-color 0.3s;
+
+          &:focus {
+            outline: none;
+            border-color: $primary-color;
+            box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.1);
+          }
+
+          &:disabled {
+            background-color: #f8f9fa;
+            color: #999;
+            cursor: not-allowed;
+          }
+
+          &.locked {
+            background-color: $warning-bg;
+            border-color: $warning-color;
+            color: $warning-text;
+          }
+
+          &.target {
+            border-color: $success-color;
+            background-color: #f8fff9;
+          }
+
+          &.editable {
+            border-color: #007bff;
+            background-color: #f0f8ff;
+            font-weight: 500;
+          }
+        }
+
+        .toggle-btn {
+          background: #f8f9fa;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          padding: 8px;
+          cursor: pointer;
+          font-size: 12px;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 32px;
+          min-height: 32px;
+
+          &:hover:not(:disabled) {
+            background: #e9ecef;
+            border-color: $primary-color;
+          }
+
+          &:disabled {
+            background-color: #f8f9fa;
+            color: #999;
+            cursor: not-allowed;
+          }
+
+          &.locked {
+            background-color: $warning-bg;
+            border-color: $warning-color;
+            color: $warning-text;
+            cursor: not-allowed;
+          }
+        }
+
+        .layer-separator {
+          color: #666;
+          font-weight: bold;
+          margin: 0 5px;
+        }
+      }
+    }
+
+    // 手機版表單
+    .mobile-form {
+      display: block;
+
+      @media (min-width: $breakpoint-tablet) {
+        display: none;
+      }
+
+      .mobile-form-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+
+        h4 {
+          margin: 0;
+          font-size: 16px;
+          font-weight: 600;
+          color: #333;
+        }
+
+        .layer-count {
+          background: $primary-color;
+          color: white;
+          padding: 4px 8px;
+          border-radius: 12px;
+          font-size: 12px;
+          font-weight: 500;
+        }
+      }
+
+      .mobile-layers {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+
+        .mobile-layer-card {
+          background: #f8f9fa;
+          border: 1px solid #dee2e6;
+          border-radius: 8px;
+          padding: 16px;
+          transition: all 0.3s;
+
+          &.locked {
+            background-color: $warning-bg;
+            border-color: $warning-color;
+          }
+
+          &.target {
+            border-color: $success-color;
+            background-color: #f8fff9;
+          }
+
+          &.editable {
+            border-color: #007bff;
+            background-color: #f0f8ff;
+          }
+
+          .mobile-layer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+
+            .layer-info {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+
+              .layer-level {
+                background: $primary-color;
+                color: white;
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-size: 12px;
+                font-weight: 500;
+              }
+
+              .layer-type-badge {
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-size: 12px;
+                font-weight: 500;
+
+                &.select {
+                  background: #e3f2fd;
+                  color: #1976d2;
+                }
+
+                &.input {
+                  background: #f3e5f5;
+                  color: #7b1fa2;
+                }
+              }
+            }
+
+            .mobile-toggle-btn {
+              background: white;
+              border: 1px solid #ddd;
+              border-radius: 50%;
+              width: 32px;
+              height: 32px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              cursor: pointer;
+              transition: all 0.2s;
+
+              &:hover:not(:disabled) {
+                background: #f8f9fa;
+                border-color: $primary-color;
+              }
+
+              &:disabled {
+                background-color: #f8f9fa;
+                color: #999;
+                cursor: not-allowed;
+              }
+            }
+
+            .lock-indicator {
+              font-size: 16px;
+              color: $warning-text;
+            }
+          }
+
+          .mobile-layer-content {
+            .mobile-select-container,
+            .mobile-input-container {
+              .mobile-layer-select,
+              .mobile-layer-input {
+                width: 100%;
+                padding: 12px;
+                border: 1px solid #ddd;
+                border-radius: 6px;
+                font-size: 14px;
+                transition: border-color 0.3s;
+
+                &:focus {
+                  outline: none;
+                  border-color: $primary-color;
+                  box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.1);
+                }
+
+                &:disabled {
+                  background-color: #f8f9fa;
+                  color: #999;
+                  cursor: not-allowed;
+                }
+              }
+            }
+          }
+
+          .target-indicator {
+            margin-top: 8px;
+            text-align: right;
+
+            .target-badge {
+              background: $success-color;
+              color: white;
+              padding: 2px 6px;
+              border-radius: 4px;
+              font-size: 11px;
+              font-weight: 500;
+            }
+          }
+        }
+      }
     }
   }
 
-  .form-label {
-    min-width: 100px;
-    font-weight: 500;
-    color: #333;
-    font-size: 14px;
-  }
-
-  .unit-layers {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-
-  .layer-container {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .layer-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    position: relative;
-  }
-
-  .layer-select,
-  .layer-input {
-    padding: 10px 12px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    font-size: 14px;
-    min-width: 160px;
-    transition: border-color 0.3s;
-
-    &:focus {
-      outline: none;
-      border-color: #6c5ce7;
-      box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.1);
-    }
-
-    &:disabled {
-      background-color: #f8f9fa;
-      color: #999;
-      cursor: not-allowed;
-    }
-
-    &.locked {
-      background-color: #fff3cd;
-      border-color: #ffc107;
-      color: #856404;
-    }
-
-    &.target {
-      border-color: #28a745;
-      background-color: #f8fff9;
-    }
-
-    &.editable {
-      border-color: #007bff;
-      background-color: #f0f8ff;
-      font-weight: 500;
-    }
-  }
-
-  .toggle-btn {
-    background: #f8f9fa;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    padding: 8px;
-    cursor: pointer;
-    font-size: 12px;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 32px;
-    min-height: 32px;
-
-    &:hover:not(:disabled) {
-      background: #e9ecef;
-      border-color: #6c5ce7;
-    }
-
-    &:disabled {
-      background-color: #f8f9fa;
-      color: #999;
-      cursor: not-allowed;
-    }
-
-    &.locked {
-      background-color: #fff3cd;
-      border-color: #ffc107;
-      color: #856404;
-      cursor: not-allowed;
-    }
-  }
-
-  .layer-separator {
-    color: #666;
-    font-weight: bold;
-    margin: 0 5px;
-  }
-
+  // 添加層級按鈕
   .add-layer-section {
     margin: 20px 0;
     text-align: center;
 
     .add-layer-btn {
-      background: #28a745;
+      background: $success-color;
       color: white;
       border: none;
       padding: 12px 24px;
@@ -1977,9 +2661,16 @@ onMounted(async () => {
       font-weight: 500;
       cursor: pointer;
       transition: all 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+
+      .btn-icon {
+        font-size: 16px;
+      }
 
       &:hover:not(:disabled) {
-        background: #218838;
+        background: $success-hover;
         transform: translateY(-1px);
       }
 
@@ -1991,151 +2682,98 @@ onMounted(async () => {
     }
   }
 
-  .unit-path-preview,
-  .api-preview {
+  // 單位路徑預覽
+  .unit-path-preview {
     margin: 20px 0;
     padding: 15px;
     background: #f8f9fa;
     border-radius: 6px;
-    border-left: 4px solid #6c5ce7;
+    border-left: 4px solid $primary-color;
 
     .form-label {
       margin-bottom: 8px;
       display: block;
+      font-weight: 500;
+      color: #333;
+      font-size: 14px;
     }
 
     .path-display {
-      font-size: 16px;
+      font-size: 14px;
       color: #333;
       font-weight: 500;
-    }
 
-    .api-data {
-      background: #2d3748;
-      color: #e2e8f0;
-      padding: 12px;
-      border-radius: 4px;
-      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-      font-size: 12px;
-      overflow-x: auto;
-      margin-bottom: 10px;
-
-      pre {
-        margin: 0;
-        white-space: pre-wrap;
+      @media (min-width: $breakpoint-tablet) {
+        font-size: 16px;
       }
-    }
-
-    .test-btn {
-      background: #38a169;
-      color: white;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 4px;
-      font-size: 12px;
-      cursor: pointer;
-      transition: background 0.2s;
-
-      &:hover {
-        background: #2f855a;
-      }
-    }
-  }
-
-  .edit-mode-notice {
-    background: #e3f2fd;
-    border: 1px solid #2196f3;
-    border-radius: 6px;
-    padding: 20px;
-    margin: 20px 0;
-
-    .notice-content {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-
-      .notice-icon {
-        font-size: 20px;
-        flex-shrink: 0;
-        margin-top: 2px;
-      }
-
-      .notice-text {
-        flex: 1;
-        
-        p {
-          margin: 0 0 8px 0;
-          color: #1565c0;
-          font-size: 14px;
-          line-height: 1.5;
-
-          &:last-child {
-            margin-bottom: 0;
-          }
-
-          strong {
-            font-weight: 600;
-          }
-        }
-      }
-    }
-  }
-
-  .help-text {
-    background: #fff3cd;
-    border: 1px solid #ffeaa7;
-    border-radius: 6px;
-    padding: 15px;
-    margin: 20px 0;
-
-    .help-item {
-      margin: 0 0 8px 0;
-      color: #856404;
-      font-size: 14px;
-
-      &:last-child {
-        margin-bottom: 0;
-      }
-    }
-  }
-
-  .form-input {
-    padding: 10px 12px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    font-size: 14px;
-    transition: border-color 0.3s;
-
-    &:focus {
-      outline: none;
-      border-color: #6c5ce7;
-      box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.1);
-    }
-
-    &.small {
-      max-width: 120px;
     }
   }
 }
 
+// 用戶管理區域
 .users-section {
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 
-  .users-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px 30px;
-    border-bottom: 1px solid #f0f0f0;
+  // 桌面版和平板版標題區
+  .desktop-tablet-header {
+    display: none;
+
+    @media (min-width: $breakpoint-tablet) {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 30px;
+      border-bottom: 1px solid #f0f0f0;
+    }
 
     .search-area {
       display: flex;
       gap: 10px;
       flex: 1;
       max-width: 500px;
+
+      .search-input {
+        flex: 1;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+
+        &:focus {
+          outline: none;
+          border-color: $primary-color;
+          box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.1);
+        }
+
+        &:disabled {
+          background-color: #f8f9fa;
+          color: #999;
+          cursor: not-allowed;
+        }
+      }
+
+      .search-btn {
+        background: $primary-color;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.3s;
+
+        &:hover:not(:disabled) {
+          background: $primary-hover;
+        }
+
+        &:disabled {
+          background: #ccc;
+          cursor: not-allowed;
+        }
+      }
 
       .reset-btn {
         background: white;
@@ -2149,8 +2787,8 @@ onMounted(async () => {
 
         &:hover:not(:disabled) {
           background: #f8f9fa;
-          border-color: #6c5ce7;
-          color: #6c5ce7;
+          border-color: $primary-color;
+          color: $primary-color;
         }
 
         &:disabled {
@@ -2161,135 +2799,140 @@ onMounted(async () => {
       }
     }
 
-    .search-input {
-      flex: 1;
-      padding: 10px 12px;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      font-size: 14px;
+    .page-size-control {
+      .page-size-select {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
 
-      &:focus {
-        outline: none;
-        border-color: #6c5ce7;
-        box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.1);
-      }
-
-      &:disabled {
-        background-color: #f8f9fa;
-        color: #999;
-        cursor: not-allowed;
-      }
-    }
-
-    .search-btn {
-      background: #6c5ce7;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 6px;
-      font-size: 14px;
-      cursor: pointer;
-      transition: all 0.3s;
-
-      &:hover:not(:disabled) {
-        background: #5b4bcf;
-      }
-
-      &:disabled {
-        background: #ccc;
-        cursor: not-allowed;
-      }
-    }
-
-    .page-size-select {
-      padding: 8px 12px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-size: 14px;
-
-      &:disabled {
-        background-color: #f8f9fa;
-        color: #999;
-        cursor: not-allowed;
+        &:disabled {
+          background-color: #f8f9fa;
+          color: #999;
+          cursor: not-allowed;
+        }
       }
     }
   }
 
-  .notice-area {
-    padding: 15px 30px;
-    background: #f8f9fa;
+  // 手機版搜尋區
+  .mobile-search-section {
+    display: block;
+    padding: 16px 20px;
+    border-bottom: 1px solid #f0f0f0;
 
-    .notice-text {
-      margin: 0 0 5px 0;
-      font-size: 14px;
+    @media (min-width: $breakpoint-tablet) {
+      display: none;
+    }
 
-      &:last-child {
-        margin-bottom: 0;
+    .mobile-search-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+
+      h4 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        color: #333;
       }
 
-      &.success {
-        color: #155724;
+      .search-controls {
+        .mobile-page-size {
+          padding: 6px 8px;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          font-size: 12px;
+          background: white;
+        }
+      }
+    }
+
+    .mobile-search-bar {
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+
+      .search-input-group {
+        flex: 1;
+        display: flex;
+        position: relative;
+
+        .mobile-search-input {
+          flex: 1;
+          padding: 10px 12px;
+          padding-right: 44px;
+          border: 1px solid #ddd;
+          border-radius: 6px;
+          font-size: 14px;
+
+          &:focus {
+            outline: none;
+            border-color: $primary-color;
+            box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.1);
+          }
+        }
+
+        .mobile-search-btn {
+          position: absolute;
+          right: 4px;
+          top: 50%;
+          transform: translateY(-50%);
+          background: $primary-color;
+          color: white;
+          border: none;
+          padding: 6px;
+          border-radius: 4px;
+          cursor: pointer;
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          &:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+          }
+        }
       }
 
-      &.info {
-        color: #0c5460;
-      }
+      .mobile-reset-btn {
+        background: white;
+        color: #666;
+        border: 1px solid #ddd;
+        padding: 10px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        cursor: pointer;
+        white-space: nowrap;
 
-      &.warning {
-        color: #856404;
-        font-weight: 500;
+        &:hover:not(:disabled) {
+          background: #f8f9fa;
+          border-color: $primary-color;
+          color: $primary-color;
+        }
       }
     }
   }
 
-  .member-management-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px 30px;
-    background: #f8f9fa;
-    border-top: 1px solid #dee2e6;
-    border-bottom: 1px solid #dee2e6;
+  // 桌面版和平板版用戶表格
+  .desktop-tablet-table {
+    display: none;
 
-    .save-members-btn {
-      background: #28a745;
-      color: white;
-      border: none;
-      padding: 10px 24px;
-      border-radius: 6px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.3s;
-
-      &:hover:not(:disabled) {
-        background: #218838;
-        transform: translateY(-1px);
-      }
-
-      &:disabled {
-        background: #ccc;
-        cursor: not-allowed;
-        transform: none;
-      }
+    @media (min-width: $breakpoint-tablet) {
+      display: block;
+      overflow-x: auto;
     }
-
-    .member-count-info {
-      font-size: 14px;
-      color: #6c757d;
-      font-weight: 500;
-    }
-  }
-
-  .users-table-container {
-    overflow-x: auto;
 
     .users-table {
       width: 100%;
       border-collapse: collapse;
+      min-width: 700px;
 
       thead {
-        background: #6c5ce7;
+        background: $primary-color;
         color: white;
 
         th {
@@ -2297,6 +2940,7 @@ onMounted(async () => {
           text-align: left;
           font-weight: 500;
           font-size: 14px;
+          white-space: nowrap;
 
           &.sortable {
             cursor: pointer;
@@ -2334,6 +2978,7 @@ onMounted(async () => {
             padding: 15px 20px;
             font-size: 14px;
             color: #333;
+            white-space: nowrap;
 
             &.loading-cell {
               text-align: center;
@@ -2352,42 +2997,252 @@ onMounted(async () => {
     }
   }
 
+  // 手機版用戶列表
+  .mobile-users-list {
+    display: block;
+    padding: 16px 20px;
+
+    @media (min-width: $breakpoint-tablet) {
+      display: none;
+    }
+
+    .mobile-select-all {
+      margin-bottom: 16px;
+      padding: 12px;
+      background: #f8f9fa;
+      border-radius: 6px;
+
+      .select-all-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+
+        input[type="checkbox"] {
+          width: 16px;
+          height: 16px;
+        }
+
+        .select-all-text {
+          font-size: 14px;
+          font-weight: 500;
+          color: #333;
+        }
+      }
+    }
+
+    .mobile-loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      color: #666;
+    }
+
+    .user-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+
+      .user-card {
+        background: white;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 16px;
+        cursor: pointer;
+        transition: all 0.3s;
+
+        &:hover:not(.disabled) {
+          border-color: $primary-color;
+          box-shadow: 0 2px 8px rgba(108, 92, 231, 0.1);
+        }
+
+        &.selected {
+          border-color: $primary-color;
+          background: #f8f9ff;
+        }
+
+        &.existing-member {
+          background: #fff8f0;
+          border-color: #ffa726;
+
+          &.selected {
+            background: #ffe0b2;
+          }
+        }
+
+        &.disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .user-card-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 12px;
+
+          .user-basic-info {
+            flex: 1;
+
+            .user-name {
+              font-size: 16px;
+              font-weight: 600;
+              color: #333;
+              margin-bottom: 4px;
+            }
+
+            .user-account {
+              font-size: 14px;
+              color: #666;
+            }
+          }
+
+          .card-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+
+            .user-index {
+              font-size: 12px;
+              color: #999;
+              font-weight: 500;
+            }
+
+            .user-checkbox {
+              width: 18px;
+              height: 18px;
+            }
+          }
+        }
+
+        .user-card-content {
+          .user-field {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            border-bottom: 1px solid #f0f0f0;
+
+            &:last-child {
+              border-bottom: none;
+            }
+
+            .field-label {
+              font-size: 12px;
+              color: #666;
+              font-weight: 500;
+            }
+
+            .field-value {
+              font-size: 14px;
+              color: #333;
+              text-align: right;
+              max-width: 60%;
+              word-break: break-word;
+            }
+          }
+        }
+      }
+    }
+
+    .mobile-no-data {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      color: #666;
+
+      .no-data-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+      }
+
+      .no-data-text {
+        font-size: 14px;
+        text-align: center;
+        font-style: italic;
+      }
+    }
+  }
+
+  // 分頁和統計資訊
   .table-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 30px;
+    padding: 16px 20px;
     border-top: 1px solid #f0f0f0;
+    background: #f8f9fa;
+    flex-direction: column;
+    gap: 12px;
+
+    @media (min-width: $breakpoint-tablet) {
+      flex-direction: row;
+      gap: 0;
+      padding: 20px 30px;
+    }
 
     .results-info {
-      font-size: 14px;
+      font-size: 12px;
       color: #666;
+      text-align: center;
+
+      @media (min-width: $breakpoint-tablet) {
+        font-size: 14px;
+        text-align: left;
+      }
+
+      .unit-context,
+      .all-users-context {
+        font-weight: 500;
+        color: $primary-color;
+      }
     }
 
     .pagination {
       display: flex;
-      gap: 5px;
+      gap: 4px;
       align-items: center;
+      justify-content: center;
+
+      @media (min-width: $breakpoint-tablet) {
+        gap: 5px;
+        justify-content: flex-end;
+      }
 
       .page-btn {
-        padding: 8px 12px;
+        padding: 6px 8px;
         border: 1px solid #ddd;
         background: white;
         color: #333;
         border-radius: 4px;
         cursor: pointer;
-        font-size: 14px;
+        font-size: 12px;
         transition: all 0.2s;
+        min-width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        @media (min-width: $breakpoint-tablet) {
+          padding: 8px 12px;
+          font-size: 14px;
+        }
 
         &:hover:not(:disabled) {
           background: #f8f9fa;
-          border-color: #6c5ce7;
+          border-color: $primary-color;
         }
 
         &.active {
-          background: #6c5ce7;
+          background: $primary-color;
           color: white;
-          border-color: #6c5ce7;
+          border-color: $primary-color;
         }
 
         &:disabled {
@@ -2400,16 +3255,29 @@ onMounted(async () => {
       .ellipsis {
         padding: 8px 4px;
         color: #666;
+        font-size: 12px;
+
+        @media (min-width: $breakpoint-tablet) {
+          font-size: 14px;
+        }
       }
     }
   }
 }
 
+// 狀態標籤
 .status-badge {
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
   font-weight: 500;
+  white-space: nowrap;
+
+  @media (min-width: $breakpoint-tablet) {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+  }
 
   &.status-active {
     background: #d4edda;
@@ -2420,72 +3288,128 @@ onMounted(async () => {
     background: #f8d7da;
     color: #721c24;
   }
+
+  &.mobile-status {
+    padding: 2px 6px;
+    font-size: 10px;
+  }
 }
 
-// 響應式設計
-@media (max-width: 768px) {
-  .page-header {
-    flex-direction: column;
-    gap: 15px;
-    align-items: stretch;
+// 手機版專用底部間距（避免被浮動按鈕遮蓋）
+@media (max-width: calc($breakpoint-tablet - 1px)) {
+  .form-container {
+    padding-bottom: 100px;
+  }
+}
 
-    .header-actions {
-      justify-content: center;
-    }
+// 通用的表單輸入樣式
+.form-input {
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.3s;
+
+  &:focus {
+    outline: none;
+    border-color: $primary-color;
+    box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.1);
   }
 
-  .form-row {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-
-    .form-label {
-      min-width: auto;
-    }
+  &.small {
+    max-width: 120px;
   }
 
-  .unit-layers {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 15px;
-
-    .layer-container {
-      flex-direction: column;
-      align-items: stretch;
-    }
-
-    .layer-item {
-      flex-direction: row;
-      justify-content: space-between;
-    }
-
-    .layer-select,
-    .layer-input {
-      flex: 1;
-      min-width: auto;
-    }
+  &:disabled {
+    background-color: #f8f9fa;
+    color: #999;
+    cursor: not-allowed;
   }
+}
 
-  .users-header {
-    flex-direction: column;
-    gap: 15px;
-    align-items: stretch;
-
-    .search-area {
-      max-width: none;
-    }
+// 響應式文字大小調整
+@media (max-width: $breakpoint-mobile) {
+  html {
+    font-size: 14px;
   }
+}
 
-  .table-footer {
-    flex-direction: column;
-    gap: 15px;
-    text-align: center;
+@media (min-width: $breakpoint-mobile) and (max-width: $breakpoint-tablet) {
+  html {
+    font-size: 15px;
   }
+}
 
+@media (min-width: $breakpoint-tablet) {
+  html {
+    font-size: 16px;
+  }
+}
+
+// 滾動條美化（僅桌面版）
+@media (min-width: $breakpoint-desktop) {
   .users-table-container {
-    .users-table {
-      min-width: 600px;
+    &::-webkit-scrollbar {
+      height: 8px;
     }
+
+    &::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 4px;
+
+      &:hover {
+        background: #a8a8a8;
+      }
+    }
+  }
+}
+
+// 無障礙輔助
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+// 高對比度模式支援
+@media (prefers-contrast: high) {
+  .page-header,
+  .unit-section,
+  .users-section {
+    border: 2px solid #000;
+  }
+
+  .mobile-action-buttons button {
+    border: 2px solid #000;
+  }
+}
+
+// 打印樣式
+@media print {
+  .mobile-action-buttons,
+  .desktop-tablet-actions,
+  .mobile-search-section,
+  .desktop-tablet-header {
+    display: none !important;
+  }
+
+  .create-unit-page {
+    background: white !important;
+    box-shadow: none !important;
+  }
+
+  .page-header,
+  .unit-section,
+  .users-section {
+    box-shadow: none !important;
+    border: 1px solid #000 !important;
   }
 }
 </style>

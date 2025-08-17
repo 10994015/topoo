@@ -1,14 +1,18 @@
 <script setup>
-import { ref, computed, reactive, onMounted, watch } from 'vue'
+import { ref, computed, reactive, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useRepairStore } from '@/stores/repair'
 import { formatDate, formatDateTime } from '@/utils/dateUtils'
 import { useAuthStore } from '@/stores/auth'
 import { mdiEye, mdiEyeOff, mdiAccount, mdiLock } from '@mdi/js'
-const router = useRouter()
 
+const router = useRouter()
 const authStore = useAuthStore()
 const repairStore = useRepairStore()
+
+// 響應式視窗寬度監聽
+const windowWidth = ref(window.innerWidth)
+
 // 搜尋表單
 const searchForm = reactive({
   title: '',
@@ -38,6 +42,16 @@ const repairData = ref([]);
 const totalItems = ref(0)
 const totalPages = ref(0)
 
+// 響應式計算屬性 - 判斷是否為手機模式
+const isMobile = computed(() => windowWidth.value <= 767)
+const isTablet = computed(() => windowWidth.value > 767 && windowWidth.value <= 991)
+const isDesktop = computed(() => windowWidth.value > 991)
+
+// 視窗尺寸變化處理器
+const handleResize = () => {
+  windowWidth.value = window.innerWidth
+}
+
 // 監聽維修類別變化，重新獲取對應的維修原因
 watch(() => searchForm.repairCategoryId, async (newCategoryId, oldCategoryId) => {
   // 如果類別ID發生變化
@@ -56,7 +70,6 @@ watch(() => searchForm.repairCategoryId, async (newCategoryId, oldCategoryId) =>
         reasons.value = repairStore.reasons.data
       }
     } else {
-      
       await repairStore.fetchReasons()
       reasons.value = repairStore.reasons.data
     }
@@ -71,6 +84,7 @@ const endItem = computed(() => {
   const end = currentPage.value * pageSize.value
   return end > totalItems.value ? totalItems.value : end
 })
+
 const viewRepair = (id) => {
   console.log('查看帳號詳情:', id)
   router.push(`/view-repair/${id}`)
@@ -111,12 +125,8 @@ const showEllipsis = computed(() => {
 // 方法
 const handleSearch = async () => {
   currentPage.value = 1
-  
   console.log('執行搜尋:', searchForm)
-  
-  // 模擬搜尋延遲
   await getRepairData(searchForm, sortColumn.value, sortDirection.value, pageSize.value, currentPage.value);
-  
 }
 
 // watch pageSize
@@ -163,6 +173,7 @@ const goToPage = async (page) => {
     currentPage.value = page
   }
 }
+
 const getStatusText = (status) => {
   const statusMap = {
     'pending': '待處理',
@@ -171,6 +182,7 @@ const getStatusText = (status) => {
   }
   return statusMap[status] || status
 }
+
 const getRepairData = async(searchForm, column="repair_time", sortDirection="asc", limit=10, page=1) => {
   console.log(searchForm, column, sortDirection);
   isSearching.value = true
@@ -185,6 +197,7 @@ const getRepairData = async(searchForm, column="repair_time", sortDirection="asc
   
   isSearching.value = false
 }
+
 const createNewRepair = () => {
   if(!authStore.user.repair_unit){
     alert('帳號未設定報修單位，請聯繫管理員完成配置後再進行報修。')
@@ -192,8 +205,13 @@ const createNewRepair = () => {
   }
   router.push('/create-repair')
 }
+
 onMounted(async ()=>{
   console.log('onMounted: RepairSystem');
+  
+  // 添加視窗尺寸監聽器
+  window.addEventListener('resize', handleResize)
+  
   try {
     await repairStore.fetchCategories()
     await repairStore.fetchReasons() // 初始載入時獲取所有維修原因
@@ -203,15 +221,16 @@ onMounted(async ()=>{
     categories.value = repairStore.categories.data
     reasons.value = repairStore.reasons.data
     statuses.value = repairStore.statuses.data
-
-    // repairData.value = repairStore.repairs.data
-    
   } catch (error) {
     console.error('載入資料失敗:', error)
   } finally {
     isLoading.value = false
   }
- 
+})
+
+// 清理函數
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
 })
 </script>
 
@@ -260,19 +279,21 @@ onMounted(async ()=>{
       <div class="search-row">
         <div class="date-field">
           <label>報修時間</label>
-          <input 
-            type="date" 
-            v-model="searchForm.startAt"
-            class="date-input"
-            :disabled="isLoading"
-          />
-          <span class="date-separator">-</span>
-          <input 
-            type="date" 
-            v-model="searchForm.endAt"
-            class="date-input"
-            :disabled="isLoading"
-          />
+          <div class="date-inputs">
+            <input 
+              type="date" 
+              v-model="searchForm.startAt"
+              class="date-input"
+              :disabled="isLoading"
+            />
+            <span class="date-separator">-</span>
+            <input 
+              type="date" 
+              v-model="searchForm.endAt"
+              class="date-input"
+              :disabled="isLoading"
+            />
+          </div>
         </div>
         
         <div class="action-buttons">
@@ -296,18 +317,15 @@ onMounted(async ()=>{
           </select>
         </div>
         
-      
         <button class="new-repair-btn" @click="createNewRepair" :class="{ disabled: isLoading }" :disabled="isLoading">新增報修</button>
       </div>
 
-      <!-- 資料表格 -->
-      <div class="table-container">
+      <!-- 資料表格 - 桌面版 -->
+      <div class="table-container" v-if="!isMobile">
         <table class="data-table">
           <thead>
             <tr>
-              <th>
-                項次 
-              </th>
+              <th>項次</th>
               <th class="sortable" @click="!isLoading && sortBy('title')">
                 案件標題 
                 <span class="sort-icon" v-if="sortColumn === 'title'">
@@ -356,9 +374,7 @@ onMounted(async ()=>{
                 </span>
                 <span class="sort-icon neutral" v-else>⇅</span>
               </th>
-              <th >
-                操作 
-              </th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody>
@@ -393,12 +409,12 @@ onMounted(async ()=>{
               <td>{{ item.repair_status }}</td>
               <td>
                 <button 
-                    class="action-btn view-btn" 
-                    @click="viewRepair(item.id)"
-                    title="查看詳情"
-                  >
-                    👁️
-                  </button>
+                  class="action-btn view-btn" 
+                  @click="viewRepair(item.id)"
+                  title="查看詳情"
+                >
+                  👁️
+                </button>
               </td>
             </tr>
             
@@ -408,6 +424,60 @@ onMounted(async ()=>{
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- 手機版卡片式佈局 -->
+      <div class="mobile-cards" v-else>
+        <!-- Loading 狀態 -->
+        <div v-if="isLoading" class="loading-container">
+          <div class="loading-spinner large">⟳</div>
+          <div class="loading-text">資料載入中...</div>
+        </div>
+        
+        <!-- 搜尋中狀態 -->
+        <div v-else-if="isSearching" class="loading-container">
+          <div class="loading-spinner large">⟳</div>
+          <div class="loading-text">搜尋中...</div>
+        </div>
+        
+        <!-- 正常資料顯示 -->
+        <div v-else v-for="(item, index) in repairData.data" :key="item.id" class="mobile-card" @click="viewRepair(item.id)">
+          <div class="card-header">
+            <div class="card-title">{{ item.title }}</div>
+            <div class="card-index">#{{ index + 1 }}</div>
+          </div>
+          <div class="card-content">
+            <div class="card-field">
+              <span class="field-label">故障類別：</span>
+              <span class="field-value">{{ item.repair_category }}</span>
+            </div>
+            <div class="card-field">
+              <span class="field-label">故障原因：</span>
+              <span class="field-value">{{ item.repair_reason }}</span>
+            </div>
+            <div class="card-field">
+              <span class="field-label">報修人員：</span>
+              <span class="field-value">{{ item.repair_name || '無資料' }}</span>
+            </div>
+            <div class="card-field">
+              <span class="field-label">報修時間：</span>
+              <span class="field-value">{{ formatDateTime(item.repair_time) }}</span>
+            </div>
+            <div class="card-field">
+              <span class="field-label">處理狀態：</span>
+              <span class="field-value status">{{ item.repair_status }}</span>
+            </div>
+          </div>
+          <div class="card-action">
+            <span class="view-hint">點擊查看詳情 →</span>
+          </div>
+        </div>
+        
+        <!-- 無資料狀態 -->
+        <div v-if="!isLoading && !isSearching && repairData.data.length === 0" class="no-data-mobile">
+          <div class="no-data-icon">📋</div>
+          <div class="no-data-text">暫無資料</div>
+        </div>
       </div>
 
       <!-- 分頁控制 -->
@@ -605,6 +675,12 @@ onMounted(async ()=>{
       color: #333;
       white-space: nowrap;
       font-weight: 500;
+    }
+
+    .date-inputs {
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
 
     .date-input {
@@ -806,6 +882,7 @@ onMounted(async ()=>{
           color: #999;
           font-style: italic;
         }
+        
         .action-btn {
           display: inline-flex;
           align-items: center;
@@ -833,6 +910,120 @@ onMounted(async ()=>{
           }
         }
       }
+    }
+  }
+}
+
+// 手機版卡片式佈局
+.mobile-cards {
+  padding: 20px;
+
+  .mobile-card {
+    background: white;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s;
+    cursor: pointer;
+
+    &:hover {
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+      transform: translateY(-2px);
+    }
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #f0f0f0;
+
+      .card-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #333;
+        line-height: 1.4;
+        flex: 1;
+        margin-right: 12px;
+      }
+
+      .card-index {
+        font-size: 12px;
+        color: #6c5ce7;
+        background: rgba(108, 92, 231, 0.1);
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-weight: 500;
+        flex-shrink: 0;
+      }
+    }
+
+    .card-content {
+      .card-field {
+        display: flex;
+        margin-bottom: 8px;
+        align-items: flex-start;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+
+        .field-label {
+          font-size: 13px;
+          color: #666;
+          min-width: 80px;
+          flex-shrink: 0;
+          font-weight: 500;
+        }
+
+        .field-value {
+          font-size: 13px;
+          color: #333;
+          flex: 1;
+          word-break: break-word;
+
+          &.status {
+            font-weight: 500;
+            color: #6c5ce7;
+          }
+        }
+      }
+    }
+
+    .card-action {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #f0f0f0;
+      text-align: right;
+
+      .view-hint {
+        font-size: 12px;
+        color: #6c5ce7;
+        font-weight: 500;
+      }
+    }
+  }
+
+  .no-data-mobile {
+    text-align: center;
+    padding: 60px 20px;
+    color: #999;
+
+    .no-data-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    .no-data-text {
+      font-size: 16px;
+      font-style: italic;
     }
   }
 }
@@ -917,23 +1108,436 @@ onMounted(async ()=>{
   }
 }
 
-// 響應式設計
-@media (max-width: 768px) {
-  .search-row {
-    flex-direction: column;
-    gap: 15px;
+/* ===== 響應式設計 ===== */
 
-    .search-field,
-    .select-field {
-      width: 100%;
-    }
+/* 大螢幕 (1400px+) */
+@media (min-width: 1400px) {
+  .repair-system {
+    padding: 24px;
   }
 
-  .table-controls {
-    flex-direction: column;
-    gap: 15px;
-    align-items: stretch;
+  .search-section {
+    padding: 30px;
+  }
+
+  .table-section .table-controls {
+    padding: 24px 30px;
+  }
+
+  .pagination-section {
+    padding: 24px 30px;
   }
 }
 
+/* 平板橫向 (992px - 1399px) */
+@media (max-width: 1399px) and (min-width: 992px) {
+  .search-section {
+    .search-row {
+      .select-field .search-select {
+        min-width: 140px;
+      }
+    }
+  }
+
+  .table-section {
+    .data-table {
+      th, td {
+        padding: 12px 16px;
+        font-size: 13px;
+      }
+    }
+  }
+}
+
+/* 平板直向 (768px - 991px) */
+@media (max-width: 991px) and (min-width: 768px) {
+  .repair-system {
+    padding: 16px;
+  }
+
+  .search-section {
+    padding: 20px;
+
+    .search-row {
+      flex-wrap: wrap;
+      gap: 15px;
+
+      .search-field {
+        min-width: 250px;
+      }
+
+      .select-field {
+        min-width: 150px;
+        
+        .search-select {
+          min-width: 120px;
+        }
+      }
+
+      .date-field {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+
+        .date-inputs {
+          flex-wrap: wrap;
+        }
+
+        .date-input {
+          min-width: 140px;
+        }
+      }
+
+      .action-buttons {
+        width: 100%;
+        justify-content: flex-end;
+      }
+    }
+  }
+
+  .table-section {
+    .table-controls {
+      padding: 16px 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .data-table {
+      th, td {
+        padding: 10px 12px;
+        font-size: 12px;
+      }
+
+      th.sortable .sort-icon {
+        font-size: 12px;
+      }
+    }
+  }
+
+  .pagination-section {
+    padding: 16px 20px;
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+
+    .pagination-controls {
+      justify-content: center;
+    }
+  }
+}
+
+/* 大手機 (576px - 767px) */
+@media (max-width: 767px) {
+  .repair-system {
+    padding: 12px;
+  }
+
+  .search-section {
+    padding: 16px;
+
+    .search-row {
+      flex-direction: column;
+      gap: 12px;
+      align-items: stretch;
+
+      .search-field,
+      .select-field {
+        width: 100%;
+      }
+
+      .select-field .search-select {
+        width: 100%;
+        min-width: auto;
+      }
+
+      .date-field {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+
+        label {
+          text-align: left;
+        }
+
+        .date-inputs {
+          justify-content: space-between;
+        }
+
+        .date-input {
+          flex: 1;
+          min-width: 0;
+        }
+      }
+
+      .action-buttons {
+        flex-direction: row;
+        gap: 8px;
+
+        .query-btn,
+        .reset-btn {
+          flex: 1;
+          padding: 12px 16px;
+        }
+      }
+    }
+  }
+
+  .table-section {
+    .table-controls {
+      padding: 12px 16px;
+      flex-direction: column;
+      gap: 12px;
+      align-items: stretch;
+
+      .page-size-select {
+        align-self: flex-start;
+      }
+
+      .new-repair-btn {
+        width: 100%;
+        padding: 12px;
+      }
+    }
+  }
+
+  .mobile-cards {
+    padding: 12px;
+
+    .mobile-card {
+      padding: 12px;
+      margin-bottom: 12px;
+
+      .card-header {
+        .card-title {
+          font-size: 15px;
+        }
+
+        .card-index {
+          font-size: 11px;
+        }
+      }
+
+      .card-content .card-field {
+        .field-label {
+          font-size: 12px;
+          min-width: 70px;
+        }
+
+        .field-value {
+          font-size: 12px;
+        }
+      }
+
+      .card-action .view-hint {
+        font-size: 11px;
+      }
+    }
+  }
+
+  .pagination-section {
+    padding: 12px 16px;
+    flex-direction: column;
+    gap: 12px;
+
+    .pagination-info {
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .pagination-controls {
+      justify-content: center;
+      flex-wrap: wrap;
+
+      .page-btn {
+        padding: 6px 10px;
+        font-size: 12px;
+        min-width: 36px;
+      }
+    }
+  }
+}
+
+/* 小手機 (480px 以下) */
+@media (max-width: 479px) {
+  .repair-system {
+    padding: 8px;
+  }
+
+  .search-section {
+    padding: 12px;
+    margin-bottom: 12px;
+
+    .search-row {
+      gap: 10px;
+
+      .search-field .search-input {
+        padding: 10px 40px 10px 12px;
+        font-size: 13px;
+      }
+
+      .select-field .search-select {
+        padding: 10px 12px;
+        font-size: 13px;
+      }
+
+      .date-field {
+        .date-input {
+          padding: 10px 12px;
+          font-size: 13px;
+        }
+      }
+
+      .action-buttons {
+        .query-btn,
+        .reset-btn {
+          padding: 10px 12px;
+          font-size: 13px;
+        }
+      }
+    }
+  }
+
+  .table-section {
+    .table-controls {
+      padding: 10px 12px;
+
+      .page-size-select {
+        padding: 6px 10px;
+        font-size: 12px;
+      }
+
+      .new-repair-btn {
+        padding: 10px;
+        font-size: 13px;
+      }
+    }
+  }
+
+  .mobile-cards {
+    padding: 8px;
+
+    .mobile-card {
+      padding: 10px;
+      margin-bottom: 10px;
+
+      .card-header {
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+
+        .card-title {
+          font-size: 14px;
+          margin-right: 8px;
+        }
+
+        .card-index {
+          font-size: 10px;
+          padding: 2px 6px;
+        }
+      }
+
+      .card-content .card-field {
+        margin-bottom: 6px;
+
+        .field-label {
+          font-size: 11px;
+          min-width: 60px;
+        }
+
+        .field-value {
+          font-size: 11px;
+        }
+      }
+
+      .card-action {
+        margin-top: 10px;
+        padding-top: 10px;
+
+        .view-hint {
+          font-size: 10px;
+        }
+      }
+    }
+
+    .no-data-mobile {
+      padding: 40px 16px;
+
+      .no-data-icon {
+        font-size: 36px;
+        margin-bottom: 12px;
+      }
+
+      .no-data-text {
+        font-size: 14px;
+      }
+    }
+  }
+
+  .pagination-section {
+    padding: 10px 12px;
+
+    .pagination-info {
+      font-size: 11px;
+    }
+
+    .pagination-controls {
+      gap: 3px;
+
+      .page-btn {
+        padding: 5px 8px;
+        font-size: 11px;
+        min-width: 32px;
+      }
+    }
+  }
+}
+
+/* 超小螢幕 (360px 以下) */
+@media (max-width: 359px) {
+  .search-section {
+    .search-row {
+      .action-buttons {
+        flex-direction: column;
+      }
+
+      .date-field .date-inputs {
+        flex-direction: column;
+        gap: 8px;
+
+        .date-separator {
+          display: none;
+        }
+      }
+    }
+  }
+
+  .mobile-cards .mobile-card {
+    .card-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+
+      .card-index {
+        align-self: flex-end;
+      }
+    }
+
+    .card-content .card-field {
+      flex-direction: column;
+      gap: 2px;
+
+      .field-label {
+        min-width: auto;
+        font-weight: 600;
+      }
+    }
+  }
+
+  .pagination-controls {
+    .page-btn {
+      padding: 4px 6px;
+      font-size: 10px;
+      min-width: 28px;
+    }
+  }
+}
 </style>

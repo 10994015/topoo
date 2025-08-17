@@ -23,6 +23,11 @@ const isSaving = ref(false)
 const isLoadingDetail = ref(false)
 const errors = ref({})
 
+// RWD 狀態管理
+const isMobile = ref(false)
+const isTablet = ref(false)
+const showMobileList = ref(false)
+
 // 右側列表相關狀態
 const currentPage = ref(1)
 const pageSize = ref(10)
@@ -60,36 +65,66 @@ const visiblePages = computed(() => {
   const total = totalPages.value
   const current = currentPage.value
   
-  if (total <= 7) {
+  // 手機版顯示更少頁碼
+  const maxVisible = isMobile.value ? 3 : 7
+  
+  if (total <= maxVisible) {
     for (let i = 1; i <= total; i++) {
       pages.push(i)
     }
   } else {
-    if (current <= 4) {
-      for (let i = 1; i <= 5; i++) {
-        pages.push(i)
-      }
-      pages.push('...')
-      pages.push(total)
-    } else if (current >= total - 3) {
-      pages.push(1)
-      pages.push('...')
-      for (let i = total - 4; i <= total; i++) {
-        pages.push(i)
-      }
+    if (isMobile.value) {
+      // 手機版簡化分頁
+      if (current > 1) pages.push(1)
+      if (current > 2) pages.push('...')
+      pages.push(current)
+      if (current < total - 1) pages.push('...')
+      if (current < total) pages.push(total)
     } else {
-      pages.push(1)
-      pages.push('...')
-      for (let i = current - 1; i <= current + 1; i++) {
-        pages.push(i)
+      // 原有邏輯
+      if (current <= 4) {
+        for (let i = 1; i <= 5; i++) {
+          pages.push(i)
+        }
+        pages.push('...')
+        pages.push(total)
+      } else if (current >= total - 3) {
+        pages.push(1)
+        pages.push('...')
+        for (let i = total - 4; i <= total; i++) {
+          pages.push(i)
+        }
+      } else {
+        pages.push(1)
+        pages.push('...')
+        for (let i = current - 1; i <= current + 1; i++) {
+          pages.push(i)
+        }
+        pages.push('...')
+        pages.push(total)
       }
-      pages.push('...')
-      pages.push(total)
     }
   }
   
   return pages
 })
+
+// RWD 檢測
+const checkScreenSize = () => {
+  const width = window.innerWidth
+  isMobile.value = width < 768
+  isTablet.value = width >= 768 && width < 1024
+  
+  // 手機版預設顯示表單，平板以上預設顯示並排
+  if (isMobile.value) {
+    showMobileList.value = false
+  }
+}
+
+// 切換手機版視圖
+const toggleMobileView = () => {
+  showMobileList.value = !showMobileList.value
+}
 
 // 表單驗證
 const validateForm = () => {
@@ -155,12 +190,10 @@ const loadCategoryDetail = async () => {
     } else {
       console.error('載入類別詳細資料失敗:', result.message)
       alert(`載入失敗: ${result.message}`)
-    //   router.push('/settings/parameter/repair-category-management')
     }
   } catch (error) {
     console.error('載入類別詳細資料異常:', error)
     alert('載入資料時發生錯誤，請稍後再試')
-    // router.push('/settings/parameter/repair-category-management')
   } finally {
     isLoadingDetail.value = false
   }
@@ -352,8 +385,15 @@ const editCategory = (item) => {
   if (item.id === categoryId.value) {
     return // 已經在編輯這個類別
   }
+  
+  // 手機版點擊後切換到表單視圖
+  if (isMobile.value) {
+    showMobileList.value = false
+  }
+  
   router.push(`/settings/parameter/repair-category/edit/${item.id}`)
 }
+
 const handleMoveToTop = async() => {
     if(!hasWriteManageRepairCategoryPermission) return
     if (!isEditMode.value) return
@@ -380,6 +420,7 @@ const handleMoveToTop = async() => {
         isSaving.value = false
     }
 }
+
 // 監聽路由變化
 watch(() => route.params.id, (newId) => {
   if (newId && newId !== 'create') {
@@ -393,6 +434,10 @@ watch(() => route.params.id, (newId) => {
 
 // 組件掛載
 onMounted(async () => {
+  // 初始化 RWD 檢測
+  checkScreenSize()
+  window.addEventListener('resize', checkScreenSize)
+  
   await loadCategoryList()
   
   // 如果是編輯模式，載入詳細資料
@@ -404,9 +449,27 @@ onMounted(async () => {
 
 <template>
   <div class="category-form-page">
-    <div class="page-container">
+    <!-- 手機版頂部導航 -->
+    <div v-if="isMobile" class="mobile-nav">
+      <button 
+        class="mobile-nav-btn"
+        :class="{ active: !showMobileList }"
+        @click="showMobileList = false"
+      >
+        {{ isEditMode ? '編輯類別' : '新增類別' }}
+      </button>
+      <button 
+        class="mobile-nav-btn"
+        :class="{ active: showMobileList }"
+        @click="showMobileList = true"
+      >
+        類別列表 ({{ totalItems }})
+      </button>
+    </div>
+
+    <div class="page-container" :class="{ 'mobile-layout': isMobile, 'tablet-layout': isTablet }">
       <!-- 左側表單區域 -->
-      <div class="left-section">
+      <div class="left-section" :class="{ 'mobile-hidden': isMobile && showMobileList }">
         <!-- 新增模式的表單 -->
         <div v-if="!isEditMode" class="form-card">
           <h3 class="form-title">新增故障類別</h3>
@@ -511,7 +574,7 @@ onMounted(async () => {
       </div>
 
       <!-- 右側類別列表 -->
-      <div class="right-section">
+      <div class="right-section" :class="{ 'mobile-hidden': isMobile && !showMobileList }">
         <div class="list-card">
           <div class="list-header">
             <select v-model="pageSize" @change="handlePageSizeChange" class="page-size-select">
@@ -521,7 +584,42 @@ onMounted(async () => {
             </select>
           </div>
 
-          <div class="table-container">
+          <!-- 手機版卡片式列表 -->
+          <div v-if="isMobile" class="mobile-card-list">
+            <div 
+              v-for="(item, index) in categoryData" 
+              :key="item.id" 
+              class="mobile-card"
+              :class="{ 'active': isEditMode && item.id === categoryId }"
+              @click="editCategory(item)"
+            >
+              <div class="mobile-card-header">
+                <span class="mobile-card-number">{{ (currentPage - 1) * pageSize + index + 1 }}</span>
+                <div class="mobile-card-actions" v-if="hasWriteManageRepairCategoryPermission">
+                  <button 
+                    class="mobile-delete-btn"
+                    @click.stop="deleteCategory(item)"
+                    title="刪除"
+                  >
+                    🗑️
+                  </button>
+                </div>
+              </div>
+              <div class="mobile-card-content">
+                <h4 class="mobile-card-title">{{ item.name }}</h4>
+                <p class="mobile-card-time">
+                  {{ formatDateTime(item.updated_at) || formatDateTime(item.created_at) }}
+                </p>
+              </div>
+            </div>
+            
+            <div v-if="categoryData.length === 0" class="mobile-no-data">
+              暫無資料
+            </div>
+          </div>
+
+          <!-- 平板/桌面版表格 -->
+          <div v-else class="table-container">
             <table class="data-table">
               <thead>
                 <tr>
@@ -568,7 +666,7 @@ onMounted(async () => {
                 </tr>
                 
                 <tr v-if="categoryData.length === 0">
-                  <td colspan="4" class="no-data">暫無資料</td>
+                  <td :colspan="hasWriteManageRepairCategoryPermission ? 4 : 3" class="no-data">暫無資料</td>
                 </tr>
               </tbody>
             </table>
@@ -577,7 +675,7 @@ onMounted(async () => {
           <!-- 分頁控制 -->
           <div class="pagination-area">
             <div class="pagination-info">
-              顯示第 {{ startItem }} 到 {{ endItem }} 筆結果 共 {{ totalItems }} 項
+              {{ isMobile ? `${startItem}-${endItem}/${totalItems}` : `顯示第 ${startItem} 到 ${endItem} 筆結果 共 ${totalItems} 項` }}
             </div>
 
             <div class="pagination-controls">
@@ -628,6 +726,56 @@ onMounted(async () => {
   gap: 20px;
   max-width: 1400px;
   margin: 0 auto;
+  
+  &.mobile-layout {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  
+  &.tablet-layout {
+    grid-template-columns: 1fr 1.2fr;
+    gap: 16px;
+  }
+}
+
+// 手機版導航
+.mobile-nav {
+  display: flex;
+  background: white;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+
+  .mobile-nav-btn {
+    flex: 1;
+    padding: 15px;
+    border: none;
+    background: #f8f9fa;
+    color: #666;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    border-right: 1px solid #eee;
+
+    &:last-child {
+      border-right: none;
+    }
+
+    &.active {
+      background: #6c5ce7;
+      color: white;
+    }
+
+    &:hover:not(.active) {
+      background: #e9ecef;
+    }
+  }
+}
+
+.mobile-hidden {
+  display: none !important;
 }
 
 // Loading 動畫
@@ -774,6 +922,90 @@ onMounted(async () => {
   }
 }
 
+// 手機版卡片列表
+.mobile-card-list {
+  padding: 15px;
+
+  .mobile-card {
+    background: white;
+    border: 1px solid #f0f0f0;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    padding: 15px;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+    &:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      transform: translateY(-2px);
+    }
+
+    &.active {
+      border-color: #6c5ce7;
+      background: linear-gradient(135deg, #f8f7ff 0%, #fff 100%);
+      box-shadow: 0 4px 12px rgba(108, 92, 231, 0.2);
+    }
+
+    .mobile-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+
+      .mobile-card-number {
+        background: #6c5ce7;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      .mobile-card-actions {
+        .mobile-delete-btn {
+          background: #ffebee;
+          border: none;
+          padding: 6px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 14px;
+          color: #d32f2f;
+          transition: all 0.2s;
+
+          &:hover {
+            background: #ffcdd2;
+            transform: scale(1.1);
+          }
+        }
+      }
+    }
+
+    .mobile-card-content {
+      .mobile-card-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #333;
+        margin: 0 0 8px 0;
+        line-height: 1.4;
+      }
+
+      .mobile-card-time {
+        font-size: 13px;
+        color: #666;
+        margin: 0;
+      }
+    }
+  }
+
+  .mobile-no-data {
+    text-align: center;
+    padding: 40px 20px;
+    color: #999;
+    font-style: italic;
+  }
+}
+
 // 表格樣式
 .table-container {
   overflow-x: auto;
@@ -791,6 +1023,7 @@ onMounted(async () => {
         text-align: left;
         font-weight: 500;
         font-size: 14px;
+        white-space: nowrap;
 
         &.id-column {
           width: 80px;
@@ -895,15 +1128,19 @@ onMounted(async () => {
   align-items: center;
   padding: 15px 20px;
   border-top: 1px solid #f0f0f0;
+  flex-wrap: wrap;
+  gap: 10px;
 
   .pagination-info {
     font-size: 14px;
     color: #666;
+    white-space: nowrap;
   }
 
   .pagination-controls {
     display: flex;
     gap: 5px;
+    flex-wrap: wrap;
 
     .page-btn {
       padding: 8px 12px;
@@ -914,6 +1151,8 @@ onMounted(async () => {
       cursor: pointer;
       font-size: 14px;
       transition: all 0.2s;
+      min-width: 36px;
+      text-align: center;
 
       &:hover:not(:disabled) {
         background: #f8f9fa;
@@ -950,6 +1189,7 @@ onMounted(async () => {
   transition: all 0.3s;
   border: none;
   text-decoration: none;
+  white-space: nowrap;
 
   &:disabled {
     opacity: 0.6;
@@ -994,102 +1234,201 @@ onMounted(async () => {
   }
 }
 
-// 警告框
-.warning-box {
-  margin-top: 24px;
-  padding: 16px;
-  background: #fff3cd;
-  border: 1px solid #ffeaa7;
-  border-radius: 6px;
-  display: flex;
-  gap: 12px;
-
-  .warning-icon {
-    font-size: 20px;
-    flex-shrink: 0;
-  }
-
-  .warning-content {
-    flex: 1;
-
-    .warning-title {
-      font-size: 14px;
-      font-weight: 500;
-      color: #856404;
-      margin-bottom: 4px;
-    }
-
-    .warning-description {
-      font-size: 13px;
-      color: #856404;
-      opacity: 0.8;
-    }
-  }
-}
-
 // 響應式設計
-@media (max-width: 1200px) {
-  .page-container {
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
 
-  .right-section {
-    order: -1;
-  }
-}
-
-@media (max-width: 768px) {
+// 平板樣式 (768px - 1024px)
+@media (max-width: 1024px) and (min-width: 768px) {
   .category-form-page {
-    padding: 15px;
+    padding: 16px;
   }
 
   .form-card, .info-card {
     padding: 20px;
   }
 
-  .form-actions {
-    flex-direction: column;
-  }
-
-  .btn {
-    width: 100%;
-    justify-content: center;
-  }
-
   .data-table {
     th, td {
-      padding: 10px 15px;
+      padding: 12px 15px;
       font-size: 13px;
     }
   }
 
   .pagination-area {
     flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+}
+
+// 手機樣式 (< 768px)
+@media (max-width: 767px) {
+  .category-form-page {
+    padding: 10px;
+  }
+
+  .page-container.mobile-layout {
+    margin: 0;
+  }
+
+  .form-card, .info-card {
+    padding: 16px;
+    margin: 0;
+    border-radius: 8px;
+  }
+
+  .form-title, .info-title {
+    font-size: 16px;
+    margin-bottom: 16px;
+  }
+
+  .form-actions {
+    flex-direction: column;
     gap: 10px;
-    text-align: center;
+    margin-top: 24px;
+
+    .btn {
+      width: 100%;
+      justify-content: center;
+      padding: 12px 20px;
+    }
   }
 
   .info-row {
     flex-direction: column;
-    gap: 5px;
+    gap: 4px;
+    padding: 10px 0;
 
     .info-label {
       width: auto;
       font-weight: 600;
+      font-size: 13px;
     }
-  }
 
-  .warning-box {
-    flex-direction: column;
-    text-align: center;
-  }
-
-  .action-cell {
-    .edit-btn, .delete-btn {
-      padding: 4px 8px;
+    .info-value {
       font-size: 14px;
     }
+  }
+
+  .list-header {
+    padding: 15px;
+
+    .page-size-select {
+      width: 100%;
+      padding: 10px 15px;
+    }
+  }
+
+  .pagination-area {
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 15px;
+
+    .pagination-info {
+      font-size: 13px;
+      order: 2;
+    }
+
+    .pagination-controls {
+      order: 1;
+      justify-content: center;
+
+      .page-btn {
+        padding: 10px;
+        min-width: 40px;
+        font-size: 13px;
+      }
+    }
+  }
+}
+
+// 超小屏幕樣式 (< 480px)
+@media (max-width: 479px) {
+  .category-form-page {
+    padding: 8px;
+  }
+
+  .mobile-nav {
+    margin-bottom: 10px;
+    
+    .mobile-nav-btn {
+      padding: 12px 8px;
+      font-size: 13px;
+    }
+  }
+
+  .mobile-card {
+    padding: 12px !important;
+    margin-bottom: 10px !important;
+
+    .mobile-card-header {
+      margin-bottom: 8px;
+
+      .mobile-card-number {
+        font-size: 11px;
+        padding: 3px 6px;
+      }
+    }
+
+    .mobile-card-content {
+      .mobile-card-title {
+        font-size: 15px;
+        margin-bottom: 6px;
+      }
+
+      .mobile-card-time {
+        font-size: 12px;
+      }
+    }
+  }
+
+  .pagination-controls {
+    .page-btn {
+      padding: 8px;
+      min-width: 36px;
+      font-size: 12px;
+    }
+  }
+
+  .form-input {
+    padding: 10px 12px !important;
+    font-size: 16px !important; // 避免iOS縮放
+  }
+}
+
+// 橫屏平板樣式
+@media (orientation: landscape) and (max-width: 1024px) and (min-width: 768px) {
+  .page-container.tablet-layout {
+    grid-template-columns: 1fr 1.5fr;
+  }
+}
+
+// 高分辨率屏幕優化
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .btn, .mobile-card, .form-input {
+    border-width: 0.5px;
+  }
+}
+
+
+// 列印樣式
+@media print {
+  .category-form-page {
+    background: white;
+    padding: 0;
+  }
+
+  .mobile-nav, .form-actions, .pagination-area {
+    display: none;
+  }
+
+  .page-container {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .mobile-card-actions, .action-cell {
+    display: none;
   }
 }
 </style>

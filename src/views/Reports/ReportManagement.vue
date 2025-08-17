@@ -585,6 +585,16 @@ onMounted(async () => {
   padding: 20px;
   background-color: #f5f5f5;
   min-height: 100vh;
+
+  // 平板尺寸調整
+  @media (max-width: 1024px) {
+    padding: 16px;
+  }
+
+  // 手機尺寸調整
+  @media (max-width: 768px) {
+    padding: 12px;
+  }
 }
 
 // Loading 動畫
@@ -603,12 +613,27 @@ onMounted(async () => {
 .tab-navigation {
   margin-bottom: 20px;
 
+  @media (max-width: 768px) {
+    margin-bottom: 16px;
+  }
+
   .tab-container {
     display: flex;
     background: white;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     overflow: hidden;
+
+    // 平板：保持水平佈局，但調整間距
+    @media (max-width: 1024px) {
+      border-radius: 6px;
+    }
+
+    // 手機：改為垂直佈局
+    @media (max-width: 768px) {
+      flex-direction: column;
+      border-radius: 6px;
+    }
 
     .tab-btn {
       flex: 1;
@@ -621,16 +646,50 @@ onMounted(async () => {
       cursor: pointer;
       transition: all 0.3s;
       border-bottom: 3px solid transparent;
+      
+      // 改善觸控體驗
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+
+      // 平板調整
+      @media (max-width: 1024px) {
+        padding: 14px 18px;
+        font-size: 13px;
+      }
+
+      // 手機調整
+      @media (max-width: 768px) {
+        padding: 16px 20px;
+        font-size: 14px;
+        border-bottom: 1px solid #e9ecef;
+        border-left: 3px solid transparent;
+        text-align: left;
+        
+        &:last-child {
+          border-bottom: none;
+        }
+      }
 
       &:hover:not(.disabled) {
         background: #e9ecef;
         color: #333;
+
+        // 手機上禁用hover效果
+        @media (max-width: 768px) {
+          background: #f8f9fa;
+          color: #666;
+        }
       }
 
       &.active {
         background: white;
         color: #6c5ce7;
         border-bottom-color: #6c5ce7;
+
+        @media (max-width: 768px) {
+          border-left-color: #6c5ce7;
+          border-bottom-color: transparent;
+        }
       }
 
       &.disabled {
@@ -650,12 +709,47 @@ onMounted(async () => {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   padding: 30px;
 
+  @media (max-width: 1024px) {
+    padding: 24px;
+    border-radius: 6px;
+  }
+
+  @media (max-width: 768px) {
+    padding: 20px;
+    margin: 0 -4px; // 稍微延伸到螢幕邊緣
+  }
+
+  @media (max-width: 480px) {
+    padding: 16px;
+    border-radius: 4px;
+  }
+
   .form-container {
     .form-row {
       display: flex;
       gap: 20px;
       align-items: end;
       margin-bottom: 20px;
+
+      // 平板：保持水平佈局，調整間距
+      @media (max-width: 1024px) {
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+
+      // 手機：改為垂直佈局
+      @media (max-width: 768px) {
+        flex-direction: column;
+        gap: 16px;
+        align-items: stretch;
+        margin-bottom: 16px;
+      }
+
+      // 小手機：進一步縮小間距
+      @media (max-width: 480px) {
+        gap: 12px;
+        margin-bottom: 14px;
+      }
 
       &:last-child {
         margin-bottom: 0;
@@ -664,6 +758,11 @@ onMounted(async () => {
 
     .form-field {
       flex: 1;
+      min-width: 0; // 防止內容溢出
+
+      @media (max-width: 768px) {
+        width: 100%;
+      }
 
       .form-input,
       .form-select {
@@ -674,6 +773,30 @@ onMounted(async () => {
         font-size: 14px;
         transition: border-color 0.3s;
         background: white;
+        box-sizing: border-box;
+
+        // 改善移動端輸入體驗
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+
+        // 平板調整
+        @media (max-width: 1024px) {
+          padding: 11px 14px;
+          font-size: 14px;
+        }
+
+        // 手機調整
+        @media (max-width: 768px) {
+          padding: 14px 16px;
+          font-size: 16px; // 防止iOS縮放
+          border-radius: 4px;
+        }
+
+        // 小手機調整
+        @media (max-width: 480px) {
+          padding: 12px 14px;
+        }
 
         &:focus {
           outline: none;
@@ -688,6 +811,20 @@ onMounted(async () => {
         }
       }
 
+      // 下拉選單箭頭
+      .form-select {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 12px center;
+        background-repeat: no-repeat;
+        background-size: 16px;
+        padding-right: 40px;
+
+        @media (max-width: 768px) {
+          background-position: right 16px center;
+          padding-right: 44px;
+        }
+      }
+
       .form-input::placeholder {
         color: #999;
       }
@@ -698,12 +835,41 @@ onMounted(async () => {
       align-items: center;
       gap: 10px;
       flex: 1;
+      min-width: 0;
+
+      // 平板：保持水平佈局
+      @media (max-width: 1024px) {
+        gap: 8px;
+      }
+
+      // 手機：改為垂直佈局
+      @media (max-width: 768px) {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        width: 100%;
+      }
+
+      // 小手機調整
+      @media (max-width: 480px) {
+        gap: 6px;
+      }
 
       label {
         font-size: 14px;
         color: #333;
         white-space: nowrap;
         font-weight: 500;
+
+        @media (max-width: 1024px) {
+          font-size: 13px;
+        }
+
+        @media (max-width: 768px) {
+          font-size: 14px;
+          margin-bottom: 4px;
+          align-self: flex-start;
+        }
       }
 
       .date-input {
@@ -713,6 +879,28 @@ onMounted(async () => {
         font-size: 14px;
         transition: border-color 0.3s;
         flex: 1;
+        min-width: 120px;
+        box-sizing: border-box;
+
+        // 平板調整
+        @media (max-width: 1024px) {
+          padding: 11px 14px;
+          min-width: 110px;
+        }
+
+        // 手機調整
+        @media (max-width: 768px) {
+          padding: 14px 16px;
+          font-size: 16px; // 防止iOS縮放
+          border-radius: 4px;
+          width: 100%;
+          min-width: 0;
+        }
+
+        // 小手機調整
+        @media (max-width: 480px) {
+          padding: 12px 14px;
+        }
 
         &:focus {
           outline: none;
@@ -730,6 +918,32 @@ onMounted(async () => {
       .date-separator {
         color: #666;
         font-weight: bold;
+        font-size: 16px;
+
+        @media (max-width: 768px) {
+          align-self: center;
+          margin: 4px 0;
+        }
+      }
+
+      // 日期範圍容器（用於包裝兩個日期輸入和分隔符）
+      &.date-range {
+        @media (max-width: 768px) {
+          .date-inputs-wrapper {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            width: 100%;
+
+            .date-input {
+              flex: 1;
+            }
+
+            .date-separator {
+              margin: 0;
+            }
+          }
+        }
       }
     }
 
@@ -738,6 +952,22 @@ onMounted(async () => {
       display: flex;
       gap: 15px;
       justify-content: flex-start;
+
+      @media (max-width: 1024px) {
+        margin-top: 24px;
+        gap: 12px;
+      }
+
+      @media (max-width: 768px) {
+        margin-top: 20px;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      @media (max-width: 480px) {
+        margin-top: 16px;
+        gap: 10px;
+      }
 
       .download-btn {
         background: #6c5ce7;
@@ -751,11 +981,44 @@ onMounted(async () => {
         transition: all 0.3s;
         display: flex;
         align-items: center;
+        justify-content: center;
         gap: 8px;
+        
+        // 改善觸控體驗
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+
+        @media (max-width: 1024px) {
+          padding: 11px 24px;
+          font-size: 13px;
+        }
+
+        @media (max-width: 768px) {
+          padding: 16px 24px;
+          font-size: 14px;
+          width: 100%;
+          min-height: 48px; // 確保觸控目標足夠大
+        }
+
+        @media (max-width: 480px) {
+          padding: 14px 20px;
+          min-height: 44px;
+        }
 
         &:hover:not(:disabled) {
           background: #5b4bcf;
           transform: translateY(-1px);
+
+          // 手機上使用不同的hover效果
+          @media (max-width: 768px) {
+            transform: none;
+            background: #5b4bcf;
+          }
+        }
+
+        &:active {
+          transform: translateY(0);
+          background: #4a3ba8;
         }
 
         &:disabled {
@@ -775,11 +1038,43 @@ onMounted(async () => {
         font-weight: 500;
         cursor: pointer;
         transition: all 0.3s;
+        
+        // 改善觸控體驗
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+
+        @media (max-width: 1024px) {
+          padding: 11px 18px;
+          font-size: 13px;
+        }
+
+        @media (max-width: 768px) {
+          padding: 16px 24px;
+          font-size: 14px;
+          width: 100%;
+          min-height: 48px;
+          justify-content: center;
+          display: flex;
+          align-items: center;
+        }
+
+        @media (max-width: 480px) {
+          padding: 14px 20px;
+          min-height: 44px;
+        }
 
         &:hover:not(:disabled) {
           background: #f8f9fa;
           border-color: #6c5ce7;
           color: #6c5ce7;
+
+          @media (max-width: 768px) {
+            background: #f8f9fa;
+          }
+        }
+
+        &:active {
+          background: #e9ecef;
         }
 
         &:disabled {
@@ -792,58 +1087,66 @@ onMounted(async () => {
   }
 }
 
-// 響應式設計
-@media (max-width: 768px) {
-  .tab-container {
-    flex-direction: column;
-
-    .tab-btn {
-      border-bottom: 1px solid #e9ecef;
-      border-radius: 0;
-
-      &:last-child {
-        border-bottom: none;
-      }
-    }
+// 特殊的響應式調整
+@media (max-width: 480px) {
+  .report-management {
+    padding: 8px;
   }
 
+  .tab-navigation {
+    margin-bottom: 12px;
+  }
+}
+
+// 橫向模式的平板調整
+@media (min-width: 769px) and (max-width: 1024px) and (orientation: landscape) {
   .form-row {
-    flex-direction: column;
-    gap: 15px;
+    gap: 16px;
+  }
+  
+  .form-field .form-input,
+  .form-field .form-select,
+  .date-field .date-input {
+    padding: 10px 14px;
+  }
+}
 
-    .form-field,
-    .date-field {
-      width: 100%;
-    }
+// 針對 iPhone SE 等小螢幕的特殊處理
+@media (max-width: 375px) {
+  .report-section {
+    padding: 12px;
+    margin: 0 -2px;
   }
 
-  .date-field {
-    flex-direction: column;
-    align-items: flex-start;
-
-    label {
-      margin-bottom: 8px;
-    }
-
-    .date-input {
-      width: 100%;
-    }
-
-    .date-separator {
-      align-self: center;
-      margin: 5px 0;
-    }
+  .form-field .form-input,
+  .form-field .form-select,
+  .date-field .date-input {
+    padding: 12px;
+    font-size: 16px;
   }
 
   .form-actions {
-    flex-direction: column;
-    gap: 10px;
-
     .download-btn,
     .reset-btn {
-      width: 100%;
-      justify-content: center;
+      padding: 12px 16px;
+      min-height: 42px;
+      font-size: 14px;
     }
+  }
+}
+
+// 確保在所有裝置上的滾動順暢
+* {
+  -webkit-overflow-scrolling: touch;
+}
+
+// 防止在 iOS 上的縮放
+@media (max-width: 768px) {
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  select {
+    font-size: 16px !important;
   }
 }
 </style>

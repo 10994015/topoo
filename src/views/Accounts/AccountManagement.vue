@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, reactive, onMounted, watch } from 'vue'
+import { ref, computed, reactive, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAccountStore } from '@/stores/account'
 import { useAuthStore } from '@/stores/auth'
@@ -12,6 +12,8 @@ const accountStore = useAccountStore()
 
 const hasFullPermission = computed(() => authStore.canModify(PERMISSIONS.ACCOUNT_MANAGEMENT));
 
+// 響應式視窗寬度監聽
+const windowWidth = ref(window.innerWidth)
 
 // 搜尋表單
 const searchForm = reactive({
@@ -64,6 +66,7 @@ const totalItems = ref(0)
 
 // 載入狀態
 const isLoading = ref(false)
+const isSearching = ref(false)
 
 // 批次匯入相關變數
 const showImportModal = ref(false)
@@ -86,6 +89,16 @@ const accountData = ref([
   },
 ])
 
+// 響應式計算屬性 - 判斷是否為手機模式
+const isMobile = computed(() => windowWidth.value <= 767)
+const isTablet = computed(() => windowWidth.value > 767 && windowWidth.value <= 991)
+const isDesktop = computed(() => windowWidth.value > 991)
+
+// 視窗尺寸變化處理器
+const handleResize = () => {
+  windowWidth.value = window.innerWidth
+}
+
 // 計算屬性
 const totalPages = ref(0)
 
@@ -104,52 +117,50 @@ const visiblePages = computed(() => {
   const total = totalPages.value
   const current = currentPage.value
   
-  if (total <= 7) {
+  if (total <= 5) {
     for (let i = 1; i <= total; i++) {
       pages.push(i)
     }
   } else {
-    if (current <= 4) {
-      for (let i = 1; i <= 5; i++) {
+    if (current <= 3) {
+      for (let i = 1; i <= 4; i++) {
         pages.push(i)
       }
-      pages.push('...')
-      pages.push(total)
-    } else if (current >= total - 3) {
-      pages.push(1)
-      pages.push('...')
-      for (let i = total - 4; i <= total; i++) {
+    } else if (current >= total - 2) {
+      for (let i = total - 3; i <= total; i++) {
         pages.push(i)
       }
     } else {
-      pages.push(1)
-      pages.push('...')
       for (let i = current - 1; i <= current + 1; i++) {
         pages.push(i)
       }
-      pages.push('...')
-      pages.push(total)
     }
   }
   
   return pages
 })
 
+const showEllipsis = computed(() => {
+  return totalPages.value > 5 && currentPage.value < totalPages.value - 2
+})
+
 // 基本方法
 const handleSearch = async () => {
   currentPage.value = 1
+  isSearching.value = true
   console.log('執行搜尋:', searchForm)
   await loadData()
+  isSearching.value = false
 }
 
-const handleReset = () => {
+const handleReset = async () => {
   searchForm.keyword = ''
   searchForm.accountStatus = ''
   searchForm.loginSource = ''
   searchForm.startDate = '2025/05/01'
   searchForm.endDate = '2025/05/30'
   currentPage.value = 1
-  loadData()
+  await loadData()
 }
 
 const loadData = async () => {
@@ -211,10 +222,11 @@ const getSortClass = (field) => {
 }
 
 const goToPage = async (page) => {
+  console.log(page);
+  await loadData();
   if (page >= 1 && page <= totalPages.value) {
     currentPage.value = page
   }
-  await loadData();
 }
 
 const downloadTemplate = async () => {
@@ -284,7 +296,6 @@ const resetImportForm = () => {
     fileInput.value = ''
   }
 }
-
 
 const batchImport = async () => {
   showImportModal.value = true
@@ -366,11 +377,9 @@ const confirmImport = async () => {
 
     console.log(importResult.value);
     
-    
     isImporting.value = false
   }
 }
-
 
 const closeImportModal = () => {
   showImportModal.value = false
@@ -419,14 +428,23 @@ watch(pageSize, async (newSize) => {
   currentPage.value = 1
   await loadData();
 })
+
 const triggerFileInput = () => {
   const fileInput = document.getElementById('import-file-input')
   if (fileInput) {
     fileInput.click()
   }
 }
+
 onMounted(() => {
+  // 添加視窗尺寸監聽器
+  window.addEventListener('resize', handleResize)
   loadData();
+})
+
+// 清理函數
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
 })
 </script>
 
@@ -442,14 +460,16 @@ onMounted(() => {
             placeholder="輸入帳號、姓名及暱稱"
             class="search-input"
             @keyup.enter="handleSearch"
+            :disabled="isLoading"
           />
-          <button class="search-btn" @click="handleSearch">
-            🔍
+          <button class="search-btn" @click="handleSearch" :disabled="isLoading || isSearching">
+            <span v-if="isSearching" class="loading-spinner">⟳</span>
+            <span v-else>🔍</span>
           </button>
         </div>
         
         <div class="select-field">
-          <select v-model="searchForm.accountStatus" class="search-select">
+          <select v-model="searchForm.accountStatus" class="search-select" :disabled="isLoading">
             <option v-for="status in accountStatuses" :key="status.value" :value="status.value">
               {{ status.label }}
             </option>
@@ -457,7 +477,7 @@ onMounted(() => {
         </div>
         
         <div class="select-field">
-          <select v-model="searchForm.loginSource" class="search-select">
+          <select v-model="searchForm.loginSource" class="search-select" :disabled="isLoading">
             <option v-for="source in loginSources" :key="source.value" :value="source.value">
               {{ source.label }}
             </option>
@@ -468,105 +488,126 @@ onMounted(() => {
       <div class="search-row">
         <div class="date-field">
           <label>帳號建立日期</label>
-          <input 
-            type="date" 
-            v-model="searchForm.startDate"
-            class="date-input"
-          />
-          <span class="date-separator">-</span>
-          <input 
-            type="date" 
-            v-model="searchForm.endDate"
-            class="date-input"
-          />
+          <div class="date-inputs">
+            <input 
+              type="date" 
+              v-model="searchForm.startDate"
+              class="date-input"
+              :disabled="isLoading"
+            />
+            <span class="date-separator">-</span>
+            <input 
+              type="date" 
+              v-model="searchForm.endDate"
+              class="date-input"
+              :disabled="isLoading"
+            />
+          </div>
         </div>
         
         <div class="action-buttons">
-          <button class="query-btn" @click="handleSearch">
-            查詢
+          <button class="query-btn" @click="handleSearch" :disabled="isLoading || isSearching">
+            <span v-if="isSearching" class="loading-spinner">⟳</span>
+            <span v-else>查詢</span>
           </button>
+          <button class="reset-btn" @click="handleReset" :disabled="isLoading">重置</button>
         </div>
       </div>
     </section>
 
-    <!-- 功能按鈕區域 -->
-    <section class="control-section">
-      <div class="left-controls">
+    <!-- 資料表格區域 -->
+    <section class="table-section">
+      <div class="table-controls">
         <div class="pagination-control">
-          <select v-model="pageSize" class="page-size-select">
+          <select v-model="pageSize" class="page-size-select" :disabled="isLoading">
             <option value="1">1筆/頁</option>
             <option value="10">10筆/頁</option>
             <option value="20">20筆/頁</option>
             <option value="50">50筆/頁</option>
           </select>
         </div>
+        
+        <div class="right-controls">
+          <button class="control-btn template-btn" @click="downloadTemplate" v-if="hasFullPermission" :disabled="isLoading">
+            下載帳號匯入範本
+          </button>
+          <button class="control-btn import-btn" @click="batchImport" v-if="hasFullPermission" :disabled="isLoading">
+            批次匯入帳號
+          </button>
+          <button class="control-btn create-btn" @click="createNewAccount" v-if="hasFullPermission" :disabled="isLoading">
+            新增帳號
+          </button>
+        </div>
       </div>
-      
-      <div class="right-controls">
-        <button class="control-btn template-btn" @click="downloadTemplate" v-if="hasFullPermission">
-          下載帳號匯入範本
-        </button>
-        <button class="control-btn import-btn" @click="batchImport" v-if="hasFullPermission">
-          批次匯入帳號
-        </button>
-        <button class="control-btn create-btn" @click="createNewAccount" v-if="hasFullPermission">
-          新增帳號
-        </button>
-      </div>
-    </section>
 
-    <!-- 資料表格區域 -->
-    <section class="table-section">
-      <div class="table-container">
+      <!-- 資料表格 - 桌面版 -->
+      <div class="table-container" v-if="!isMobile">
         <table class="data-table">
           <thead>
             <tr>
+              <th>項次</th>
               <th 
-              >
-                項次
-              </th>
-              <th 
-                class="sortable-header" 
+                class="sortable" 
                 :class="getSortClass('credential')"
-                @click="handleSort('credential')"
+                @click="!isLoading && handleSort('credential')"
               >
                 帳號
-                <span class="sort-icon">{{ getSortIcon('credential') }}</span>
+                <span class="sort-icon" v-if="sortConfig.field === 'credential'">
+                  <span v-if="sortConfig.order === 'asc'">↑</span>
+                  <span v-else>↓</span>
+                </span>
+                <span class="sort-icon neutral" v-else>⇅</span>
               </th>
               <th 
-                class="sortable-header" 
+                class="sortable" 
                 :class="getSortClass('name')"
-                @click="handleSort('name')"
+                @click="!isLoading && handleSort('name')"
               >
                 姓名
-                <span class="sort-icon">{{ getSortIcon('name') }}</span>
+                <span class="sort-icon" v-if="sortConfig.field === 'name'">
+                  <span v-if="sortConfig.order === 'asc'">↑</span>
+                  <span v-else>↓</span>
+                </span>
+                <span class="sort-icon neutral" v-else>⇅</span>
               </th>
               <th>暱稱</th>
               <th 
-                class="sortable-header" 
+                class="sortable" 
                 :class="getSortClass('status')"
-                @click="handleSort('status')"
+                @click="!isLoading && handleSort('status')"
               >
                 帳號狀態
-                <span class="sort-icon">{{ getSortIcon('status') }}</span>
+                <span class="sort-icon" v-if="sortConfig.field === 'status'">
+                  <span v-if="sortConfig.order === 'asc'">↑</span>
+                  <span v-else>↓</span>
+                </span>
+                <span class="sort-icon neutral" v-else>⇅</span>
               </th>
               <th 
-                class="sortable-header" 
+                class="sortable" 
                 :class="getSortClass('created_at')"
-                @click="handleSort('created_at')"
+                @click="!isLoading && handleSort('created_at')"
               >
                 建立日期
-                <span class="sort-icon">{{ getSortIcon('created_at') }}</span>
+                <span class="sort-icon" v-if="sortConfig.field === 'created_at'">
+                  <span v-if="sortConfig.order === 'asc'">↑</span>
+                  <span v-else>↓</span>
+                </span>
+                <span class="sort-icon neutral" v-else>⇅</span>
               </th>
               <th 
-                class="sortable-header" 
+                class="sortable" 
                 :class="getSortClass('last_login_at')"
-                @click="handleSort('last_login_at')"
+                @click="!isLoading && handleSort('last_login_at')"
               >
                 登入來源
-                <span class="sort-icon">{{ getSortIcon('last_login_at') }}</span>
+                <span class="sort-icon" v-if="sortConfig.field === 'last_login_at'">
+                  <span v-if="sortConfig.order === 'asc'">↑</span>
+                  <span v-else>↓</span>
+                </span>
+                <span class="sort-icon neutral" v-else>⇅</span>
               </th>
-              <th class="action-column">操作</th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody>
@@ -574,8 +615,18 @@ onMounted(() => {
             <tr v-if="isLoading" class="loading-row">
               <td colspan="8" class="loading-cell">
                 <div class="loading-container">
-                  <div class="loading-spinner">⟳</div>
+                  <div class="loading-spinner large">⟳</div>
                   <div class="loading-text">資料載入中...</div>
+                </div>
+              </td>
+            </tr>
+            
+            <!-- 搜尋中狀態 -->
+            <tr v-else-if="isSearching" class="loading-row">
+              <td colspan="8" class="loading-cell">
+                <div class="loading-container">
+                  <div class="loading-spinner large">⟳</div>
+                  <div class="loading-text">搜尋中...</div>
                 </div>
               </td>
             </tr>
@@ -593,29 +644,83 @@ onMounted(() => {
               </td>
               <td>{{ formatDateTime(item.created_at) }}</td>
               <td>{{ item.provider ?? '系統登入' }}</td>
-              <td class="action-cell">
-                <div class="action-buttons">
-                  <button 
-                    class="action-btn view-btn" 
-                    @click="viewAccount(item)"
-                    title="查看詳情"
-                  >
-                    👁️
-                  </button>
-                </div>
+              <td>
+                <button 
+                  class="action-btn view-btn" 
+                  @click="viewAccount(item)"
+                  title="查看詳情"
+                >
+                  👁️
+                </button>
               </td>
             </tr>
             
             <!-- 無資料狀態 -->
-            <tr v-if="!isLoading && accountData.length === 0">
+            <tr v-if="!isLoading && !isSearching && accountData.length === 0">
               <td colspan="8" class="no-data">暫無資料</td>
             </tr>
           </tbody>
         </table>
       </div>
 
+      <!-- 手機版卡片式佈局 -->
+      <div class="mobile-cards" v-else>
+        <!-- Loading 狀態 -->
+        <div v-if="isLoading" class="loading-container">
+          <div class="loading-spinner large">⟳</div>
+          <div class="loading-text">資料載入中...</div>
+        </div>
+        
+        <!-- 搜尋中狀態 -->
+        <div v-else-if="isSearching" class="loading-container">
+          <div class="loading-spinner large">⟳</div>
+          <div class="loading-text">搜尋中...</div>
+        </div>
+        
+        <!-- 正常資料顯示 -->
+        <div v-else v-for="(item, index) in accountData" :key="item.id" class="mobile-card" @click="viewAccount(item)">
+          <div class="card-header">
+            <div class="card-title">{{ item.credential }}</div>
+            <div class="card-index">#{{ index + 1 }}</div>
+          </div>
+          <div class="card-content">
+            <div class="card-field">
+              <span class="field-label">姓名：</span>
+              <span class="field-value">{{ item.name }}</span>
+            </div>
+            <div class="card-field">
+              <span class="field-label">暱稱：</span>
+              <span class="field-value">{{ item.nick_name || '無' }}</span>
+            </div>
+            <div class="card-field">
+              <span class="field-label">帳號狀態：</span>
+              <span class="field-value status" :class="getStatusClass(item.status)">
+                {{ enumStatus[item.status] || item.status }}
+              </span>
+            </div>
+            <div class="card-field">
+              <span class="field-label">建立日期：</span>
+              <span class="field-value">{{ formatDateTime(item.created_at) }}</span>
+            </div>
+            <div class="card-field">
+              <span class="field-label">登入來源：</span>
+              <span class="field-value">{{ item.provider ?? '系統登入' }}</span>
+            </div>
+          </div>
+          <div class="card-action">
+            <span class="view-hint">點擊查看詳情 →</span>
+          </div>
+        </div>
+        
+        <!-- 無資料狀態 -->
+        <div v-if="!isLoading && !isSearching && accountData.length === 0" class="no-data-mobile">
+          <div class="no-data-icon">👤</div>
+          <div class="no-data-text">暫無資料</div>
+        </div>
+      </div>
+
       <!-- 分頁控制 -->
-      <div class="pagination-section">
+      <div class="pagination-section" :class="{ disabled: isLoading }">
         <div class="pagination-info">
           <span v-if="isLoading">載入中...</span>
           <span v-else>顯示第 {{ startItem }} 到 {{ endItem }} 筆結果 共 {{ totalItems }} 項</span>
@@ -630,17 +735,26 @@ onMounted(() => {
             ‹
           </button>
           
-          <template v-for="page in visiblePages" :key="page">
-            <button 
-              v-if="page !== '...'"
-              :class="['page-btn', { active: page === currentPage }]"
-              :disabled="isLoading"
-              @click="goToPage(page)"
-            >
-              {{ page }}
-            </button>
-            <span v-else class="ellipsis">...</span>
-          </template>
+          <button 
+            v-for="page in visiblePages" 
+            :key="page"
+            :class="['page-btn', { active: page === currentPage }]"
+            :disabled="isLoading"
+            @click="goToPage(page)"
+          >
+            {{ page }}
+          </button>
+          
+          <span v-if="showEllipsis" class="ellipsis">...</span>
+          
+          <button 
+            v-if="totalPages > 5"
+            :class="['page-btn', { active: totalPages === currentPage }]"
+            :disabled="isLoading"
+            @click="goToPage(totalPages)"
+          >
+            {{ totalPages }}
+          </button>
           
           <button 
             class="page-btn" 
@@ -898,8 +1012,10 @@ onMounted(() => {
 .loading-spinner {
   display: inline-block;
   animation: spin 1s linear infinite;
-  font-size: 24px;
-  color: #6c5ce7;
+  
+  &.large {
+    font-size: 24px;
+  }
 }
 
 @keyframes spin {
@@ -965,6 +1081,12 @@ onMounted(() => {
         border-color: #6c5ce7;
         box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.1);
       }
+
+      &:disabled {
+        background-color: #f8f9fa;
+        color: #999;
+        cursor: not-allowed;
+      }
     }
 
     .search-btn {
@@ -979,8 +1101,13 @@ onMounted(() => {
       color: #666;
       transition: color 0.3s;
 
-      &:hover {
+      &:hover:not(:disabled) {
         color: #6c5ce7;
+      }
+
+      &:disabled {
+        color: #ccc;
+        cursor: not-allowed;
       }
     }
   }
@@ -1000,6 +1127,12 @@ onMounted(() => {
         border-color: #6c5ce7;
         box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.1);
       }
+
+      &:disabled {
+        background-color: #f8f9fa;
+        color: #999;
+        cursor: not-allowed;
+      }
     }
   }
 
@@ -1015,6 +1148,12 @@ onMounted(() => {
       font-weight: 500;
     }
 
+    .date-inputs {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
     .date-input {
       padding: 12px 15px;
       border: 1px solid #ddd;
@@ -1026,6 +1165,12 @@ onMounted(() => {
         outline: none;
         border-color: #6c5ce7;
         box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.1);
+      }
+
+      &:disabled {
+        background-color: #f8f9fa;
+        color: #999;
+        cursor: not-allowed;
       }
     }
 
@@ -1049,74 +1194,43 @@ onMounted(() => {
       font-weight: 500;
       cursor: pointer;
       transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
 
-      &:hover {
+      &:hover:not(:disabled) {
         background: #5b4bcf;
         transform: translateY(-1px);
       }
+
+      &:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        transform: none;
+      }
     }
-  }
-}
 
-// 控制區域
-.control-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-
-  .left-controls {
-    .page-size-select {
-      padding: 8px 12px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-size: 14px;
+    .reset-btn {
       background: white;
-    }
-  }
-
-  .right-controls {
-    display: flex;
-    gap: 10px;
-
-    .control-btn {
-      padding: 8px 16px;
+      color: #666;
+      border: 1px solid #ddd;
+      padding: 12px 20px;
       border-radius: 6px;
       font-size: 14px;
       font-weight: 500;
       cursor: pointer;
       transition: all 0.3s;
-      border: none;
 
-      &.template-btn {
+      &:hover:not(:disabled) {
         background: #f8f9fa;
+        border-color: #6c5ce7;
         color: #6c5ce7;
-        border: 1px solid #6c5ce7;
-
-        &:hover {
-          background: #6c5ce7;
-          color: white;
-        }
       }
 
-      &.import-btn {
-        background: #6c5ce7;
-        color: white;
-
-        &:hover {
-          background: #5b4bcf;
-          transform: translateY(-1px);
-        }
-      }
-
-      &.create-btn {
-        background: #6c5ce7;
-        color: white;
-
-        &:hover {
-          background: #5b4bcf;
-          transform: translateY(-1px);
-        }
+      &:disabled {
+        background: #f8f9fa;
+        color: #ccc;
+        cursor: not-allowed;
       }
     }
   }
@@ -1128,6 +1242,78 @@ onMounted(() => {
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   overflow: hidden;
+
+  .table-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 25px;
+    border-bottom: 1px solid #f0f0f0;
+
+    .page-size-select {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+
+      &:disabled {
+        background-color: #f8f9fa;
+        color: #999;
+        cursor: not-allowed;
+      }
+    }
+
+    .right-controls {
+      display: flex;
+      gap: 10px;
+
+      .control-btn {
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+        border: none;
+
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        &.template-btn {
+          background: #f8f9fa;
+          color: #6c5ce7;
+          border: 1px solid #6c5ce7;
+
+          &:hover:not(:disabled) {
+            background: #6c5ce7;
+            color: white;
+          }
+        }
+
+        &.import-btn {
+          background: #6c5ce7;
+          color: white;
+
+          &:hover:not(:disabled) {
+            background: #5b4bcf;
+            transform: translateY(-1px);
+          }
+        }
+
+        &.create-btn {
+          background: #6c5ce7;
+          color: white;
+
+          &:hover:not(:disabled) {
+            background: #5b4bcf;
+            transform: translateY(-1px);
+          }
+        }
+      }
+    }
+  }
 
   .table-container {
     overflow-x: auto;
@@ -1145,45 +1331,27 @@ onMounted(() => {
           text-align: left;
           font-weight: 500;
           font-size: 14px;
+          position: relative;
 
-          &.action-column {
-            text-align: center;
-            min-width: 160px;
-          }
-
-          &.sortable-header {
+          &.sortable {
             cursor: pointer;
             user-select: none;
-            transition: all 0.2s;
-            position: relative;
+            transition: background-color 0.3s;
 
             &:hover {
               background: rgba(255, 255, 255, 0.1);
             }
 
-            &.sorted-asc {
-              background: rgba(255, 255, 255, 0.15);
-            }
-
-            &.sorted-desc {
-              background: rgba(255, 255, 255, 0.15);
-            }
-
             .sort-icon {
               margin-left: 8px;
-              font-size: 12px;
-              opacity: 0.7;
-              transition: opacity 0.2s;
-            }
-
-            &:hover .sort-icon {
               opacity: 1;
-            }
-
-            &.sorted-asc .sort-icon,
-            &.sorted-desc .sort-icon {
-              opacity: 1;
-              font-weight: bold;
+              transition: all 0.3s;
+              color: #fff;
+              font-size: 14px;
+              
+              &.neutral {
+                opacity: 0.5;
+              }
             }
           }
         }
@@ -1202,11 +1370,6 @@ onMounted(() => {
             padding: 15px 20px;
             font-size: 14px;
             color: #333;
-
-            &.action-cell {
-              text-align: center;
-              padding: 10px 20px;
-            }
           }
         }
 
@@ -1216,42 +1379,147 @@ onMounted(() => {
           color: #999;
           font-style: italic;
         }
+        
+        .action-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 14px;
+          transition: all 0.2s;
+          background: #f8f9fa;
+          color: #666;
+
+          &:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          }
+
+          &.view-btn {
+            &:hover {
+              background: #e3f2fd;
+              color: #1976d2;
+            }
+          }
+        }
       }
     }
   }
 }
 
-// 操作按鈕樣式
-.action-buttons {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-  align-items: center;
+// 手機版卡片式佈局
+.mobile-cards {
+  padding: 20px;
 
-  .action-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border: none;
-    border-radius: 6px;
+  .mobile-card {
+    background: white;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s;
     cursor: pointer;
-    font-size: 14px;
-    transition: all 0.2s;
-    background: #f8f9fa;
-    color: #666;
 
     &:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+      transform: translateY(-2px);
     }
 
-    &.view-btn {
-      &:hover {
-        background: #e3f2fd;
-        color: #1976d2;
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #f0f0f0;
+
+      .card-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #333;
+        line-height: 1.4;
+        flex: 1;
+        margin-right: 12px;
       }
+
+      .card-index {
+        font-size: 12px;
+        color: #6c5ce7;
+        background: rgba(108, 92, 231, 0.1);
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-weight: 500;
+        flex-shrink: 0;
+      }
+    }
+
+    .card-content {
+      .card-field {
+        display: flex;
+        margin-bottom: 8px;
+        align-items: flex-start;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+
+        .field-label {
+          font-size: 13px;
+          color: #666;
+          min-width: 80px;
+          flex-shrink: 0;
+          font-weight: 500;
+        }
+
+        .field-value {
+          font-size: 13px;
+          color: #333;
+          flex: 1;
+          word-break: break-word;
+
+          &.status {
+            font-weight: 500;
+          }
+        }
+      }
+    }
+
+    .card-action {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #f0f0f0;
+      text-align: right;
+
+      .view-hint {
+        font-size: 12px;
+        color: #6c5ce7;
+        font-weight: 500;
+      }
+    }
+  }
+
+  .no-data-mobile {
+    text-align: center;
+    padding: 60px 20px;
+    color: #999;
+
+    .no-data-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    .no-data-text {
+      font-size: 16px;
+      font-style: italic;
     }
   }
 }
@@ -1287,6 +1555,11 @@ onMounted(() => {
   padding: 20px 25px;
   border-top: 1px solid #f0f0f0;
 
+  &.disabled {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+
   .pagination-info {
     font-size: 14px;
     color: #666;
@@ -1295,7 +1568,6 @@ onMounted(() => {
   .pagination-controls {
     display: flex;
     gap: 5px;
-    align-items: center;
 
     .page-btn {
       padding: 8px 12px;
@@ -1429,24 +1701,6 @@ onMounted(() => {
       line-height: 1.5;
     }
   }
-  
-  .template-download {
-    .template-download-btn {
-      background: #f8f9fa;
-      color: #6c5ce7;
-      border: 1px solid #6c5ce7;
-      padding: 8px 16px;
-      border-radius: 6px;
-      font-size: 14px;
-      cursor: pointer;
-      transition: all 0.3s;
-      
-      &:hover {
-        background: #6c5ce7;
-        color: white;
-      }
-    }
-  }
 }
 
 // 文件上傳區域
@@ -1578,90 +1832,7 @@ onMounted(() => {
   }
 }
 
-// 結果顯示
-.import-result {
-  .result-success, .result-error {
-    display: flex;
-    gap: 15px;
-    padding: 20px;
-    border-radius: 8px;
-    
-    .result-icon {
-      font-size: 24px;
-      flex-shrink: 0;
-    }
-    
-    .result-content {
-      flex: 1;
-      
-      h4 {
-        margin: 0 0 10px 0;
-        font-size: 16px;
-        font-weight: 600;
-      }
-      
-      p {
-        margin: 0 0 15px 0;
-        color: #666;
-        line-height: 1.5;
-      }
-    }
-  }
-  
-  .result-success {
-    background: #d4edda;
-    border: 1px solid #c3e6cb;
-    
-    .result-content h4 {
-      color: #155724;
-    }
-    
-    .result-stats {
-      display: flex;
-      gap: 15px;
-      flex-wrap: wrap;
-      
-      span {
-        background: white;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 12px;
-        font-weight: 500;
-        color: #155724;
-      }
-    }
-  }
-  
-  .result-error {
-    background: #f8d7da;
-    border: 1px solid #f5c6cb;
-    
-    .result-content h4 {
-      color: #721c24;
-    }
-    
-    .error-details {
-      margin-top: 15px;
-      
-      h5 {
-        margin: 0 0 10px 0;
-        font-size: 14px;
-        color: #721c24;
-      }
-      
-      ul {
-        margin: 0;
-        padding-left: 20px;
-        
-        li {
-          margin-bottom: 5px;
-          font-size: 13px;
-          color: #721c24;
-        }
-      }
-    }
-  }
-}
+// 成功結果顯示
 .result-success {
   background: linear-gradient(135deg, #f8fff9 0%, #e8f8e8 100%);
   border: 1px solid #c3e6cb;
@@ -1782,66 +1953,6 @@ onMounted(() => {
   }
 }
 
-// 成功率進度條
-.success-rate {
-  background: white;
-  border-radius: 10px;
-  padding: 16px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  
-  .rate-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-    
-    .rate-label {
-      font-size: 14px;
-      color: #155724;
-      font-weight: 600;
-    }
-    
-    .rate-value {
-      font-size: 18px;
-      color: #28a745;
-      font-weight: 700;
-    }
-  }
-  
-  .rate-bar {
-    width: 100%;
-    height: 8px;
-    background: #e9ecef;
-    border-radius: 4px;
-    overflow: hidden;
-    
-    .rate-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #28a745, #20c997);
-      border-radius: 4px;
-      transition: width 1s ease;
-      position: relative;
-      
-      &::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(
-          90deg,
-          transparent,
-          rgba(255, 255, 255, 0.4),
-          transparent
-        );
-        animation: shimmer 2s infinite;
-      }
-    }
-  }
-}
-
 // 失敗項次詳情
 .error-details {
   background: white;
@@ -1919,160 +2030,8 @@ onMounted(() => {
       }
     }
   }
-  
-  // 自定義滾動條
-  .error-content::-webkit-scrollbar {
-    width: 6px;
-  }
-  
-  .error-content::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 3px;
-  }
-  
-  .error-content::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
-    border-radius: 3px;
-    
-    &:hover {
-      background: #a8a8a8;
-    }
-  }
 }
 
-// 動畫效果
-@keyframes slideInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes bounceIn {
-  0% {
-    opacity: 0;
-    transform: scale(0.3);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.05);
-  }
-  70% {
-    transform: scale(0.9);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.6;
-  }
-}
-
-// 響應式設計
-@media (max-width: 768px) {
-  .success-header {
-    padding: 20px 16px 16px 16px;
-    
-    .success-icon-wrapper .success-icon {
-      width: 48px;
-      height: 48px;
-      font-size: 28px;
-    }
-    
-    .success-content .success-title {
-      font-size: 18px;
-    }
-  }
-  
-  .result-stats-container {
-    padding: 16px;
-  }
-  
-  .stats-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
-    
-    .stat-card {
-      padding: 16px;
-      
-      .stat-info .stat-number {
-        font-size: 20px;
-      }
-    }
-  }
-  
-  .error-details .error-content .error-items {
-    .error-item {
-      font-size: 11px;
-      padding: 4px 8px;
-    }
-  }
-}
-
-@media (max-width: 480px) {
-  .success-header {
-    flex-direction: column;
-    text-align: center;
-    gap: 12px;
-  }
-  
-  .error-details .error-content {
-    max-height: 150px;
-  }
-}
-// 按鈕樣式
-.btn {
-  padding: 10px 20px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s;
-  border: none;
-  
-  &.btn-secondary {
-    background: #6c757d;
-    color: white;
-    
-    &:hover:not(:disabled) {
-      background: #5a6268;
-    }
-  }
-  
-  &.btn-primary {
-    background: #6c5ce7;
-    color: white;
-    
-    &:hover:not(:disabled) {
-      background: #5b4bcf;
-    }
-  }
-  
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-}
 // 錯誤結果顯示樣式
 .result-error {
   background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
@@ -2251,7 +2210,70 @@ onMounted(() => {
   }
 }
 
-// 錯誤動畫
+// 按鈕樣式
+.btn {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: none;
+  
+  &.btn-secondary {
+    background: #6c757d;
+    color: white;
+    
+    &:hover:not(:disabled) {
+      background: #5a6268;
+    }
+  }
+  
+  &.btn-primary {
+    background: #6c5ce7;
+    color: white;
+    
+    &:hover:not(:disabled) {
+      background: #5b4bcf;
+    }
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+// 動畫效果
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @keyframes shakeIn {
   0% {
     opacity: 0;
@@ -2270,140 +2292,273 @@ onMounted(() => {
   }
 }
 
-// 修正模態框按鈕邏輯
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  padding: 20px 25px;
-  border-top: 1px solid #eee;
-  background: #f8f9fa;
-  border-radius: 0 0 12px 12px;
-  
-  // 匯入成功狀態
-  &.success-state {
-    .btn-secondary {
-      background: #6c757d;
-      &:hover { background: #5a6268; }
-    }
-    .btn-primary {
-      background: #28a745;
-      &:hover { background: #218838; }
-    }
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
   }
-  
-  // 匯入失敗狀態  
-  &.error-state {
-    .btn-secondary {
-      background: #6c757d;
-      &:hover { background: #5a6268; }
-    }
-    .btn-primary {
-      background: #dc3545;
-      &:hover { background: #c82333; }
-    }
-  }
-  
-  // 匯入中或未開始狀態
-  &.default-state {
-    .btn-secondary {
-      background: #6c757d;
-      &:hover:not(:disabled) { background: #5a6268; }
-    }
-    .btn-primary {
-      background: #6c5ce7;
-      &:hover:not(:disabled) { background: #5b4bcf; }
-    }
+  50% {
+    opacity: 0.6;
   }
 }
 
-// 響應式設計
-@media (max-width: 768px) {
-  .error-header-main {
-    padding: 20px 16px 16px 16px;
-    
-    .error-icon-wrapper .error-icon-main {
-      width: 48px;
-      height: 48px;
-      font-size: 28px;
-    }
-    
-    .error-content-main .error-title-main {
-      font-size: 18px;
-    }
-  }
-  
-  .error-details-section,
-  .error-suggestions {
-    margin-left: 16px;
-    margin-right: 16px;
-  }
-}
+/* ===== 響應式設計 ===== */
 
-@media (max-width: 480px) {
-  .error-header-main {
-    flex-direction: column;
-    text-align: center;
-    gap: 12px;
-  }
-  
-  .error-details-section .error-list-content {
-    max-height: 150px;
-  }
-}
-// 響應式設計
-@media (max-width: 768px) {
-  .search-row {
-    flex-direction: column;
-    gap: 15px;
-
-    .search-field,
-    .select-field {
-      width: 100%;
-    }
+/* 大螢幕 (1400px+) */
+@media (min-width: 1400px) {
+  .account-management {
+    padding: 24px;
   }
 
-  .control-section {
-    flex-direction: column;
-    gap: 15px;
-    align-items: stretch;
+  .search-section {
+    padding: 30px;
+  }
+
+  .table-section .table-controls {
+    padding: 24px 30px;
   }
 
   .pagination-section {
+    padding: 24px 30px;
+  }
+}
+
+/* 平板橫向 (992px - 1399px) */
+@media (max-width: 1399px) and (min-width: 992px) {
+  .search-section {
+    .search-row {
+      .select-field .search-select {
+        min-width: 140px;
+      }
+    }
+  }
+
+  .table-section {
+    .data-table {
+      th, td {
+        padding: 12px 16px;
+        font-size: 13px;
+      }
+    }
+  }
+}
+
+/* 平板直向 (768px - 991px) */
+@media (max-width: 991px) and (min-width: 768px) {
+  .account-management {
+    padding: 16px;
+  }
+
+  .search-section {
+    padding: 20px;
+
+    .search-row {
+      flex-wrap: wrap;
+      gap: 15px;
+
+      .search-field {
+        min-width: 250px;
+      }
+
+      .select-field {
+        min-width: 150px;
+        
+        .search-select {
+          min-width: 120px;
+        }
+      }
+
+      .date-field {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+
+        .date-inputs {
+          flex-wrap: wrap;
+        }
+
+        .date-input {
+          min-width: 140px;
+        }
+      }
+
+      .action-buttons {
+        width: 100%;
+        justify-content: flex-end;
+      }
+    }
+  }
+
+  .table-section {
+    .table-controls {
+      padding: 16px 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+
+      .right-controls {
+        flex-wrap: wrap;
+      }
+    }
+
+    .data-table {
+      th, td {
+        padding: 10px 12px;
+        font-size: 12px;
+      }
+
+      th.sortable .sort-icon {
+        font-size: 12px;
+      }
+    }
+  }
+
+  .pagination-section {
+    padding: 16px 20px;
     flex-direction: column;
-    gap: 15px;
+    gap: 12px;
     text-align: center;
+
+    .pagination-controls {
+      justify-content: center;
+    }
+  }
+}
+
+/* 大手機 (576px - 767px) */
+@media (max-width: 767px) {
+  .account-management {
+    padding: 12px;
   }
 
-  .right-controls {
-    flex-wrap: wrap;
-    
-    .control-btn {
-      flex: 1;
-      min-width: 120px;
+  .search-section {
+    padding: 16px;
+
+    .search-row {
+      flex-direction: column;
+      gap: 12px;
+      align-items: stretch;
+
+      .search-field,
+      .select-field {
+        width: 100%;
+      }
+
+      .select-field .search-select {
+        width: 100%;
+        min-width: auto;
+      }
+
+      .date-field {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+
+        label {
+          text-align: left;
+        }
+
+        .date-inputs {
+          justify-content: space-between;
+        }
+
+        .date-input {
+          flex: 1;
+          min-width: 0;
+        }
+      }
+
+      .action-buttons {
+        flex-direction: row;
+        gap: 8px;
+
+        .query-btn,
+        .reset-btn {
+          flex: 1;
+          padding: 12px 16px;
+        }
+      }
     }
   }
 
-  .action-buttons {
-    gap: 4px;
-    
-    .action-btn {
-      width: 28px;
-      height: 28px;
+  .table-section {
+    .table-controls {
+      padding: 12px 16px;
+      flex-direction: column;
+      gap: 12px;
+      align-items: stretch;
+
+      .page-size-select {
+        align-self: flex-start;
+      }
+
+      .right-controls {
+        flex-direction: column;
+        gap: 8px;
+
+        .control-btn {
+          width: 100%;
+          padding: 12px;
+        }
+      }
+    }
+  }
+
+  .mobile-cards {
+    padding: 12px;
+
+    .mobile-card {
+      padding: 12px;
+      margin-bottom: 12px;
+
+      .card-header {
+        .card-title {
+          font-size: 15px;
+        }
+
+        .card-index {
+          font-size: 11px;
+        }
+      }
+
+      .card-content .card-field {
+        .field-label {
+          font-size: 12px;
+          min-width: 70px;
+        }
+
+        .field-value {
+          font-size: 12px;
+        }
+      }
+
+      .card-action .view-hint {
+        font-size: 11px;
+      }
+    }
+  }
+
+  .pagination-section {
+    padding: 12px 16px;
+    flex-direction: column;
+    gap: 12px;
+
+    .pagination-info {
       font-size: 12px;
+      text-align: center;
+    }
+
+    .pagination-controls {
+      justify-content: center;
+      flex-wrap: wrap;
+
+      .page-btn {
+        padding: 6px 10px;
+        font-size: 12px;
+        min-width: 36px;
+      }
     }
   }
 
-  .action-column {
-    min-width: 120px !important;
-  }
-
-  .sortable-header {
-    .sort-icon {
-      display: none;
-    }
-  }
-
+  // 模態框響應式
   .modal-overlay {
     padding: 10px;
   }
@@ -2426,21 +2581,276 @@ onMounted(() => {
     }
   }
   
-  .result-success,
-  .result-error {
-    flex-direction: column;
-    text-align: center;
-    
-    .result-stats {
-      justify-content: center;
-    }
-  }
-  
   .modal-footer {
     flex-direction: column;
     
     .btn {
       width: 100%;
+    }
+  }
+
+  .success-header {
+    padding: 20px 16px 16px 16px;
+    
+    .success-icon-wrapper .success-icon {
+      width: 48px;
+      height: 48px;
+      font-size: 28px;
+    }
+    
+    .success-content .success-title {
+      font-size: 18px;
+    }
+  }
+  
+  .result-stats-container {
+    padding: 16px;
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    
+    .stat-card {
+      padding: 16px;
+      
+      .stat-info .stat-number {
+        font-size: 20px;
+      }
+    }
+  }
+  
+  .error-details .error-content .error-items {
+    .error-item {
+      font-size: 11px;
+      padding: 4px 8px;
+    }
+  }
+
+  .error-header-main {
+    padding: 20px 16px 16px 16px;
+    
+    .error-icon-wrapper .error-icon-main {
+      width: 48px;
+      height: 48px;
+      font-size: 28px;
+    }
+    
+    .error-content-main .error-title-main {
+      font-size: 18px;
+    }
+  }
+  
+  .error-details-section,
+  .error-suggestions {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+}
+
+/* 小手機 (480px 以下) */
+@media (max-width: 479px) {
+  .account-management {
+    padding: 8px;
+  }
+
+  .search-section {
+    padding: 12px;
+    margin-bottom: 12px;
+
+    .search-row {
+      gap: 10px;
+
+      .search-field .search-input {
+        padding: 10px 40px 10px 12px;
+        font-size: 13px;
+      }
+
+      .select-field .search-select {
+        padding: 10px 12px;
+        font-size: 13px;
+      }
+
+      .date-field {
+        .date-input {
+          padding: 10px 12px;
+          font-size: 13px;
+        }
+      }
+
+      .action-buttons {
+        .query-btn,
+        .reset-btn {
+          padding: 10px 12px;
+          font-size: 13px;
+        }
+      }
+    }
+  }
+
+  .table-section {
+    .table-controls {
+      padding: 10px 12px;
+
+      .page-size-select {
+        padding: 6px 10px;
+        font-size: 12px;
+      }
+
+      .right-controls .control-btn {
+        padding: 10px;
+        font-size: 13px;
+      }
+    }
+  }
+
+  .mobile-cards {
+    padding: 8px;
+
+    .mobile-card {
+      padding: 10px;
+      margin-bottom: 10px;
+
+      .card-header {
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+
+        .card-title {
+          font-size: 14px;
+          margin-right: 8px;
+        }
+
+        .card-index {
+          font-size: 10px;
+          padding: 2px 6px;
+        }
+      }
+
+      .card-content .card-field {
+        margin-bottom: 6px;
+
+        .field-label {
+          font-size: 11px;
+          min-width: 60px;
+        }
+
+        .field-value {
+          font-size: 11px;
+        }
+      }
+
+      .card-action {
+        margin-top: 10px;
+        padding-top: 10px;
+
+        .view-hint {
+          font-size: 10px;
+        }
+      }
+    }
+
+    .no-data-mobile {
+      padding: 40px 16px;
+
+      .no-data-icon {
+        font-size: 36px;
+        margin-bottom: 12px;
+      }
+
+      .no-data-text {
+        font-size: 14px;
+      }
+    }
+  }
+
+  .pagination-section {
+    padding: 10px 12px;
+
+    .pagination-info {
+      font-size: 11px;
+    }
+
+    .pagination-controls {
+      gap: 3px;
+
+      .page-btn {
+        padding: 5px 8px;
+        font-size: 11px;
+        min-width: 32px;
+      }
+    }
+  }
+
+  .success-header {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+  
+  .error-details-section .error-list-content {
+    max-height: 150px;
+  }
+
+  .error-header-main {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+}
+
+/* 超小螢幕 (360px 以下) */
+@media (max-width: 359px) {
+  .search-section {
+    .search-row {
+      .action-buttons {
+        flex-direction: column;
+      }
+
+      .date-field .date-inputs {
+        flex-direction: column;
+        gap: 8px;
+
+        .date-separator {
+          display: none;
+        }
+      }
+    }
+  }
+
+  .mobile-cards .mobile-card {
+    .card-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+
+      .card-index {
+        align-self: flex-end;
+      }
+    }
+
+    .card-content .card-field {
+      flex-direction: column;
+      gap: 2px;
+
+      .field-label {
+        min-width: auto;
+        font-weight: 600;
+      }
+    }
+  }
+
+  .pagination-controls {
+    .page-btn {
+      padding: 4px 6px;
+      font-size: 10px;
+      min-width: 28px;
+    }
+  }
+
+  .table-section .table-controls .right-controls {
+    .control-btn {
+      font-size: 12px;
+      padding: 8px;
     }
   }
 }

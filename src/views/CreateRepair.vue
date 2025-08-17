@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useRepairStore } from '@/stores/repair'
 import { useAuthStore } from '@/stores/auth'
@@ -7,6 +7,9 @@ import { useAuthStore } from '@/stores/auth'
 const router = useRouter()
 const repairStore = useRepairStore()
 const authStore = useAuthStore()
+
+// 響應式視窗寬度監聽
+const windowWidth = ref(window.innerWidth)
 
 // 文件限制配置
 const FILE_LIMITS = {
@@ -70,10 +73,20 @@ const isHardwareOrSoftware = ref({
 // 當前用戶資訊
 const currentUser = computed(() => authStore.user)
 
+// 響應式計算屬性
+const isMobile = computed(() => windowWidth.value <= 767)
+const isTablet = computed(() => windowWidth.value > 767 && windowWidth.value <= 991)
+const isDesktop = computed(() => windowWidth.value > 991)
+
 // 計算是否可以提交表單 (新增)
 const canSubmit = computed(() => {
   return !isSubmitting.value && !isUploading.value && !deletingFileId.value
 })
+
+// 視窗尺寸變化處理器
+const handleResize = () => {
+  windowWidth.value = window.innerWidth
+}
 
 // 初始化報修時間為當前時間
 const initializeDateTime = () => {
@@ -413,6 +426,7 @@ const handleCancel = () => {
     router.go(-1)
   }
 }
+
 const isReasonLoading = ref(false);
 watch(() => repairForm.repairCategoryId, (newId) => {
   isReasonLoading.value = true;
@@ -431,10 +445,13 @@ watch(() => repairForm.repairCategoryId, (newId) => {
     isReasonLoading.value = false
     repairForm.repairReasonId = ''
   })
-  
 })
+
 // 載入枚舉資料
 onMounted(async () => {
+  // 添加視窗尺寸監聽器
+  window.addEventListener('resize', handleResize)
+  
   initializeDateTime()
   isReasonLoading.value = true
   try {
@@ -451,7 +468,13 @@ onMounted(async () => {
     isReasonLoading.value = false
   }
 })
+
+// 清理函數
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+})
 </script>
+
 <template>
   <div class="new-repair-page">
     <div class="repair-form-container">
@@ -465,38 +488,40 @@ onMounted(async () => {
         <div class="form-container">
           <div class="form-row">
             <!-- 案件標題 -->
-              <div class="form-group required">
-                <label class="form-label">案件標題</label>
-                <input
-                  type="text"
-                  v-model="repairForm.title"
-                  placeholder="請輸入案件標題"
-                  class="form-input"
-                  :class="{ error: errors.title }"
-                />
-                <span v-if="errors.title" class="error-message">{{ errors.title }}</span>
-              </div>
-              <!-- 故障類別 -->
-              <div class="form-group required">
-                <label class="form-label">故障類別</label>
-                <select 
-                  v-model="repairForm.repairCategoryId"
-                  class="form-select"
-                  :class="{ error: errors.repairCategoryId }"
+            <div class="form-group required">
+              <label class="form-label">案件標題</label>
+              <input
+                type="text"
+                v-model="repairForm.title"
+                placeholder="請輸入案件標題"
+                class="form-input"
+                :class="{ error: errors.title }"
+              />
+              <span v-if="errors.title" class="error-message">{{ errors.title }}</span>
+            </div>
+            
+            <!-- 故障類別 -->
+            <div class="form-group required">
+              <label class="form-label">故障類別</label>
+              <select 
+                v-model="repairForm.repairCategoryId"
+                class="form-select"
+                :class="{ error: errors.repairCategoryId }"
+              >
+                <option value="">選擇故障類別</option>
+                <option 
+                  v-for="category in categories" 
+                  :key="category.id" 
+                  :value="category.id"
                 >
-                  <option value="">選擇故障類別</option>
-                  <option 
-                    v-for="category in categories" 
-                    :key="category.id" 
-                    :value="category.id"
-                  >
-                    {{ category.name }}
-                  </option>
-                </select>
-                <span v-if="errors.repairCategoryId" class="error-message">{{ errors.repairCategoryId }}</span>
-              </div>
-              <!-- 故障原因 -->
-              <div class="form-group required">
+                  {{ category.name }}
+                </option>
+              </select>
+              <span v-if="errors.repairCategoryId" class="error-message">{{ errors.repairCategoryId }}</span>
+            </div>
+            
+            <!-- 故障原因 -->
+            <div class="form-group required">
               <label class="form-label">故障原因</label>
               <select 
                 v-model="repairForm.repairReasonId"
@@ -514,8 +539,9 @@ onMounted(async () => {
                 </option>
               </select>
               <span v-if="errors.repairReasonId" class="error-message">{{ errors.repairReasonId }}</span>
-              </div>
+            </div>
           </div>
+          
           <div class="form-row">
             <!-- 設備位置 -->
             <div class="form-group" v-if="isHardwareOrSoftware.value">
@@ -539,6 +565,7 @@ onMounted(async () => {
               />
               <span v-if="errors.repairTime" class="error-message">{{ errors.repairTime }}</span>
             </div>
+            
             <!-- 報修人員 -->
             <div class="form-group">
               <label class="form-label">報修人員</label>
@@ -547,13 +574,12 @@ onMounted(async () => {
                 <span class="reporter-detail">{{ currentUser?.repair_unit || 'OO科技公司-資訊部-專案管理課-第一OO' }}</span>
               </div>
             </div>
-
           </div>
         </div>
 
         <!-- 設備項目 -->
-        <div class="form-row-2" >
-          <div class="form-group" v-if="isHardwareOrSoftware.value">
+        <div class="form-row-2" v-if="isHardwareOrSoftware.value">
+          <div class="form-group">
             <label class="form-label">{{ isHardwareOrSoftware.type==='軟體' ? '功能項目' : '設備項目' }}</label>
             <input
               type="text"
@@ -565,9 +591,9 @@ onMounted(async () => {
         </div>
 
         <!-- 問題描述 -->
-        <div class="form-group required" >
+        <div class="form-group required">
           <label class="form-label">
-            <div >
+            <div>
               問題描述 ({{ repairForm.depiction.length }}/500)
             </div>
             <span class="char-count"></span>
@@ -673,6 +699,7 @@ onMounted(async () => {
     </div>
   </div>
 </template>
+
 <style lang="scss" scoped>
 .new-repair-page {
   min-height: 100vh;
@@ -724,32 +751,30 @@ onMounted(async () => {
 
 .repair-form {
   padding: 30px;
-  .form-container{
+
+  .form-container {
     display: grid;
-    grid-template-columns: 48% 48%;
-    justify-content: space-between;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
     width: 100%;
   }
   
   .form-row {
     width: 100%;
-    flex: 1;
-    display: grid;
-    grid-template-columns: 1fr;
-    grid-template-rows: .3fr .3fr .3fr;
+    display: flex;
+    flex-direction: column;
     gap: 25px;
     margin-bottom: 25px;
     
-   
     &:last-child {
       margin-bottom: 0;
     }
   }
-   .form-row-2{
-      width: 48%;
-      flex: 1;
-      padding-bottom: 25px;
-    }
+
+  .form-row-2 {
+    width: 100%;
+    margin-bottom: 25px;
+  }
 
   .form-group {
     display: flex;
@@ -1064,46 +1089,6 @@ onMounted(async () => {
   }
 }
 
-// 響應式設計
-@media (max-width: 768px) {
-  .new-repair-page {
-    padding: 10px;
-  }
-
-  .form-header {
-    padding: 20px;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-
-    .repair-number {
-      align-items: flex-start;
-    }
-  }
-
-  .repair-form {
-    padding: 20px;
-
-    .form-container {
-      grid-template-columns: 1fr;
-    }
-
-    .form-row {
-      grid-template-rows: auto auto auto;
-      gap: 20px;
-    }
-  }
-
-  .form-actions {
-    flex-direction: column-reverse;
-
-    .cancel-btn,
-    .submit-btn {
-      width: 100%;
-    }
-  }
-}
-
 // 檔案圖示樣式
 .file-icon {
   &.file-pdf { color: #e74c3c; }
@@ -1122,6 +1107,494 @@ onMounted(async () => {
   }
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* ===== 響應式設計 ===== */
+
+/* 大螢幕 (1400px+) */
+@media (min-width: 1400px) {
+  .new-repair-page {
+    padding: 24px;
+  }
+
+  .repair-form-container {
+    max-width: 900px;
+  }
+
+  .form-header {
+    padding: 30px 40px;
+  }
+
+  .repair-form {
+    padding: 40px;
+  }
+}
+
+/* 平板橫向 (992px - 1399px) */
+@media (max-width: 1399px) and (min-width: 992px) {
+  .repair-form-container {
+    max-width: 750px;
+  }
+
+  .repair-form {
+    .form-container {
+      gap: 25px;
+    }
+
+    .form-row {
+      gap: 20px;
+    }
+  }
+}
+
+/* 平板直向 (768px - 991px) */
+@media (max-width: 991px) and (min-width: 768px) {
+  .new-repair-page {
+    padding: 16px;
+  }
+
+  .repair-form-container {
+    max-width: 100%;
+  }
+
+  .form-header {
+    padding: 20px 24px;
+
+    .form-title {
+      font-size: 18px;
+    }
+  }
+
+  .repair-form {
+    padding: 24px;
+
+    .form-container {
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    .form-row {
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+
+    .form-row-2 {
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      &:not(.form-row > &) {
+        margin-bottom: 20px;
+      }
+    }
+  }
+
+  .upload-area {
+    padding: 30px 20px;
+
+    .upload-icon {
+      font-size: 40px;
+    }
+
+    .upload-text {
+      .upload-main {
+        font-size: 15px;
+      }
+
+      .upload-sub {
+        font-size: 11px;
+      }
+    }
+  }
+
+  .uploaded-files .file-item {
+    padding: 10px 12px;
+
+    .file-info {
+      gap: 10px;
+
+      .file-icon {
+        font-size: 18px;
+      }
+
+      .file-details {
+        .file-name {
+          font-size: 13px;
+        }
+
+        .file-size {
+          font-size: 11px;
+        }
+
+        .file-status {
+          font-size: 10px;
+        }
+      }
+    }
+  }
+}
+
+/* 大手機 (576px - 767px) */
+@media (max-width: 767px) {
+  .new-repair-page {
+    padding: 12px;
+  }
+
+  .form-header {
+    padding: 16px 20px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+
+    .form-title {
+      font-size: 16px;
+    }
+
+    .repair-number {
+      align-items: flex-start;
+    }
+  }
+
+  .repair-form {
+    padding: 20px;
+
+    .form-container {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    .form-row {
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .form-row-2 {
+      margin-bottom: 16px;
+    }
+
+    .form-group {
+      &:not(.form-row > &) {
+        margin-bottom: 16px;
+      }
+    }
+
+    .form-label {
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+
+    .form-input,
+    .form-select {
+      padding: 10px 12px;
+      font-size: 13px;
+    }
+
+    .form-textarea {
+      min-height: 100px;
+      font-size: 13px;
+    }
+
+    .reporter-info {
+      padding: 10px 12px;
+
+      .reporter-name {
+        font-size: 13px;
+      }
+
+      .reporter-detail {
+        font-size: 11px;
+      }
+    }
+  }
+
+  .upload-area {
+    padding: 24px 16px;
+
+    .upload-icon {
+      font-size: 36px;
+    }
+
+    .upload-text {
+      .upload-main {
+        font-size: 14px;
+      }
+
+      .upload-sub {
+        font-size: 10px;
+        line-height: 1.4;
+      }
+    }
+  }
+
+  .uploaded-files {
+    .file-item {
+      padding: 8px 10px;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+
+      .file-info {
+        gap: 8px;
+
+        .file-icon {
+          font-size: 16px;
+        }
+
+        .file-details {
+          .file-name {
+            font-size: 12px;
+            line-height: 1.3;
+          }
+
+          .file-size,
+          .file-status {
+            font-size: 10px;
+          }
+        }
+      }
+
+      .remove-file-btn {
+        align-self: flex-end;
+        padding: 6px 10px;
+        font-size: 12px;
+      }
+    }
+  }
+
+  .form-actions {
+    flex-direction: column-reverse;
+    gap: 10px;
+    margin-top: 30px;
+
+    .cancel-btn,
+    .submit-btn {
+      width: 100%;
+      padding: 12px;
+      font-size: 13px;
+    }
+  }
+}
+
+/* 小手機 (480px 以下) */
+@media (max-width: 479px) {
+  .new-repair-page {
+    padding: 8px;
+  }
+
+  .form-header {
+    padding: 12px 16px;
+
+    .form-title {
+      font-size: 15px;
+    }
+  }
+
+  .repair-form {
+    padding: 16px;
+
+    .form-container {
+      gap: 12px;
+    }
+
+    .form-row {
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .form-row-2 {
+      margin-bottom: 12px;
+    }
+
+    .form-group {
+      &:not(.form-row > &) {
+        margin-bottom: 12px;
+      }
+    }
+
+    .form-label {
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .form-input,
+    .form-select {
+      padding: 8px 10px;
+      font-size: 12px;
+    }
+
+    .form-textarea {
+      min-height: 80px;
+      font-size: 12px;
+    }
+
+    .reporter-info {
+      padding: 8px 10px;
+
+      .reporter-name {
+        font-size: 12px;
+      }
+
+      .reporter-detail {
+        font-size: 10px;
+      }
+    }
+  }
+
+  .upload-area {
+    padding: 20px 12px;
+
+    .upload-icon {
+      font-size: 32px;
+    }
+
+    .upload-text {
+      .upload-main {
+        font-size: 12px;
+      }
+
+      .upload-sub {
+        font-size: 9px;
+        line-height: 1.3;
+      }
+    }
+  }
+
+  .uploaded-files {
+    .file-item {
+      padding: 6px 8px;
+
+      .file-info {
+        gap: 6px;
+
+        .file-icon {
+          font-size: 14px;
+        }
+
+        .file-details {
+          .file-name {
+            font-size: 11px;
+          }
+
+          .file-size,
+          .file-status {
+            font-size: 9px;
+          }
+        }
+      }
+
+      .remove-file-btn {
+        padding: 4px 8px;
+        font-size: 11px;
+        min-width: 20px;
+        min-height: 20px;
+      }
+    }
+  }
+
+  .form-actions {
+    margin-top: 20px;
+
+    .cancel-btn,
+    .submit-btn {
+      padding: 10px;
+      font-size: 12px;
+    }
+  }
+}
+
+/* 超小螢幕 (360px 以下) */
+@media (max-width: 359px) {
+  .new-repair-page {
+    padding: 4px;
+  }
+
+  .repair-form-container {
+    border-radius: 6px;
+  }
+
+  .form-header {
+    padding: 10px 12px;
+    border-radius: 6px 6px 0 0;
+
+    .form-title {
+      font-size: 14px;
+    }
+  }
+
+  .repair-form {
+    padding: 12px;
+
+    .form-label {
+      font-size: 11px;
+    }
+
+    .form-input,
+    .form-select {
+      padding: 6px 8px;
+      font-size: 11px;
+    }
+
+    .form-textarea {
+      min-height: 70px;
+      font-size: 11px;
+    }
+  }
+
+  .upload-area {
+    padding: 16px 8px;
+
+    .upload-icon {
+      font-size: 28px;
+    }
+
+    .upload-text {
+      .upload-main {
+        font-size: 11px;
+      }
+
+      .upload-sub {
+        font-size: 8px;
+      }
+    }
+  }
+
+  .uploaded-files {
+    .file-item {
+      padding: 4px 6px;
+
+      .file-info {
+        .file-icon {
+          font-size: 12px;
+        }
+
+        .file-details {
+          .file-name {
+            font-size: 10px;
+          }
+
+          .file-size,
+          .file-status {
+            font-size: 8px;
+          }
+        }
+      }
+
+      .remove-file-btn {
+        padding: 2px 6px;
+        font-size: 10px;
+        min-width: 18px;
+        min-height: 18px;
+      }
+    }
+  }
+
+  .form-actions {
+    .cancel-btn,
+    .submit-btn {
+      padding: 8px;
+      font-size: 11px;
+    }
   }
 }
 </style>

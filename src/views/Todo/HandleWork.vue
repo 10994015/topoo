@@ -410,23 +410,36 @@ onMounted(async () => {
       <div v-else-if="caseDetail" class="handle-content">
         <!-- 標題區域 -->
         <div class="handle-header">
-          <div class="header-left">
-            <h2 class="page-title">案件處理</h2>
-            <span class="case-number">{{ caseDetail.id }}</span>
-          </div>
-          <div class="header-status">
-            <span class="status-badge" :class="getStatusClass(caseDetail.repair_status)">
-              {{ caseDetail.repair_status }}
-            </span>
+          <div class="header-content">
+            <div class="header-left">
+              <h2 class="page-title">案件處理</h2>
+              <span class="case-number">{{ caseDetail.id }}</span>
+            </div>
+            <div class="header-actions">
+              <div class="header-status">
+                <span class="status-badge" :class="getStatusClass(caseDetail.repair_status)">
+                  {{ caseDetail.repair_status }}
+                </span>
+              </div>
+              <button @click="cancel" class="back-btn-header">
+                <span class="back-icon">←</span>
+                <span class="back-text">返回</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        <!-- 案件詳細資訊 -->
+        <!-- 詳細內容 -->
         <div class="detail-content">
           <!-- 案件基本資訊 -->
           <div class="case-info-section">
-            <h3 class="section-title">案件基本資訊</h3>
-            <div class="info-grid">
+            <h3 class="section-title">
+              <span class="title-icon">📋</span>
+              案件基本資訊
+            </h3>
+            
+            <!-- 桌面版：雙欄佈局 -->
+            <div class="info-grid desktop-layout">
               <!-- 左欄 -->
               <div class="info-column">
                 <div class="info-group">
@@ -473,6 +486,51 @@ onMounted(async () => {
                 </div>
               </div>
             </div>
+
+            <!-- 手機版：單欄佈局 -->
+            <div class="info-grid mobile-layout">
+              <div class="info-column">
+                <div class="info-group">
+                  <label class="info-label">案件標題</label>
+                  <div class="info-value">{{ caseDetail.title }}</div>
+                </div>
+
+                <div class="info-group">
+                  <label class="info-label">報修人員</label>
+                  <div class="info-value">{{ caseDetail.repair_name || '無資料' }}</div>
+                </div>
+
+                <div class="info-group">
+                  <label class="info-label">故障類別</label>
+                  <div class="info-value">{{ caseDetail.repair_category }}</div>
+                </div>
+
+                <div class="info-group">
+                  <label class="info-label">故障原因</label>
+                  <div class="info-value">{{ caseDetail.repair_reason }}</div>
+                </div>
+
+                <div class="info-group" v-if="caseDetail.repair_category === '硬體' || caseDetail.repair_category === '軟體'">
+                  <label class="info-label">{{ caseDetail.repair_category === '軟體' ? '功能項目' : '設備項目' }}</label>
+                  <div class="info-value">{{ caseDetail.repair_item || '無' }}</div>
+                </div>
+
+                <div class="info-group" v-if="caseDetail.repair_category === '硬體' || caseDetail.repair_category === '軟體'">
+                  <label class="info-label">設備位置</label>
+                  <div class="info-value">{{ caseDetail.device_location || '無' }}</div>
+                </div>
+
+                <div class="info-group">
+                  <label class="info-label">報修時間</label>
+                  <div class="info-value">{{ caseDetail.repair_time }}</div>
+                </div>
+
+                <div class="info-group">
+                  <label class="info-label">填單時間</label>
+                  <div class="info-value">{{ caseDetail.created_at }}</div>
+                </div>
+              </div>
+            </div>
             
             <!-- 問題描述 -->
             <div class="description-section">
@@ -483,50 +541,14 @@ onMounted(async () => {
             </div>
           </div>
 
-          <!-- 承辦資訊區塊 -->
-          <div class="handler-section">
-            <h3 class="section-title">承辦資訊</h3>
-            
-            <div class="handler-content">
-              <!-- 重要程度 -->
-              <div class="priority-item">
-                <div class="priority-icon">📌</div>
-                <div class="priority-info">
-                  <span class="priority-label">重要程度</span>
-                  <span :class="[caseDetail.importance_level ? 'priority-badge' : '', getPriorityClass(caseDetail.importance_level)]">
-                    {{ getPriorityLabel(caseDetail.importance_level) }}
-                  </span>
-                </div>
-              </div>
-
-              <!-- 緊急程度 -->
-              <div class="priority-item">
-                <div class="priority-icon">⚠️</div>
-                <div class="priority-info">
-                  <span class="priority-label">緊急程度</span>
-                  <span :class="[caseDetail.emergency_level ? 'priority-badge' : '', getPriorityClass(caseDetail.emergency_level)]">
-                    {{ getPriorityLabel(caseDetail.emergency_level) }}
-                  </span>
-                </div>
-              </div>
-
-              <!-- 預計完成時間 -->
-              <div class="completion-time">
-                <span class="completion-label">預計完成時間</span>
-                <span class="completion-value">{{ caseDetail.estimated_completion_time || '-' }}</span>
-              </div>
-
-              <!-- 承辦人員 -->
-              <div class="completion-time">
-                <span class="completion-label">承辦人員</span>
-                <span class="completion-value">{{ caseDetail.repair_status == '尚未承辦' ? '-' : (caseDetail.assign_user_name || '-') }}</span>
-              </div>
-            </div>
-          </div>
+          
 
           <!-- 處理資訊表單 -->
           <div class="handle-form-section">
-            <h3 class="section-title">處理資訊</h3>
+            <h3 class="section-title">
+              <span class="title-icon">✏️</span>
+              處理資訊
+            </h3>
             
             <!-- 處理狀態選擇 -->
             <div class="form-group">
@@ -561,7 +583,10 @@ onMounted(async () => {
 
           <!-- 檔案上傳區域 -->
           <div class="file-upload-section">
-            <h3 class="section-title">相關檔案</h3>
+            <h3 class="section-title">
+              <span class="title-icon">📎</span>
+              相關檔案
+            </h3>
             
             <!-- 檔案上傳區 -->
             <div 
@@ -574,10 +599,13 @@ onMounted(async () => {
             >
               <div class="upload-icon">📤</div>
               <div class="upload-text">
-                將檔案拖拉至此或點選上傳檔案<br>
-                上傳檔案會立即儲存至伺服器，檔案大小限制100MB
+                <span class="upload-main-text">將檔案拖拉至此或點選上傳檔案</span>
+                <span class="upload-sub-text">上傳檔案會立即儲存至伺服器，檔案大小限制100MB</span>
               </div>
-              <button type="button" class="upload-btn">點選上傳檔案</button>
+              <button type="button" class="upload-btn">
+                <span class="btn-icon">📁</span>
+                <span class="btn-text">點選上傳檔案</span>
+              </button>
               <input 
                 ref="fileInput"
                 type="file" 
@@ -591,7 +619,10 @@ onMounted(async () => {
             <div v-if="hasFiles" class="file-list">
               <!-- 原有檔案 -->
               <div v-if="existingFiles.length > 0" class="file-section">
-                <h4 class="file-section-title">原有檔案</h4>
+                <h4 class="file-section-title">
+                  <span class="section-icon">📄</span>
+                  原有檔案
+                </h4>
                 <div 
                   v-for="file in existingFiles" 
                   :key="file.id"
@@ -607,19 +638,19 @@ onMounted(async () => {
                   <div class="file-actions">
                     <button 
                       type="button"
-                      @click="downloadFile(file)"
-                      class="action-btn download-btn"
-                      title="下載"
-                    >
-                      ⬇
-                    </button>
-                    <button 
-                      type="button"
                       @click="openFilePreview(file)"
                       class="action-btn preview-btn"
                       title="預覽"
                     >
-                      👁
+                      <span class="btn-icon">👁</span>
+                    </button>
+                    <button 
+                      type="button"
+                      @click="downloadFile(file)"
+                      class="action-btn download-btn"
+                      title="下載"
+                    >
+                      <span class="btn-icon">⬇</span>
                     </button>
                   </div>
                 </div>
@@ -627,7 +658,10 @@ onMounted(async () => {
 
               <!-- 新上傳的檔案 -->
               <div v-if="uploadedFiles.length > 0" class="file-section">
-                <h4 class="file-section-title">新上傳檔案</h4>
+                <h4 class="file-section-title">
+                  <span class="section-icon">📤</span>
+                  新上傳檔案
+                </h4>
                 <div 
                   v-for="file in uploadedFiles" 
                   :key="file.id"
@@ -641,21 +675,25 @@ onMounted(async () => {
                     </div>
                   </div>
                   <div class="file-status">
-                    <span class="uploaded-text">已上傳</span>
+                    <span class="uploaded-badge">已上傳</span>
                   </div>
                   <button 
                     type="button"
                     @click.stop="removeFile(file)"
                     class="remove-btn"
+                    title="移除檔案"
                   >
-                    ✕
+                    <span class="remove-icon">✕</span>
                   </button>
                 </div>
               </div>
 
               <!-- 上傳中的檔案 -->
               <div v-if="selectedFiles.length > 0" class="file-section">
-                <h4 class="file-section-title">上傳中</h4>
+                <h4 class="file-section-title">
+                  <span class="section-icon">⏳</span>
+                  上傳中
+                </h4>
                 <div 
                   v-for="file in selectedFiles" 
                   :key="file.id"
@@ -669,22 +707,74 @@ onMounted(async () => {
                     </div>
                   </div>
                   <div class="file-status">
-                    <span v-if="file.uploading" class="uploading-text">上傳中...</span>
-                    <span v-else-if="file.uploaded" class="uploaded-text">已上傳</span>
+                    <span v-if="file.uploading" class="uploading-badge">上傳中...</span>
+                    <span v-else-if="file.uploaded" class="uploaded-badge">已上傳</span>
                   </div>
                   <button 
                     type="button"
                     @click.stop="removeSelectedFile(file)"
                     class="remove-btn"
                     :disabled="file.uploading"
+                    title="取消上傳"
                   >
-                    ✕
+                    <span class="remove-icon">✕</span>
                   </button>
                 </div>
               </div>
             </div>
           </div>
 
+          <!-- 承辦資訊區塊 -->
+          <div class="handler-section">
+            <h3 class="section-title">
+              <span class="title-icon">👤</span>
+              承辦資訊
+            </h3>
+            
+            <div class="handler-content">
+              <!-- 優先級資訊 - 響應式佈局 -->
+              <div class="priority-grid">
+                <!-- 重要程度 -->
+                <div class="priority-item">
+                  <div class="priority-icon">📌</div>
+                  <div class="priority-info">
+                    <span class="priority-label">重要程度</span>
+                    <span :class="[caseDetail.importance_level ? 'priority-badge' : '', getPriorityClass(caseDetail.importance_level)]">
+                      {{ getPriorityLabel(caseDetail.importance_level) }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- 緊急程度 -->
+                <div class="priority-item">
+                  <div class="priority-icon">⚠️</div>
+                  <div class="priority-info">
+                    <span class="priority-label">緊急程度</span>
+                    <span :class="[caseDetail.emergency_level ? 'priority-badge' : '', getPriorityClass(caseDetail.emergency_level)]">
+                      {{ getPriorityLabel(caseDetail.emergency_level) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 承辦資訊 -->
+              <div class="completion-time">
+                <div class="completion-icon">📅</div>
+                <div class="completion-info">
+                  <span class="completion-label">預計完成時間</span>
+                  <span class="completion-value">{{ caseDetail.estimated_completion_time || '-' }}</span>
+                </div>
+              </div>
+
+              <div class="completion-time">
+                <div class="completion-icon">👤</div>
+                <div class="completion-info">
+                  <span class="completion-label">承辦人員</span>
+                  <span class="completion-value">{{ caseDetail.repair_status == '尚未承辦' ? '-' : (caseDetail.assign_user_name || '-') }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
           <!-- 操作按鈕 -->
           <div class="action-buttons">
             <button 
@@ -693,19 +783,22 @@ onMounted(async () => {
               class="save-btn"
               :disabled="!canSubmit"
             >
-              <span v-if="isSaving">儲存中...</span>
-              <span v-else-if="hasUploadingFiles">檔案上傳中...</span>
-              <span v-else-if="!isFormValid">儲存</span>
-              <span v-else>儲存</span>
+              <span class="btn-icon">💾</span>
+              <span class="btn-text">
+                <span v-if="isSaving">儲存中...</span>
+                <span v-else-if="hasUploadingFiles">檔案上傳中...</span>
+                <span v-else>儲存處理記錄</span>
+              </span>
             </button>
             
             <button 
               type="button"
               @click="cancel" 
-              class="cancel-btn"
+              class="cancel-btn desktop-only"
               :disabled="isSaving"
             >
-              取消
+              <span class="btn-icon">❌</span>
+              <span class="btn-text">取消</span>
             </button>
           </div>
         </div>
@@ -713,11 +806,16 @@ onMounted(async () => {
 
       <!-- 錯誤狀態 -->
       <div v-else class="error-container">
+        <div class="error-icon">❌</div>
         <div class="error-message">找不到案件資料</div>
-        <button @click="cancel" class="back-btn">返回</button>
+        <button @click="cancel" class="back-btn">
+          <span class="btn-icon">←</span>
+          <span class="btn-text">返回</span>
+        </button>
       </div>
     </div>
     
+    <!-- 檔案預覽組件 -->
     <FilePreviewModal
       :visible="showFilePreview"
       :file="selectedFile"
@@ -732,6 +830,7 @@ onMounted(async () => {
 </template>
 
 <style lang="scss" scoped>
+/* ===== 案件處理頁面完整響應式CSS ===== */
 .handle-case-page {
   min-height: 100vh;
   background-color: #f5f5f5;
@@ -747,7 +846,7 @@ onMounted(async () => {
   overflow: hidden;
 }
 
-// Loading 樣式
+/* ===== Loading 樣式 ===== */
 .loading-container {
   display: flex;
   flex-direction: column;
@@ -772,19 +871,26 @@ onMounted(async () => {
   100% { transform: rotate(360deg); }
 }
 
-// 標題區域 - 改為藍紫色風格
+/* ===== 標題區域 ===== */
 .handle-header {
   background: #6c5ce7;
   color: white;
   padding: 25px 30px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+
+  .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+  }
 
   .header-left {
     display: flex;
     align-items: center;
     gap: 20px;
+    flex: 1;
+    min-width: 0;
   }
 
   .page-title {
@@ -800,6 +906,13 @@ onMounted(async () => {
     background: rgba(255, 255, 255, 0.2);
     padding: 8px 16px;
     border-radius: 20px;
+    white-space: nowrap;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
   }
 
   .header-status {
@@ -811,13 +924,53 @@ onMounted(async () => {
       background: rgba(255, 255, 255, 0.2);
     }
   }
+
+  .back-btn-header {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .back-icon {
+      font-size: 16px;
+    }
+  }
 }
 
-// 內容區域
+/* ===== 詳細內容 ===== */
 .detail-content {
   padding: 30px;
 }
 
+/* ===== 響應式佈局控制 ===== */
+.desktop-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+}
+
+.mobile-layout {
+  display: none;
+}
+
+.desktop-only {
+  display: inline-flex;
+}
+
+/* ===== 區塊標題 ===== */
 .section-title {
   font-size: 16px;
   font-weight: 600;
@@ -825,18 +978,18 @@ onMounted(async () => {
   margin-bottom: 20px;
   padding-bottom: 8px;
   border-bottom: 2px solid #6c5ce7;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .title-icon {
+    font-size: 18px;
+  }
 }
 
-// 案件資訊區域 - 採用與檢視頁面相同的網格布局
+/* ===== 案件資訊區域 ===== */
 .case-info-section {
   margin-bottom: 40px;
-
-  .info-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 40px;
-    margin-bottom: 30px;
-  }
 
   .info-column {
     display: flex;
@@ -863,10 +1016,13 @@ onMounted(async () => {
       border: 1px solid #e9ecef;
       border-radius: 6px;
       min-height: 20px;
+      word-break: break-word;
     }
   }
 
   .description-section {
+    margin-top: 30px;
+
     .info-label {
       font-size: 14px;
       font-weight: 500;
@@ -884,22 +1040,17 @@ onMounted(async () => {
       color: #333;
       line-height: 1.6;
       min-height: 80px;
+      word-break: break-word;
     }
   }
 }
 
-// 承辦資訊區塊樣式
+/* ===== 承辦資訊區塊 ===== */
 .handler-section {
   margin-bottom: 40px;
   background: #fafbfc;
-  padding: 20px;
+  padding: 30px;
   border-radius: 8px;
-  border: 1px solid #e9ecef;
-
-  .section-title {
-    border-bottom: 2px solid #6c5ce7;
-    margin-bottom: 20px;
-  }
 
   .handler-content {
     background: white;
@@ -908,106 +1059,73 @@ onMounted(async () => {
     border: 1px solid #e9ecef;
   }
 
+  /* 優先級網格佈局 */
+  .priority-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 20px;
+  }
+
   .priority-item {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 0;
-    border-bottom: 1px solid #f8f9fa;
-
-    &:last-of-type {
-      border-bottom: none;
-    }
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
 
     .priority-icon {
       font-size: 20px;
       width: 24px;
       text-align: center;
+      flex-shrink: 0;
     }
 
     .priority-info {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
+      flex-direction: column;
+      gap: 6px;
       flex: 1;
     }
 
     .priority-label {
-      font-size: 14px;
+      font-size: 13px;
       color: #666;
       font-weight: 500;
     }
-
-    .priority-badge {
-      padding: 6px 14px;
-      border-radius: 14px;
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      transition: all 0.3s ease;
-    }
-
-    .priority-normal {
-      background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-      color: #155724;
-      border: 1px solid #c3e6cb;
-      box-shadow: 0 2px 4px rgba(21, 87, 36, 0.1);
-
-      &:hover {
-        background: linear-gradient(135deg, #c3e6cb 0%, #b8dcc8 100%);
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(21, 87, 36, 0.15);
-      }
-    }
-
-    .priority-medium {
-      background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
-      color: #856404;
-      border: 1px solid #ffeaa7;
-      box-shadow: 0 2px 4px rgba(133, 100, 4, 0.1);
-
-      &:hover {
-        background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(133, 100, 4, 0.15);
-      }
-    }
-
-    .priority-urgent {
-      background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
-      color: #721c24;
-      border: 1px solid #f5c6cb;
-      box-shadow: 0 2px 4px rgba(114, 28, 36, 0.1);
-      animation: pulse 2s infinite;
-
-      &:hover {
-        background: linear-gradient(135deg, #f5c6cb 0%, #f1b0b7 100%);
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(114, 28, 36, 0.15);
-      }
-    }
-
-    @keyframes pulse {
-      0% { box-shadow: 0 2px 4px rgba(114, 28, 36, 0.1); }
-      50% { box-shadow: 0 4px 12px rgba(114, 28, 36, 0.2); }
-      100% { box-shadow: 0 2px 4px rgba(114, 28, 36, 0.1); }
-    }
   }
 
+  /* 承辦資訊 */
   .completion-time {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 15px 0;
-    margin: 15px 0;
-    border-top: 1px solid #f8f9fa;
+    gap: 12px;
+    padding: 15px;
+    margin-bottom: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    .completion-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .completion-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+    }
 
     .completion-label {
-      font-size: 14px;
+      font-size: 13px;
       color: #666;
       font-weight: 500;
     }
@@ -1021,7 +1139,84 @@ onMounted(async () => {
   }
 }
 
-// 狀態標籤
+/* ===== 優先級標籤樣式 ===== */
+.priority-badge {
+  padding: 6px 14px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.5s ease;
+  }
+
+  &:hover::before {
+    left: 100%;
+  }
+}
+
+.priority-normal {
+  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+  color: #155724;
+  border: 1px solid #c3e6cb;
+  box-shadow: 0 2px 4px rgba(21, 87, 36, 0.1);
+
+  &:hover {
+    background: linear-gradient(135deg, #c3e6cb 0%, #b8dcc8 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(21, 87, 36, 0.15);
+  }
+}
+
+.priority-medium {
+  background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+  color: #856404;
+  border: 1px solid #ffeaa7;
+  box-shadow: 0 2px 4px rgba(133, 100, 4, 0.1);
+
+  &:hover {
+    background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(133, 100, 4, 0.15);
+  }
+}
+
+.priority-urgent {
+  background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+  box-shadow: 0 2px 4px rgba(114, 28, 36, 0.1);
+  animation: pulse 2s infinite;
+
+  &:hover {
+    background: linear-gradient(135deg, #f5c6cb 0%, #f1b0b7 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(114, 28, 36, 0.15);
+  }
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 2px 4px rgba(114, 28, 36, 0.1); }
+  50% { box-shadow: 0 4px 12px rgba(114, 28, 36, 0.2); }
+  100% { box-shadow: 0 2px 4px rgba(114, 28, 36, 0.1); }
+}
+
+/* ===== 狀態標籤 ===== */
 .status-badge {
   &.status-pending {
     background: #fff3cd;
@@ -1044,7 +1239,7 @@ onMounted(async () => {
   }
 }
 
-// 處理表單區域
+/* ===== 處理表單區域 ===== */
 .handle-form-section {
   margin-bottom: 40px;
 
@@ -1076,12 +1271,19 @@ onMounted(async () => {
       &:focus {
         outline: none;
         border-color: #6c5ce7;
+        box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.1);
       }
     }
 
     .form-select {
       background: white;
       cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+      background-position: right 8px center;
+      background-repeat: no-repeat;
+      background-size: 16px;
+      padding-right: 40px;
     }
 
     .form-textarea {
@@ -1100,7 +1302,7 @@ onMounted(async () => {
   }
 }
 
-// 檔案上傳區域
+/* ===== 檔案上傳區域 ===== */
 .file-upload-section {
   margin-bottom: 40px;
 
@@ -1126,10 +1328,22 @@ onMounted(async () => {
     }
 
     .upload-text {
-      font-size: 14px;
-      color: #666;
       margin-bottom: 20px;
       line-height: 1.5;
+
+      .upload-main-text {
+        display: block;
+        font-size: 16px;
+        color: #333;
+        font-weight: 500;
+        margin-bottom: 8px;
+      }
+
+      .upload-sub-text {
+        display: block;
+        font-size: 14px;
+        color: #666;
+      }
     }
 
     .upload-btn {
@@ -1141,10 +1355,18 @@ onMounted(async () => {
       font-size: 14px;
       font-weight: 500;
       cursor: pointer;
-      transition: background 0.3s;
+      transition: all 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
 
       &:hover {
         background: #5b4bcf;
+        transform: translateY(-1px);
+      }
+
+      .btn-icon {
+        font-size: 16px;
       }
     }
   }
@@ -1170,6 +1392,13 @@ onMounted(async () => {
     background: #f8f9fa;
     border-left: 4px solid #6c5ce7;
     border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .section-icon {
+      font-size: 16px;
+    }
   }
 
   .file-item {
@@ -1185,6 +1414,12 @@ onMounted(async () => {
 
     &:last-child {
       margin-bottom: 0;
+    }
+
+    &:hover {
+      background: #e9ecef;
+      border-color: #6c5ce7;
+      transform: translateY(-1px);
     }
 
     &.uploading {
@@ -1207,20 +1442,24 @@ onMounted(async () => {
       align-items: center;
       gap: 12px;
       flex: 1;
+      min-width: 0;
 
       .file-icon {
         font-size: 24px;
+        flex-shrink: 0;
       }
 
       .file-details {
         display: flex;
         flex-direction: column;
         gap: 4px;
+        min-width: 0;
 
         .file-name {
           font-size: 14px;
           color: #333;
           font-weight: 500;
+          word-break: break-word;
         }
 
         .file-size {
@@ -1232,15 +1471,24 @@ onMounted(async () => {
 
     .file-status {
       margin-right: 15px;
+      flex-shrink: 0;
 
-      .uploading-text {
+      .uploading-badge {
         font-size: 12px;
         color: #856404;
+        background: #fff3cd;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-weight: 500;
       }
 
-      .uploaded-text {
+      .uploaded-badge {
         font-size: 12px;
-        color: #5b4bcf;
+        color: #155724;
+        background: #d4edda;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-weight: 500;
       }
     }
 
@@ -1248,6 +1496,7 @@ onMounted(async () => {
       display: flex;
       gap: 8px;
       margin-right: 8px;
+      flex-shrink: 0;
     }
 
     .action-btn {
@@ -1256,11 +1505,18 @@ onMounted(async () => {
       border: none;
       border-radius: 6px;
       cursor: pointer;
-      font-size: 14px;
       transition: all 0.3s;
       display: flex;
       align-items: center;
       justify-content: center;
+
+      .btn-icon {
+        font-size: 14px;
+      }
+
+      &:hover {
+        transform: scale(1.05);
+      }
 
       &.download-btn {
         background: #6c5ce7;
@@ -1268,7 +1524,6 @@ onMounted(async () => {
 
         &:hover {
           background: #5b4bcf;
-          transform: scale(1.05);
         }
       }
 
@@ -1278,7 +1533,6 @@ onMounted(async () => {
 
         &:hover {
           background: #00a085;
-          transform: scale(1.05);
         }
       }
     }
@@ -1288,14 +1542,22 @@ onMounted(async () => {
       color: white;
       border: none;
       border-radius: 50%;
-      width: 24px;
-      height: 24px;
+      width: 28px;
+      height: 28px;
       cursor: pointer;
-      font-size: 12px;
-      transition: background 0.3s;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+
+      .remove-icon {
+        font-size: 12px;
+      }
 
       &:hover:not(:disabled) {
         background: #c0392b;
+        transform: scale(1.05);
       }
 
       &:disabled {
@@ -1306,7 +1568,7 @@ onMounted(async () => {
   }
 }
 
-// 操作按鈕
+/* ===== 操作按鈕 ===== */
 .action-buttons {
   display: flex;
   gap: 15px;
@@ -1314,26 +1576,42 @@ onMounted(async () => {
   padding-top: 20px;
   border-top: 1px solid #f0f0f0;
 
-  .save-btn {
-    background: #6c5ce7;
-    color: white;
+  .save-btn,
+  .cancel-btn {
     border: none;
-    padding: 12px 30px;
+    padding: 12px 24px;
     border-radius: 6px;
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .btn-icon {
+      font-size: 16px;
+    }
+
+    &:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+  }
+
+  .save-btn {
+    background: #6c5ce7;
+    color: white;
 
     &:hover:not(:disabled) {
       background: #5b4bcf;
-      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(108, 92, 231, 0.3);
     }
 
     &:disabled {
       opacity: 0.6;
       cursor: not-allowed;
       background: #6c757d;
+      transform: none;
     }
   }
 
@@ -1341,12 +1619,6 @@ onMounted(async () => {
     background: white;
     color: #666;
     border: 1px solid #ddd;
-    padding: 12px 20px;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s;
 
     &:hover:not(:disabled) {
       background: #f8f9fa;
@@ -1361,7 +1633,7 @@ onMounted(async () => {
   }
 }
 
-// 錯誤狀態
+/* ===== 錯誤狀態 ===== */
 .error-container {
   display: flex;
   flex-direction: column;
@@ -1369,6 +1641,12 @@ onMounted(async () => {
   justify-content: center;
   padding: 80px 20px;
   color: #666;
+  text-align: center;
+
+  .error-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
 
   .error-message {
     font-size: 18px;
@@ -1379,47 +1657,273 @@ onMounted(async () => {
     background: #6c5ce7;
     color: white;
     border: none;
-    padding: 12px 20px;
+    padding: 12px 24px;
     border-radius: 6px;
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 
     &:hover {
       background: #5b4bcf;
+      transform: translateY(-1px);
     }
   }
 }
 
-// 響應式設計
-@media (max-width: 768px) {
+/* ===== 響應式設計 ===== */
+
+/* 大螢幕 (1400px+) */
+@media (min-width: 1400px) {
   .handle-case-page {
-    padding: 10px;
+    padding: 24px;
+  }
+
+  .handle-header {
+    padding: 30px;
+  }
+
+  .detail-content {
+    padding: 35px;
+  }
+
+  .handler-section {
+    padding: 35px;
+  }
+
+  .upload-area {
+    padding: 50px 30px;
+  }
+}
+
+/* 平板橫向 (992px - 1399px) */
+@media (max-width: 1399px) and (min-width: 992px) {
+  .desktop-layout {
+    gap: 30px;
+  }
+
+  .info-group {
+    gap: 6px;
+
+    .info-label {
+      font-size: 13px;
+    }
+
+    .info-value {
+      font-size: 13px;
+      padding: 10px 12px;
+    }
+  }
+
+  .handler-section {
+    .priority-grid {
+      gap: 12px;
+    }
+
+    .priority-item {
+      padding: 12px;
+    }
+  }
+}
+
+/* 平板直向 (768px - 991px) */
+@media (max-width: 991px) and (min-width: 768px) {
+  .handle-case-page {
+    padding: 16px;
   }
 
   .handle-header {
     padding: 20px;
+
+    .header-content {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .header-left {
+      justify-content: center;
+    }
+
+    .header-actions {
+      justify-content: center;
+      flex-direction: row-reverse;
+    }
+  }
+
+  .detail-content {
+    padding: 25px;
+  }
+
+  .desktop-layout {
+    gap: 25px;
+  }
+
+  .handler-section {
+    padding: 25px;
+
+    .priority-grid {
+      gap: 10px;
+    }
+
+    .priority-item {
+      padding: 12px;
+    }
+  }
+
+  .action-buttons {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 15px;
+
+    .save-btn,
+    .cancel-btn {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
+  .upload-area {
+    padding: 35px 20px;
+
+    .upload-icon {
+      font-size: 40px;
+    }
+  }
+}
+
+/* 大手機 (576px - 767px) */
+@media (max-width: 767px) {
+  .handle-case-page {
+    padding: 12px;
+  }
+
+  /* 切換佈局顯示 */
+  .desktop-layout {
+    display: none;
+  }
+
+  .mobile-layout {
+    display: block;
+  }
+
+  .desktop-only {
+    display: none;
+  }
+
+  .handle-header {
+    padding: 16px;
+
+    .page-title {
+      font-size: 18px;
+    }
+
+    .case-number {
+      font-size: 14px;
+      padding: 6px 12px;
+    }
+
+    .back-btn-header {
+      padding: 8px 12px;
+      font-size: 13px;
+
+      .back-text {
+        display: none;
+      }
+    }
+
+    .header-status .status-badge {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
   }
 
   .detail-content {
     padding: 20px;
   }
 
-  .info-grid {
-    grid-template-columns: 1fr;
-    gap: 25px;
+  .info-group {
+    gap: 6px;
+
+    .info-label {
+      font-size: 13px;
+    }
+
+    .info-value {
+      font-size: 13px;
+      padding: 10px 12px;
+    }
   }
 
-  .action-buttons {
-    flex-direction: column-reverse;
+  .description-section {
+    margin-top: 20px;
 
-    .save-btn,
-    .cancel-btn {
-      width: 100%;
+    .description-content {
+      padding: 12px;
+      font-size: 13px;
+    }
+  }
+
+  .handler-section {
+    padding: 20px;
+    margin-bottom: 30px;
+
+    .section-title {
+      font-size: 15px;
+    }
+
+    .handler-content {
+      padding: 16px;
+    }
+
+    .priority-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .priority-item {
+      padding: 12px;
+
+      .priority-info {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .priority-label {
+        font-size: 12px;
+      }
+    }
+
+    .completion-time {
+      padding: 12px;
+
+      .completion-info {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .completion-label,
+      .completion-value {
+        font-size: 12px;
+      }
+    }
+  }
+
+  .form-group {
+    .form-label {
+      font-size: 13px;
+    }
+
+    .form-select,
+    .form-textarea {
+      font-size: 13px;
+      padding: 10px 12px;
+    }
+
+    .form-textarea {
+      min-height: 100px;
     }
   }
 
@@ -1429,105 +1933,471 @@ onMounted(async () => {
     .upload-icon {
       font-size: 36px;
     }
+
+    .upload-text {
+      .upload-main-text {
+        font-size: 14px;
+      }
+
+      .upload-sub-text {
+        font-size: 12px;
+      }
+    }
+
+    .upload-btn {
+      padding: 10px 20px;
+      font-size: 13px;
+    }
   }
 
   .file-item {
     padding: 12px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
 
-    .file-info .file-icon {
-      font-size: 20px;
+    .file-info {
+      .file-icon {
+        font-size: 20px;
+      }
+
+      .file-details {
+        .file-name {
+          font-size: 13px;
+        }
+
+        .file-size {
+          font-size: 11px;
+        }
+      }
+    }
+
+    .file-actions {
+      justify-content: center;
+      margin-right: 0;
+      gap: 10px;
+
+      .action-btn {
+        flex: 1;
+        height: 36px;
+      }
+    }
+
+    .remove-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 24px;
+      height: 24px;
     }
   }
 
-  .handler-section {
-    padding: 15px;
+  .action-buttons {
+    flex-direction: column;
+    gap: 10px;
 
-    .handler-content {
-      padding: 15px;
-    }
-
-    .priority-info {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 8px;
-    }
-
-    .completion-time {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 8px;
-    }
-
-    .priority-item {
-      padding: 15px 0;
+    .save-btn {
+      width: 100%;
+      justify-content: center;
+      padding: 14px;
     }
   }
 }
 
-@media (max-width: 480px) {
-  .case-number {
-    font-size: 14px;
-    padding: 6px 12px;
+/* 小手機 (480px 以下) */
+@media (max-width: 479px) {
+  .handle-case-page {
+    padding: 8px;
   }
 
-  .page-title {
-    font-size: 18px;
-  }
+  .handle-header {
+    padding: 12px;
 
-  .upload-text {
-    font-size: 12px;
-  }
-
-  .file-item {
-    .file-info .file-icon {
-      font-size: 18px;
+    .header-content {
+      gap: 10px;
     }
 
-    .file-details {
-      .file-name {
-        font-size: 13px;
+    .header-left {
+      gap: 12px;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .page-title {
+      font-size: 16px;
+    }
+
+    .case-number {
+      font-size: 12px;
+      padding: 4px 8px;
+    }
+
+    .back-btn-header {
+      padding: 6px 10px;
+      font-size: 12px;
+
+      .back-icon {
+        font-size: 14px;
+      }
+    }
+  }
+
+  .detail-content {
+    padding: 16px;
+  }
+
+  .info-group {
+    gap: 4px;
+
+    .info-label {
+      font-size: 12px;
+    }
+
+    .info-value {
+      font-size: 12px;
+      padding: 8px 10px;
+    }
+  }
+
+  .description-section {
+    .description-content {
+      padding: 10px;
+      font-size: 12px;
+      min-height: 60px;
+    }
+  }
+
+  .handler-section {
+    padding: 16px;
+
+    .section-title {
+      font-size: 14px;
+
+      .title-icon {
+        font-size: 16px;
+      }
+    }
+
+    .handler-content {
+      padding: 12px;
+    }
+
+    .priority-item {
+      padding: 10px;
+
+      .priority-icon {
+        font-size: 18px;
       }
 
-      .file-size {
+      .priority-label {
+        font-size: 11px;
+      }
+    }
+
+    .priority-badge {
+      font-size: 10px;
+      padding: 3px 8px;
+    }
+
+    .completion-time {
+      padding: 10px;
+
+      .completion-icon {
+        font-size: 18px;
+      }
+
+      .completion-label,
+      .completion-value {
         font-size: 11px;
       }
     }
   }
 
-  .section-title {
-    font-size: 14px;
+  .form-group {
+    .form-label {
+      font-size: 12px;
+    }
+
+    .form-select,
+    .form-textarea {
+      font-size: 12px;
+      padding: 8px 10px;
+    }
+
+    .char-count {
+      font-size: 11px;
+    }
   }
 
-  .form-label {
-    font-size: 13px;
+  .upload-area {
+    padding: 25px 12px;
+
+    .upload-icon {
+      font-size: 32px;
+    }
+
+    .upload-text {
+      .upload-main-text {
+        font-size: 13px;
+      }
+
+      .upload-sub-text {
+        font-size: 11px;
+      }
+    }
+
+    .upload-btn {
+      padding: 8px 16px;
+      font-size: 12px;
+
+      .btn-icon {
+        font-size: 14px;
+      }
+    }
   }
 
-  .form-select,
-  .form-textarea {
-    font-size: 13px;
-    padding: 10px 12px;
+  .file-section-title {
+    font-size: 12px;
+    padding: 6px 10px;
+
+    .section-icon {
+      font-size: 14px;
+    }
   }
 
-  .handler-section {
-    padding: 15px;
+  .file-item {
+    padding: 10px;
 
-    .section-title {
+    .file-info {
+      .file-icon {
+        font-size: 18px;
+      }
+
+      .file-details {
+        .file-name {
+          font-size: 12px;
+        }
+
+        .file-size {
+          font-size: 10px;
+        }
+      }
+    }
+
+    .file-status {
+      .uploading-badge,
+      .uploaded-badge {
+        font-size: 10px;
+        padding: 2px 6px;
+      }
+    }
+
+    .action-btn {
+      width: 28px;
+      height: 28px;
+
+      .btn-icon {
+        font-size: 12px;
+      }
+    }
+
+    .remove-btn {
+      width: 20px;
+      height: 20px;
+
+      .remove-icon {
+        font-size: 10px;
+      }
+    }
+  }
+
+  .action-buttons {
+    .save-btn {
+      padding: 12px;
+      font-size: 13px;
+
+      .btn-icon {
+        font-size: 14px;
+      }
+    }
+  }
+
+  .error-container {
+    padding: 60px 16px;
+
+    .error-icon {
+      font-size: 36px;
+    }
+
+    .error-message {
+      font-size: 16px;
+    }
+
+    .back-btn {
+      padding: 10px 20px;
+      font-size: 13px;
+    }
+  }
+}
+
+/* 超小螢幕 (360px 以下) */
+@media (max-width: 359px) {
+  .handle-case-page {
+    padding: 4px;
+  }
+
+  .handle-header {
+    padding: 8px;
+
+    .header-left {
+      gap: 8px;
+    }
+
+    .page-title {
       font-size: 14px;
     }
 
-    .priority-icon {
-      font-size: 18px;
+    .case-number {
+      font-size: 10px;
+      padding: 2px 6px;
+    }
+  }
+
+  .detail-content {
+    padding: 12px;
+  }
+
+  .info-group {
+    .info-label {
+      font-size: 11px;
     }
 
-    .priority-label,
-    .completion-label,
-    .completion-value {
+    .info-value {
+      font-size: 11px;
+      padding: 6px 8px;
+    }
+  }
+
+  .handler-section {
+    padding: 12px;
+
+    .section-title {
       font-size: 13px;
     }
 
-    .priority-badge {
+    .priority-item {
+      padding: 8px;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+
+      .priority-info {
+        width: 100%;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+      }
+    }
+
+    .completion-time {
+      padding: 8px;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+
+      .completion-info {
+        width: 100%;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+      }
+    }
+  }
+
+  .upload-area {
+    padding: 20px 8px;
+
+    .upload-text {
+      .upload-main-text {
+        font-size: 12px;
+      }
+
+      .upload-sub-text {
+        font-size: 10px;
+      }
+    }
+
+    .upload-btn {
+      padding: 6px 12px;
       font-size: 11px;
-      padding: 3px 8px;
+    }
+  }
+
+  .action-buttons {
+    .save-btn {
+      padding: 10px;
+      font-size: 12px;
+    }
+  }
+}
+
+/* 觸控裝置優化 */
+@media (hover: none) {
+  .file-item:hover,
+  .action-btn:hover,
+  .upload-btn:hover,
+  .save-btn:hover:not(:disabled),
+  .cancel-btn:hover:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* 高 DPI 螢幕優化 */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .file-icon,
+  .priority-icon,
+  .upload-icon {
+    image-rendering: -webkit-optimize-contrast;
+  }
+}
+
+/* 列印樣式 */
+@media print {
+  .handle-case-page {
+    background: white;
+    padding: 0;
+  }
+
+  .handle-header {
+    background: #f8f9fa !important;
+    color: #333 !important;
+    border-bottom: 2px solid #dee2e6;
+  }
+
+  .back-btn-header,
+  .action-buttons,
+  .file-actions,
+  .upload-area {
+    display: none !important;
+  }
+
+  .file-item .remove-btn {
+    display: none !important;
+  }
+}
+
+/* 橫向螢幕優化 */
+@media (orientation: landscape) and (max-height: 500px) {
+  .upload-area {
+    padding: 20px 15px;
+
+    .upload-icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    .upload-text {
+      margin-bottom: 12px;
     }
   }
 }

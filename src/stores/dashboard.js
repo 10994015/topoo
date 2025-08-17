@@ -57,7 +57,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
             '近1個月': '1m', 
             '近6個月': '6m'
         }
-        return timeRangeMap[timeRange] || '6m'
+        return timeRangeMap[timeRange] || '1w'
     }
     
     // 格式化 API 數據為圖表所需格式（更新變數名稱）
@@ -200,7 +200,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     }
     
     // 獲取報修趨勢數據 - 使用新的 API（更新模擬數據變數名稱）
-    const fetchRepairTrendData = async (timeRange = '近6個月') => {
+    const fetchRepairTrendData = async (timeRange = '近1週') => {
         isLoading.value = true
         try {
             const timeRangeParam = getTimeRangeParam(timeRange)
@@ -262,7 +262,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     }
     
     // 獲取案件處理量數據 - 使用相同的 API，但保存到不同的變量（更新模擬數據變數名稱）
-    const fetchCaseProcessingData = async (timeRange = '近6個月') => {
+    const fetchCaseProcessingData = async (timeRange = '近1週') => {
         isLoading.value = true
         try {
             const timeRangeParam = getTimeRangeParam(timeRange)
