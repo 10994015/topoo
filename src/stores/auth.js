@@ -50,17 +50,15 @@ export const useAuthStore = defineStore('auth', () => {
         permissions.value = []
         isInitialized.value = false
         
-        // 顯示提示訊息
+        // 顯示提示訊息（如果需要）
         // alert(message)
         
-        // 跳轉到登入頁
-        // 這裡需要動態導入 router 以避免循環依賴
-        import('@/router').then(({ default: router }) => {
-            if (router.currentRoute.value.name !== 'login') {
-                router.push('/login')
-            }
-        })
+        // 直接使用 window.location 跳轉，避免動態導入
+        if (window.location.pathname !== '/login') {
+            window.location.href = '/login'
+        }
     }
+
 
     const login = async (credentials) => {
         console.log("sha256後:", hashSHA256(credentials.password));

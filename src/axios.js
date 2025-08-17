@@ -15,6 +15,14 @@ const axiosClient = axios.create({
 // 追蹤是否正在處理 401 錯誤，避免重複處理
 let isHandling401 = false
 
+// 401 錯誤回調函數，由外部設置
+let onUnauthorized = null
+
+// 設置 401 錯誤處理回調
+export const setUnauthorizedHandler = (handler) => {
+  onUnauthorized = handler
+}
+
 // 請求攔截器
 axiosClient.interceptors.request.use(
   config => {
@@ -62,16 +70,14 @@ axiosClient.interceptors.response.use(
         return Promise.reject(error)
       }
       
-      // 動態導入 auth store 並調用強制登出方法
-      import('@/stores/auth').then(({ useAuthStore }) => {
-        const authStore = useAuthStore()
-        authStore.forceLogout('登入憑證已過期，請重新登入')
-      }).catch(err => {
-        console.error('導入 auth store 失敗:', err)
+      // 調用外部設置的處理函數
+      if (onUnauthorized) {
+        onUnauthorized()
+      } else {
         // 備用方案：直接跳轉
-        // alert('登入憑證已過期，請重新登入')
+        console.warn('未設置 401 處理函數，使用備用方案')
         window.location.href = '/login'
-      })
+      }
       
     } else if (error.response?.status === 403) {
       console.warn('🚫 權限不足')
