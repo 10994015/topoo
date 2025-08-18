@@ -5,6 +5,7 @@ import { useUnitStore } from '@/stores/unit'
 import { formatDateTime } from '@/utils/dateUtils'
 import { PERMISSIONS } from '@/utils/permissions'
 import { useAuthStore } from '@/stores/auth'
+import { mdiPencil, mdiDelete  } from '@mdi/js'
 
 const router = useRouter()
 const unitStore = useUnitStore()
@@ -570,7 +571,9 @@ onUnmounted(() => {
                   title="刪除單位"
                 >
                   <span v-if="isDeleting" class="loading-spinner">⟳</span>
-                  <span v-else>🗑️</span>
+                  <svg v-else width="16" height="16" viewBox="0 0 24 24">
+                    <path :d="mdiDelete" fill="currentColor"></path>
+                  </svg>
                 </button>
               </td>
             </tr>

@@ -2,6 +2,11 @@
 import { ref, onMounted, onUnmounted, computed} from 'vue'
 import { useRouter, useRoute  } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { 
+  mdiAccount,           // 👤 個人資料
+  mdiKey,               // 🔑 修改密碼
+  mdiLogout             // 🚪 登出
+} from '@mdi/js'
 
 // 響應式資料
 const isUserMenuOpen = ref(false)
@@ -163,12 +168,20 @@ onUnmounted(() => {
             
             <!-- 選單項目 -->
             <router-link to="/profiles" class="menu-item">
-              <span class="menu-icon">👤</span>
+              <span class="menu-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24">
+                  <path :d="mdiAccount" fill="currentColor"></path>
+                </svg>
+              </span>
               <span>個人資料</span>
             </router-link>
             
             <router-link to="/change-password" class="menu-item" >
-              <span class="menu-icon">🔑</span>
+              <span class="menu-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24">
+                  <path :d="mdiKey" fill="currentColor"></path>
+                </svg>
+              </span>
               <span>修改密碼</span>
             </router-link>
             
@@ -176,7 +189,11 @@ onUnmounted(() => {
             
             <!-- 登出按鈕 -->
             <a href="#" class="menu-item logout" @click.prevent="logout">
-              <span class="menu-icon">🚪</span>
+              <span class="menu-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24">
+                  <path :d="mdiLogout" fill="currentColor"></path>
+                </svg>
+              </span>
               <span>登出</span>
             </a>
           </div>
@@ -351,6 +368,10 @@ onUnmounted(() => {
           &:hover {
             background-color: #f8f9fa;
             color: #6c5ce7;
+            
+            .menu-icon svg {
+              transform: scale(1.1);
+            }
           }
 
           &.logout {
@@ -364,9 +385,15 @@ onUnmounted(() => {
 
           .menu-icon {
             margin-right: 10px;
-            font-size: 16px;
             width: 20px;
-            text-align: center;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            
+            svg {
+              transition: all 0.2s ease;
+            }
           }
         }
       }
@@ -436,77 +463,4 @@ onUnmounted(() => {
     }
   }
 }
-// 深色模式支援
-// @media (prefers-color-scheme: dark) {
-//   .top-header {
-//     background: #1a1a1a;
-//     border-bottom-color: #333;
-//     color: white;
-
-//     .page-info {
-//       .page-title {
-//         color: white;
-//       }
-
-//       .breadcrumb {
-//         color: #ccc;
-
-//         .breadcrumb-link {
-//           color: #ccc;
-
-//           &:hover {
-//             color: #a78bfa;
-//           }
-//         }
-
-//         .breadcrumb-current {
-//           color: white;
-//         }
-
-//         .separator {
-//           color: #666;
-//         }
-//       }
-//     }
-
-//     .user-section {
-//       .user-dropdown {
-//         &:hover {
-//           background-color: #333;
-//         }
-
-//         .dropdown-menu {
-//           background: #2a2a2a;
-//           border-color: #444;
-
-//           .user-info {
-//             border-bottom-color: #444;
-
-//             .user-name {
-//               color: white;
-//             }
-
-//             .user-email {
-//               color: #999;
-//             }
-//           }
-
-//           .menu-divider {
-//             border-top-color: #444;
-//           }
-
-//           .menu-item {
-//             color: #ccc;
-
-//             &:hover {
-//               background-color: #333;
-//               color: #6c5ce7;
-//             }
-//           }
-//         }
-//       }
-//     }
-//   }
-// }
-
 </style>

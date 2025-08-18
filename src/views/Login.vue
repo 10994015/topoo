@@ -3,7 +3,15 @@ import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import { GoogleSignInButton } from "vue3-google-signin"
-import { mdiEye, mdiEyeOff, mdiAccount, mdiLock, mdiLoading } from '@mdi/js'
+import { 
+  mdiEye, 
+  mdiEyeOff, 
+  mdiAccount, 
+  mdiLock, 
+  mdiLoading,
+  mdiHandWave,  // 替換 👋 - 揮手圖標
+  mdiPhone      // 替換 📞 - 電話圖標
+} from '@mdi/js'
 
 const router = useRouter()
 
@@ -265,7 +273,11 @@ const handleGoogleError = (error) => {
       
       <div class="welcome-card">
         <div class="welcome-header">
-          <i class="hand-icon">👋</i>
+          <div class="hand-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24">
+              <path :d="mdiHandWave" fill="currentColor"></path>
+            </svg>
+          </div>
           <div class="welcome-text">
             <h2>歡迎使用</h2>
             <h3>線上報修系統</h3>
@@ -278,7 +290,11 @@ const handleGoogleError = (error) => {
         
         <div class="contact-info">
           <div class="contact-header">
-            <i class="phone-icon">📞</i>
+            <div class="phone-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24">
+                <path :d="mdiPhone" fill="currentColor"></path>
+              </svg>
+            </div>
             <span>聯絡資訊</span>
           </div>
           <p class="phone-number">02 2728 5528</p>
@@ -659,7 +675,14 @@ const handleGoogleError = (error) => {
   margin-bottom: 1.5rem;
   
   .hand-icon {
-    font-size: 2rem;
+    color: #fbbf24; /* 暖色調，類似手的膚色 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    svg {
+      filter: drop-shadow(0 2px 4px rgba(251, 191, 36, 0.3));
+    }
   }
   
   .welcome-text {
@@ -702,7 +725,14 @@ const handleGoogleError = (error) => {
     font-weight: 600;
     
     .phone-icon {
-      font-size: 1.1rem;
+      color: #10b981; /* 綠色，代表聯絡/溝通 */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      
+      svg {
+        filter: drop-shadow(0 1px 2px rgba(16, 185, 129, 0.3));
+      }
     }
   }
   

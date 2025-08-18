@@ -3,7 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { checkAnyPermission , PERMISSIONS } from '@/utils/permissions'
-
+import { mdiViewDashboard, mdiToolbox, mdiCog } from '@mdi/js'
 
 const route = useRoute()
 const authStore = useAuthStore()
@@ -65,19 +65,19 @@ const menuItems = [
   {
     name: 'dashboard',
     label: '首頁',
-    icon: '📋',
+    icon: mdiViewDashboard,
     path: '/'
   },
   {
     name: 'repair',
     label: '線上報修',
-    icon: '🔔',
+    icon: mdiToolbox,
     path: '/repair-system',
   },
   {
     name: 'settings',
     label: '系統管理',
-    icon: '⚙️',
+    icon: mdiCog,
     path: '/settings',
     hasSubmenu: true,
     submenu: [
@@ -282,7 +282,11 @@ const handleSubmenuClick = () => {
                 'parent-active': item.hasSubmenu && (hasActiveSubmenu(item) || isMenuExpanded(item.name))
               }"
             >
-              <span class="nav-icon">{{ item.icon }}</span>
+              <span class="nav-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24">
+                  <path :d="item.icon" fill="currentColor"></path>
+                </svg>
+              </span>
               <span class="nav-label">{{ item.label }}</span>
               <span v-if="item.hasSubmenu" class="expand-icon" :class="{ expanded: isMenuExpanded(item.name) }">
                 ▼
@@ -391,6 +395,7 @@ const handleSubmenuClick = () => {
   transition: transform 0.3s ease;
   height: 100%;
   font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+  
   .logo-section {
     padding: 30px 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -506,6 +511,13 @@ const handleSubmenuClick = () => {
         width: 20px;
         text-align: center;
         transition: transform 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        svg {
+          transition: transform 0.3s ease;
+        }
       }
 
       .nav-label {
@@ -514,12 +526,12 @@ const handleSubmenuClick = () => {
         flex: 1;
       }
 
-      &:hover .nav-icon {
+      &:hover .nav-icon svg {
         transform: scale(1.1);
       }
 
-      &.active .nav-icon,
-      &.parent-active .nav-icon {
+      &.active .nav-icon svg,
+      &.parent-active .nav-icon svg {
         animation: bounce 0.6s ease;
       }
     }
@@ -798,15 +810,19 @@ const handleSubmenuClick = () => {
       
       .nav-icon {
         transition: none;
-        animation: none;
+        
+        svg {
+          animation: none;
+          transition: none;
+        }
       }
       
-      &:hover .nav-icon {
+      &:hover .nav-icon svg {
         transform: none;
       }
       
-      &.active .nav-icon,
-      &.parent-active .nav-icon {
+      &.active .nav-icon svg,
+      &.parent-active .nav-icon svg {
         animation: none;
       }
 

@@ -5,6 +5,7 @@ import { useMailStore } from '@/stores/mail'
 import { useAuthStore } from '@/stores/auth'
 import { PERMISSIONS, checkPermission } from '@/utils/permissions'
 import { formatDate, formatDateTime } from '@/utils/dateUtils'
+import {  mdiDelete  } from '@mdi/js'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -651,7 +652,9 @@ onMounted(() => {
                     @click.stop="deleteMail(item)"
                     title="刪除"
                   >
-                    🗑️
+                     <svg width="16" height="16" viewBox="0 0 24 24">
+                      <path :d="mdiDelete" fill="currentColor"></path>
+                    </svg>
                   </button>
                 </div>
               </div>
@@ -711,7 +714,9 @@ onMounted(() => {
                       @click.stop="deleteMail(item)"
                       title="刪除"
                     >
-                      🗑️
+                      <svg width="16" height="16" viewBox="0 0 24 24">
+                      <path :d="mdiDelete" fill="currentColor"></path>
+                    </svg>
                     </button>
                   </td>
                 </tr>

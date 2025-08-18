@@ -37,8 +37,10 @@ const timeOptions = ['近1週', '近1個月', '近6個月']
 const isTrendLoading = ref(false)  // 趨勢圖載入狀態
 const isBarLoading = ref(false)    // 長條圖載入狀態
 
-// 圖表創建控制 - 解決方案4的核心
+// 圖表創建控制 - 修改後的版本
 const chartsCreated = ref(false)
+const initialLoadComplete = ref(false) // 新增：標記初始載入完成
+const debounceTimer = ref(null) // 防抖計時器
 
 const shouldCreateCharts = computed(() => {
   return !!(
@@ -493,21 +495,32 @@ const viewDetails = () => {
   router.push(url)
 }
 
-// 方案4：使用 watchEffect 控制圖表創建，避免重複渲染
+// ===== 修改後的響應式邏輯 - 解決重複動畫問題 =====
+
+// 使用防抖機制的 watchEffect - 避免快速重複觸發
 watchEffect(async () => {
   if (shouldCreateCharts.value && !chartsCreated.value) {
-    console.log('初始創建所有圖表')
-    await nextTick()
-    createTrendChart()
-    createBarChart()
-    createTreeChart()
-    chartsCreated.value = true
+    // 清除之前的防抖計時器
+    if (debounceTimer.value) {
+      clearTimeout(debounceTimer.value)
+    }
+    
+    // 設置防抖延遲，避免短時間內多次觸發
+    debounceTimer.value = setTimeout(async () => {
+      console.log('初始創建所有圖表')
+      await nextTick()
+      createTrendChart()
+      createBarChart()
+      createTreeChart()
+      chartsCreated.value = true
+      initialLoadComplete.value = true
+    }, 150) // 150ms 防抖延遲
   }
 })
 
-// 只在特定條件下重新創建圖表
+// 修改 watch 邏輯，只在初始載入完成後才響應變化
 watch([trendTimeRange], async () => {
-  if (chartsCreated.value) {
+  if (chartsCreated.value && initialLoadComplete.value) {
     console.log('重新創建趨勢圖 - 時間範圍變更')
     await nextTick()
     createTrendChart()
@@ -515,7 +528,7 @@ watch([trendTimeRange], async () => {
 })
 
 watch([barTimeRange], async () => {
-  if (chartsCreated.value) {
+  if (chartsCreated.value && initialLoadComplete.value) {
     console.log('重新創建長條圖 - 時間範圍變更')
     await nextTick()
     createBarChart()
@@ -523,32 +536,44 @@ watch([barTimeRange], async () => {
 })
 
 watch([treeChartSize], async () => {
-  if (chartsCreated.value) {
+  if (chartsCreated.value && initialLoadComplete.value) {
     console.log('重新創建樹狀圖 - 尺寸變更')
     await nextTick()
     createTreeChart()
   }
 })
 
-// 當數據更新時，重新創建對應的圖表（但不是在初始化時）
-watch(() => dashboardStore.repairTrendData, async (newData) => {
-  if (chartsCreated.value && newData?.length) {
+// 數據更新時的智能重建，避免初始載入時的重複觸發
+watch(() => dashboardStore.repairTrendData, async (newData, oldData) => {
+  if (chartsCreated.value && 
+      initialLoadComplete.value && 
+      newData?.length && 
+      oldData?.length && // 確保不是首次載入
+      JSON.stringify(newData) !== JSON.stringify(oldData)) {
     console.log('重新創建趨勢圖 - 數據更新')
     await nextTick()
     createTrendChart()
   }
 }, { deep: true })
 
-watch(() => dashboardStore.caseProcessingData, async (newData) => {
-  if (chartsCreated.value && newData?.length) {
+watch(() => dashboardStore.caseProcessingData, async (newData, oldData) => {
+  if (chartsCreated.value && 
+      initialLoadComplete.value && 
+      newData?.length && 
+      oldData?.length && // 確保不是首次載入
+      JSON.stringify(newData) !== JSON.stringify(oldData)) {
     console.log('重新創建長條圖 - 數據更新')
     await nextTick()
     createBarChart()
   }
 }, { deep: true })
 
-watch(() => dashboardStore.esgStats.systemTressSavingNumber, async (newValue) => {
-  if (chartsCreated.value && newValue !== undefined) {
+watch(() => dashboardStore.esgStats.systemTressSavingNumber, async (newValue, oldValue) => {
+  if (chartsCreated.value && 
+      initialLoadComplete.value && 
+      newValue !== undefined && 
+      oldValue !== undefined && // 確保不是首次載入
+      newValue !== oldValue) {
     console.log('重新創建樹狀圖 - ESG數據更新')
     await nextTick()
     createTreeChart()
@@ -566,8 +591,13 @@ onMounted(async () => {
   await dashboardStore.initializeDashboard()
 })
 
-// 清理函數
+// 更新後的清理函數
 onUnmounted(() => {
+  // 清除防抖計時器
+  if (debounceTimer.value) {
+    clearTimeout(debounceTimer.value)
+  }
+  
   // 移除事件監聽器
   window.removeEventListener('resize', handleResize)
   
@@ -584,6 +614,10 @@ onUnmounted(() => {
     treeChart.destroy()
     treeChart = null
   }
+  
+  // 重置狀態
+  chartsCreated.value = false
+  initialLoadComplete.value = false
 })
 </script>
 

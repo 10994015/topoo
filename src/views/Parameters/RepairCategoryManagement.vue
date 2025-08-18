@@ -5,6 +5,7 @@ import { useCategoryStore } from '@/stores/repair.category'
 import { formatDateTime } from '@/utils/dateUtils'
 import { PERMISSIONS } from '@/utils/permissions'
 import { useAuthStore } from '@/stores/auth'
+import { mdiPencil } from '@mdi/js'
 
 const router = useRouter()
 const categoryStore = useCategoryStore()
@@ -419,7 +420,9 @@ onUnmounted(() => {
                               @click="editReason(item.id, reason.id)"
                               title="編輯"
                             >
-                              ✏️
+                               <svg width="16" height="16" viewBox="0 0 24 24">
+                                <path :d="mdiPencil" fill="currentColor"></path>
+                              </svg>
                             </button>
                           </td>
                         </tr>
@@ -1388,10 +1391,17 @@ onUnmounted(() => {
   font-weight: 500;
   transition: all 0.2s;
   text-decoration: none;
+  svg {
+    transition: all 0.2s;
+  }
 
   &:hover {
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    svg {
+      transform: scale(1.1);
+    }
+
   }
 
   &.expand-btn {
@@ -1404,7 +1414,8 @@ onUnmounted(() => {
   }
 
   &.edit-btn {
-    background: transparent;
+    background: #fff3e0;
+    color: #f57c00;
 
     &:hover {
       background: transparent;

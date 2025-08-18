@@ -445,7 +445,6 @@ onMounted(async () => {
                   class="accept-btn" 
                   v-if="hasWriteTodoPermission"
                 >
-                  <span class="btn-icon">{{ todoDetail.todo_id ? '✏️' : '📋' }}</span>
                   <span class="btn-text">{{ todoDetail.todo_id ? '編輯派工' : '案件派工' }}</span>
                 </button>
                 
@@ -455,7 +454,6 @@ onMounted(async () => {
                   v-if="todoId && !(todoDetail.repair_status === '歸檔' || todoDetail.repair_status === '已完成')"
                   :disabled="false"
                 >
-                  <span class="btn-icon">🗑️</span>
                   <span class="btn-text">刪除派工</span>
                 </button>
               </div>

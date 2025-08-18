@@ -3,6 +3,7 @@ import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useCategoryStore } from '@/stores/repair.category'
 import { formatDate, formatDateTime } from '@/utils/dateUtils'
+import { mdiDelete  } from '@mdi/js'
 
 const router = useRouter()
 const route = useRoute()
@@ -718,7 +719,9 @@ onMounted(async () => {
                     @click.stop="deleteReason(item)"
                     title="刪除"
                   >
-                    🗑️
+                    <svg width="16" height="16" viewBox="0 0 24 24">
+                    <path :d="mdiDelete" fill="currentColor"></path>
+                  </svg>
                   </button>
                 </div>
               </div>
@@ -777,7 +780,9 @@ onMounted(async () => {
                       @click.stop="deleteReason(item)"
                       title="刪除"
                     >
-                      🗑️
+                      <svg width="16" height="16" viewBox="0 0 24 24">
+                    <path :d="mdiDelete" fill="currentColor"></path>
+                  </svg>
                     </button>
                   </td>
                 </tr>

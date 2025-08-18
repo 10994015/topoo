@@ -5,6 +5,8 @@ import { useCategoryStore } from '@/stores/repair.category'
 import { formatDateTime } from '@/utils/dateUtils'
 import { PERMISSIONS } from '@/utils/permissions'
 import { useAuthStore } from '@/stores/auth'
+import {  mdiDelete  } from '@mdi/js'
+
 const router = useRouter()
 const route = useRoute()
 const categoryStore = useCategoryStore()
@@ -601,7 +603,9 @@ onMounted(async () => {
                     @click.stop="deleteCategory(item)"
                     title="刪除"
                   >
-                    🗑️
+                    <svg width="16" height="16" viewBox="0 0 24 24">
+                    <path :d="mdiDelete" fill="currentColor"></path>
+                  </svg>
                   </button>
                 </div>
               </div>
@@ -660,7 +664,9 @@ onMounted(async () => {
                       @click.stop="deleteCategory(item)"
                       title="刪除"
                     >
-                      🗑️
+                      <svg width="16" height="16" viewBox="0 0 24 24">
+                    <path :d="mdiDelete" fill="currentColor"></path>
+                  </svg>
                     </button>
                   </td>
                 </tr>

@@ -5,6 +5,7 @@ import { useMailStore } from '@/stores/mail'
 import { useAuthStore } from '@/stores/auth'
 import { PERMISSIONS, checkPermission } from '@/utils/permissions'
 import { formatDate, formatDateTime } from '@/utils/dateUtils'
+import { mdiOpenInNew, mdiMagnify, mdiLinkVariant } from '@mdi/js'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -286,7 +287,9 @@ onUnmounted(() => {
           />
           <button class="search-btn" @click="handleSearch" :disabled="isLoading || isSearching">
             <span v-if="isSearching" class="loading-spinner">⟳</span>
-            <span v-else>🔍</span>
+            <svg v-else width="16" height="16" viewBox="0 0 24 24">
+              <path :d="mdiMagnify" fill="currentColor"></path>
+            </svg>
           </button>
         </div>
         
@@ -388,7 +391,9 @@ onUnmounted(() => {
                     @click="editMailbox(item)"
                     title="檢視"
                   >
-                    👁️
+                    <svg width="16" height="16" viewBox="0 0 24 24">
+                      <path :d="mdiOpenInNew" fill="currentColor"></path>
+                    </svg>
                   </button>
                   <button 
                     v-if="hasFullPermission"
@@ -396,7 +401,9 @@ onUnmounted(() => {
                     @click="testMailConnection(item)"
                     title="測試連接"
                   >
-                    🔗
+                    <svg width="16" height="16" viewBox="0 0 24 24">
+                      <path :d="mdiLinkVariant" fill="currentColor"></path>
+                    </svg>
                   </button>
                 </div>
               </td>
@@ -445,7 +452,9 @@ onUnmounted(() => {
               class="mobile-action-btn view-btn" 
               @click="editMailbox(item)"
             >
-              👁️ 檢視
+              <svg width="16" height="16" viewBox="0 0 24 24">
+                <path :d="mdiOpenInNew" fill="currentColor"></path>
+              </svg>
             </button>
             <button 
               v-if="hasFullPermission"
@@ -607,15 +616,25 @@ onUnmounted(() => {
         font-size: 16px;
         color: #666;
         transition: color 0.3s;
+svg {
+        transition: all 0.3s;
+      }
 
-        &:hover:not(:disabled) {
-          color: #6c5ce7;
+      &:hover:not(:disabled) {
+        color: #6c5ce7;
+        svg {
+          transform: scale(1.1);
         }
 
-        &:disabled {
-          color: #ccc;
-          cursor: not-allowed;
+      }
+
+      &:disabled {
+        color: #ccc;
+        cursor: not-allowed;
+        svg {
+          transform: none;
         }
+      }
       }
     }
 
@@ -812,10 +831,16 @@ onUnmounted(() => {
             transition: all 0.2s;
             background: #f8f9fa;
             color: #666;
-
+            svg {
+              transition: all 0.2s;
+            }
             &:hover {
               transform: translateY(-1px);
               box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+              svg {
+                transform: scale(1.1);
+              }
+
             }
 
             &.view-btn {
@@ -826,6 +851,9 @@ onUnmounted(() => {
             }
 
             &.test-btn {
+              background: #e8f5e9;
+              color: #2e7d32;
+
               &:hover {
                 background: #e3f2fd;
                 color: #1976d2;

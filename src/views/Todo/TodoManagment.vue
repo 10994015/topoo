@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useTodoStore } from '@/stores/todo'
 import { useRepairStore } from '@/stores/repair' // 借用報修 store 的選項資料
 import { formatDateTime } from '@/utils/dateUtils'
+import { mdiOpenInNew, mdiMagnify } from '@mdi/js'
 
 const router = useRouter()
 const todoStore = useTodoStore()
@@ -292,7 +293,9 @@ onUnmounted(() => {
           />
           <button class="search-btn" @click="handleSearch" :disabled="isLoading || isSearching">
             <span v-if="isSearching" class="loading-spinner">⟳</span>
-            <span v-else>🔍</span>
+             <svg v-else width="16" height="16" viewBox="0 0 24 24">
+              <path :d="mdiMagnify" fill="currentColor"></path>
+            </svg>
           </button>
         </div>
         
@@ -493,7 +496,9 @@ onUnmounted(() => {
                   @click="viewTodo(item.id)"
                   title="查看詳情"
                 >
-                  👁️
+                  <svg width="16" height="16" viewBox="0 0 24 24">
+                    <path :d="mdiOpenInNew" fill="currentColor"></path>
+                  </svg>
                 </button>
               </td>
             </tr>
@@ -726,13 +731,24 @@ onUnmounted(() => {
       color: #666;
       transition: color 0.3s;
 
+      svg {
+        transition: all 0.3s;
+      }
+
       &:hover:not(:disabled) {
         color: #6c5ce7;
+        svg {
+          transform: scale(1.1);
+        }
+
       }
 
       &:disabled {
         color: #ccc;
         cursor: not-allowed;
+        svg {
+          transform: none;
+        }
       }
     }
   }
@@ -968,11 +984,17 @@ onUnmounted(() => {
           background: #f8f9fa;
           color: #666;
 
+         svg {
+            transition: all 0.2s;
+          }
           &:hover {
             transform: translateY(-1px);
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-          }
+            svg {
+              transform: scale(1.1);
+            }
 
+          }
           &.view-btn {
             &:hover {
               background: #e3f2fd;

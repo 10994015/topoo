@@ -5,6 +5,7 @@ import { formatDate, formatDateTime } from '@/utils/dateUtils'
 import { useRouter } from 'vue-router'
 import { PERMISSIONS } from '@/utils/permissions'
 import { useAuthStore } from '@/stores/auth'
+import { mdiPencil, mdiDelete  } from '@mdi/js'
 
 const statusStore = useRepairStatusStore()
 const router = useRouter()
@@ -321,14 +322,18 @@ onMounted(async () => {
                   @click="editStatus(item)"
                   title="編輯"
                 >
-                  ✏️
+                  <svg width="16" height="16" viewBox="0 0 24 24">
+                    <path :d="mdiPencil" fill="currentColor"></path>
+                  </svg>
                 </button>
                 <button 
                   class="delete-btn"
                   @click="deleteStatus(item)"
                   title="刪除"
                 >
-                  🗑️
+                  <svg width="16" height="16" viewBox="0 0 24 24">
+                    <path :d="mdiDelete" fill="currentColor"></path>
+                  </svg>
                 </button>
               </td>
             </tr>
@@ -633,10 +638,15 @@ onMounted(async () => {
     transform: scale(1.1);
   }
 }
+.delete-btn:hover{
+  background: #ffebee;
+      color: #d32f2f;
 
+}
 .edit-btn:hover {
-  background: #fff3cd;
-  color: #856404;
+  background: #fff3e0;
+    box-shadow: none;
+    color: #f57c00;
 }
 
 .delete-btn:hover {
