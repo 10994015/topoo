@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDashboardStore } from '@/stores/dashboard'
 import * as Chart from 'chart.js'
@@ -36,6 +36,17 @@ const timeOptions = ['近1週', '近1個月', '近6個月']
 // 獨立的載入狀態
 const isTrendLoading = ref(false)  // 趨勢圖載入狀態
 const isBarLoading = ref(false)    // 長條圖載入狀態
+
+// 圖表創建控制 - 解決方案4的核心
+const chartsCreated = ref(false)
+
+const shouldCreateCharts = computed(() => {
+  return !!(
+    dashboardStore.repairTrendData?.length &&
+    dashboardStore.caseProcessingData?.length &&
+    dashboardStore.esgStats.systemTressSavingNumber !== undefined
+  )
+})
 
 // 響應式樹狀圖尺寸計算
 const treeChartSize = computed(() => {
@@ -482,43 +493,66 @@ const viewDetails = () => {
   router.push(url)
 }
 
-// 監聽 store 數據變化，重新創建圖表
-watch([
-  () => dashboardStore.repairTrendData,
-], async () => {
-  await nextTick()
-  createTrendChart()
-}, { deep: true })
+// 方案4：使用 watchEffect 控制圖表創建，避免重複渲染
+watchEffect(async () => {
+  if (shouldCreateCharts.value && !chartsCreated.value) {
+    console.log('初始創建所有圖表')
+    await nextTick()
+    createTrendChart()
+    createBarChart()
+    createTreeChart()
+    chartsCreated.value = true
+  }
+})
 
-watch([
-  () => dashboardStore.caseProcessingData
-], async () => {
-  await nextTick()
-  createBarChart()
-}, { deep: true })
-
-watch([
-  () => dashboardStore.esgStats.systemTressSavingNumber
-], async () => {
-  await nextTick()
-  createTreeChart()
-}, { deep: true })
-
-// 監聽時間範圍變化，重新創建圖表（用於更新標籤）
+// 只在特定條件下重新創建圖表
 watch([trendTimeRange], async () => {
-  await nextTick()
-  createTrendChart()
+  if (chartsCreated.value) {
+    console.log('重新創建趨勢圖 - 時間範圍變更')
+    await nextTick()
+    createTrendChart()
+  }
 })
 
 watch([barTimeRange], async () => {
-  await nextTick()
-  createBarChart()
+  if (chartsCreated.value) {
+    console.log('重新創建長條圖 - 時間範圍變更')
+    await nextTick()
+    createBarChart()
+  }
 })
 
-// 監聽樹狀圖尺寸變化
 watch([treeChartSize], async () => {
-  await nextTick()
-  createTreeChart()
+  if (chartsCreated.value) {
+    console.log('重新創建樹狀圖 - 尺寸變更')
+    await nextTick()
+    createTreeChart()
+  }
+})
+
+// 當數據更新時，重新創建對應的圖表（但不是在初始化時）
+watch(() => dashboardStore.repairTrendData, async (newData) => {
+  if (chartsCreated.value && newData?.length) {
+    console.log('重新創建趨勢圖 - 數據更新')
+    await nextTick()
+    createTrendChart()
+  }
+}, { deep: true })
+
+watch(() => dashboardStore.caseProcessingData, async (newData) => {
+  if (chartsCreated.value && newData?.length) {
+    console.log('重新創建長條圖 - 數據更新')
+    await nextTick()
+    createBarChart()
+  }
+}, { deep: true })
+
+watch(() => dashboardStore.esgStats.systemTressSavingNumber, async (newValue) => {
+  if (chartsCreated.value && newValue !== undefined) {
+    console.log('重新創建樹狀圖 - ESG數據更新')
+    await nextTick()
+    createTreeChart()
+  }
 })
 
 // 初始化
@@ -528,14 +562,8 @@ onMounted(async () => {
   // 添加視窗尺寸監聽器
   window.addEventListener('resize', handleResize)
   
-  // 初始化儀表板數據
+  // 只初始化數據，讓 watchEffect 處理圖表創建
   await dashboardStore.initializeDashboard()
-  
-  // 等待 DOM 渲染完成後創建圖表
-  await nextTick()
-  createTrendChart()
-  createBarChart()
-  createTreeChart()
 })
 
 // 清理函數
@@ -1517,12 +1545,13 @@ onUnmounted(() => {
   }
 
   .esg-section .esg-stats {
-    grid-template-columns: repeat(2, 1fr);
-    
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
+
     .stat-card.target {
-      grid-column: 1 / -1;
       max-width: 400px;
-      margin: 0 auto;
+      margin: 10px auto;
+      height: 207px;
     }
   }
 
@@ -1550,8 +1579,8 @@ onUnmounted(() => {
     }
     
     .esg-stats {
-      grid-template-columns: 1fr;
-      gap: 16px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
       
       .stat-card {
         min-height: 160px;
