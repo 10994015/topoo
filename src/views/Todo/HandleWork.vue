@@ -3,6 +3,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useBackendRepairStore } from '@/stores/backend.repair'
 import FilePreviewModal from '@/components/FilePreviewModal.vue'
+import { formatDateTime } from '@/utils/dateUtils'
 
 const route = useRoute()
 const router = useRouter()
@@ -472,12 +473,12 @@ onMounted(async () => {
 
                 <div class="info-group">
                   <label class="info-label">報修時間</label>
-                  <div class="info-value">{{ caseDetail.repair_time }}</div>
+                  <div class="info-value">{{ formatDateTime(caseDetail.repair_time) }}</div>
                 </div>
 
                 <div class="info-group">
                   <label class="info-label">填單時間</label>
-                  <div class="info-value">{{ caseDetail.created_at }}</div>
+                  <div class="info-value">{{ formatDateTime(caseDetail.created_at) }}</div>
                 </div>
 
                 <div class="info-group" v-if="caseDetail.repair_category === '硬體' || caseDetail.repair_category === '軟體'">
@@ -762,7 +763,7 @@ onMounted(async () => {
                 <div class="completion-icon">📅</div>
                 <div class="completion-info">
                   <span class="completion-label">預計完成時間</span>
-                  <span class="completion-value">{{ caseDetail.estimated_completion_time || '-' }}</span>
+                  <span class="completion-value">{{ formatDateTime(caseDetail.estimated_completion_time) || '-' }}</span>
                 </div>
               </div>
 

@@ -417,7 +417,7 @@ const router = createRouter({
               { text: '參數管理', to: '/settings/parameter-management' },
               { text: '維修狀態管理', to: null },
             ],
-            permission: PERMISSIONS.REPAIR_CATEGORY_MANAGEMENT,
+            permission: PERMISSIONS.REPAIR_STATUS_MANAGEMENT,
             permissionMode: 'Readonly' 
           },
         },

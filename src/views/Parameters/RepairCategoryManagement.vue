@@ -297,7 +297,7 @@ onUnmounted(() => {
           </select>
         </div>
         
-        <button v-if="hasWriteManageRepairReasonPermission" class="new-category-btn" @click="createNewCategory" :class="{ disabled: isLoading }" :disabled="isLoading">
+        <button v-if="hasWriteManageRepairCategoryPermission" class="new-category-btn" @click="createNewCategory" :class="{ disabled: isLoading }" :disabled="isLoading">
           新增故障類別
         </button>
       </div>
@@ -376,7 +376,7 @@ onUnmounted(() => {
                   <div class="reasons-container">
                     <div class="reasons-header">
                       <h4>{{ item.name }} - 故障原因</h4>
-                      <button v-if="hasWriteManageRepairCategoryPermission" class="new-reason-btn" @click="createNewReason(item.id)" :disabled="isLoading">
+                      <button v-if="hasWriteManageRepairReasonPermission" class="new-reason-btn" @click="createNewReason(item.id)" :disabled="isLoading">
                         新增故障原因
                       </button>
                     </div>

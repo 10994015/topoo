@@ -174,6 +174,9 @@ const resetSearch = () => {
   totalItems.value = filteredData.value.length
   searchNotFound.value = false
   isSearching.value = false
+
+  console.log(filteredData.value);
+  
 }
 
 // 手動搜尋

@@ -10,12 +10,33 @@ const repairStore = useRepairStore()
 const authStore = useAuthStore()
 
 // 檢查各個報表的權限
+//帳號查詢Excel下載
 const hasDownloadAccountPermission = computed(() => authStore.canAccessPage(PERMISSIONS.ACCOUNT_EXCEL_DOWNLOAD))
+//完修紀錄Excel下載
 const hasDownloadRepairNoticePermission = computed(() => authStore.canAccessPage(PERMISSIONS.REPAIR_NOTICE_EXCEL_DOWNLOAD))
+//報修進度綜合表查詢Excel下載
 const hasDownloadRepairSummaryPermission = computed(() => authStore.canAccessPage(PERMISSIONS.REPAIR_PROGRESS_SUMMARY_EXCEL_DOWNLOAD))
 
-// 當前活躍的報表類型
-const activeTab = ref('repair-progress')
+// 計算預設的 activeTab (按照指定的優先順序)
+const getDefaultTab = () => {
+  // 第一優先：報修進度綜合表
+  if (hasDownloadRepairSummaryPermission.value) {
+    return 'repair-progress'
+  }
+  // 第二優先：帳號管理報表
+  else if (hasDownloadAccountPermission.value) {
+    return 'account-management'
+  }
+  // 第三優先：完修記錄報表  
+  else if (hasDownloadRepairNoticePermission.value) {
+    return 'complete-repair'
+  }
+  // 都沒有權限
+  return null
+}
+
+// 當前活躍的報表類型 (不再預設為固定值)
+const activeTab = ref('')
 
 // 載入狀態
 const isLoading = ref(true)
@@ -105,6 +126,42 @@ const levelImportanceOptions = [
   { value: '2', label: '保固級' },
   { value: '3', label: '急件' }
 ]
+
+// 計算有權限的頁籤列表 (按照優先順序排列)
+const validTabs = computed(() => {
+  const tabs = []
+  
+  // 按照優先順序添加有權限的頁籤
+  if (hasDownloadRepairSummaryPermission.value) {
+    tabs.push('repair-progress')
+  }
+  if (hasDownloadAccountPermission.value) {
+    tabs.push('account-management')
+  }
+  if (hasDownloadRepairNoticePermission.value) {
+    tabs.push('complete-repair')
+  }
+  
+  return tabs
+})
+
+// 檢查用戶是否有任何報表權限
+const hasAnyPermission = computed(() => {
+  return hasDownloadRepairSummaryPermission.value || 
+         hasDownloadAccountPermission.value || 
+         hasDownloadRepairNoticePermission.value
+})
+
+// 監聽權限變化，確保 activeTab 總是有效的
+watch(validTabs, (newTabs) => {
+  if (newTabs.length > 0 && !newTabs.includes(activeTab.value)) {
+    // 如果當前選中的頁籤無效，則選擇第一個有權限的頁籤
+    activeTab.value = newTabs[0]
+  } else if (newTabs.length === 0) {
+    // 如果沒有任何權限
+    activeTab.value = null
+  }
+}, { immediate: true })
 
 // 監聽報修進度綜合表的維修類別變化
 watch(() => repairProgressForm.repairCategoryId, async (newCategoryId, oldCategoryId) => {
@@ -256,6 +313,17 @@ const downloadReport = async (reportType) => {
 
 // 切換標籤
 const switchTab = async (tabName) => {
+  // 檢查是否有權限切換到該頁面
+  const hasPermission = 
+    (tabName === 'repair-progress' && hasDownloadRepairSummaryPermission.value) ||
+    (tabName === 'account-management' && hasDownloadAccountPermission.value) ||
+    (tabName === 'complete-repair' && hasDownloadRepairNoticePermission.value)
+  
+  if (!hasPermission) {
+    console.warn(`無權限訪問 ${tabName} 頁面`)
+    return
+  }
+  
   activeTab.value = tabName
   
   // 切換標籤時重新獲取所有維修原因
@@ -282,6 +350,9 @@ onMounted(async () => {
     reasons.value = repairStore.reasons?.data || []
     statuses.value = repairStore.statuses?.data || []
     
+    // 根據權限優先順序設定預設的 activeTab
+    activeTab.value = getDefaultTab()
+    
   } catch (error) {
     console.error('載入數據失敗:', error)
   } finally {
@@ -293,7 +364,7 @@ onMounted(async () => {
 <template>
   <div class="report-management">
     <!-- 標籤導航 -->
-    <section class="tab-navigation">
+    <section class="tab-navigation" v-if="hasAnyPermission">
       <div class="tab-container">
         <button 
           :class="['tab-btn', { active: activeTab === 'repair-progress' }]"
@@ -577,6 +648,23 @@ onMounted(async () => {
         </div>
       </div>
     </section>
+
+    <!-- 無權限提示 -->
+    <section v-if="!hasAnyPermission" class="no-permission">
+      <div class="no-permission-content">
+        <div class="no-permission-icon">🔒</div>
+        <h3>沒有報表查詢權限</h3>
+        <p>請聯繫系統管理員申請相關權限</p>
+      </div>
+    </section>
+
+    <!-- 有權限但沒有選中任何頁面的情況 -->
+    <section v-else-if="!activeTab" class="loading-section">
+      <div class="loading-content">
+        <div class="loading-spinner">⟳</div>
+        <p>載入中...</p>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -702,26 +790,31 @@ onMounted(async () => {
   }
 }
 
-// 報表區域
+// 報表區域 - 完全重新設計的響應式版本
 .report-section {
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   padding: 30px;
 
-  @media (max-width: 1024px) {
+  // 平板尺寸 (768px - 1024px)
+  @media (max-width: 1024px) and (min-width: 769px) {
     padding: 24px;
     border-radius: 6px;
   }
 
-  @media (max-width: 768px) {
-    padding: 20px;
-    margin: 0 -4px; // 稍微延伸到螢幕邊緣
+  // 手機尺寸 (480px - 768px)
+  @media (max-width: 768px) and (min-width: 481px) {
+    padding: 20px 16px;
+    border-radius: 6px;
+    margin: 0 -4px;
   }
 
+  // 小手機尺寸 (≤480px)
   @media (max-width: 480px) {
-    padding: 16px;
+    padding: 16px 12px;
     border-radius: 4px;
+    margin: 0 -6px;
   }
 
   .form-container {
@@ -731,16 +824,39 @@ onMounted(async () => {
       align-items: end;
       margin-bottom: 20px;
 
+      // 1600px 以下 - 調整間距避免重疊
+      @media (max-width: 1600px) and (min-width: 1025px) {
+        gap: 16px;
+        flex-wrap: wrap; // 允許換行
+        align-items: stretch; // 改為拉伸對齊
+        
+        // 特別針對完修報表的佈局
+        &:has(.date-field) {
+          .form-field {
+            flex: 1 1 auto;
+            min-width: 180px;
+            max-width: 220px;
+          }
+        }
+      }
+
       // 平板：保持水平佈局，調整間距
-      @media (max-width: 1024px) {
+      @media (max-width: 1024px) and (min-width: 769px) {
         gap: 16px;
         margin-bottom: 18px;
+        flex-wrap: wrap; // 允許換行
+        
+        // 如果一行放不下，自動換行
+        .form-field {
+          min-width: 200px;
+          flex: 1 1 calc(50% - 8px);
+        }
       }
 
       // 手機：改為垂直佈局
       @media (max-width: 768px) {
         flex-direction: column;
-        gap: 16px;
+        gap: 14px;
         align-items: stretch;
         margin-bottom: 16px;
       }
@@ -758,10 +874,24 @@ onMounted(async () => {
 
     .form-field {
       flex: 1;
-      min-width: 0; // 防止內容溢出
+      min-width: 0;
 
+      // 1600px 以下 - 防止與日期欄位重疊
+      @media (max-width: 1600px) and (min-width: 1025px) {
+        flex: 1 1 200px; // 最小寬度 200px，允許彈性縮放
+        min-width: 200px;
+        max-width: 250px; // 設置最大寬度避免過度拉伸
+      }
+
+      // 平板：確保合適的最小寬度
+      @media (max-width: 1024px) and (min-width: 769px) {
+        min-width: 180px;
+      }
+
+      // 手機：佔滿整個寬度
       @media (max-width: 768px) {
         width: 100%;
+        min-width: 0;
       }
 
       .form-input,
@@ -771,47 +901,54 @@ onMounted(async () => {
         border: 1px solid #ddd;
         border-radius: 6px;
         font-size: 14px;
-        transition: border-color 0.3s;
+        transition: border-color 0.3s, box-shadow 0.3s;
         background: white;
         box-sizing: border-box;
-
-        // 改善移動端輸入體驗
+        
+        // 移除預設樣式
         -webkit-appearance: none;
         -moz-appearance: none;
         appearance: none;
 
         // 平板調整
-        @media (max-width: 1024px) {
+        @media (max-width: 1024px) and (min-width: 769px) {
           padding: 11px 14px;
           font-size: 14px;
+          border-radius: 5px;
         }
 
-        // 手機調整
-        @media (max-width: 768px) {
+        // 手機調整 - 增大觸控區域
+        @media (max-width: 768px) and (min-width: 481px) {
           padding: 14px 16px;
           font-size: 16px; // 防止iOS縮放
-          border-radius: 4px;
+          border-radius: 6px;
+          min-height: 48px; // 確保觸控目標足夠大
+          box-sizing: border-box;
         }
 
         // 小手機調整
         @media (max-width: 480px) {
           padding: 12px 14px;
+          font-size: 16px;
+          border-radius: 4px;
+          min-height: 44px;
         }
 
         &:focus {
           outline: none;
           border-color: #6c5ce7;
-          box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.1);
+          box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.1);
         }
 
         &:disabled {
           background-color: #f8f9fa;
           color: #999;
           cursor: not-allowed;
+          opacity: 0.7;
         }
       }
 
-      // 下拉選單箭頭
+      // 下拉選單箭頭優化
       .form-select {
         background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
         background-position: right 12px center;
@@ -821,38 +958,64 @@ onMounted(async () => {
 
         @media (max-width: 768px) {
           background-position: right 16px center;
+          background-size: 18px;
+          padding-right: 48px;
+        }
+
+        @media (max-width: 480px) {
+          background-size: 16px;
           padding-right: 44px;
         }
       }
 
       .form-input::placeholder {
         color: #999;
+        opacity: 1;
       }
     }
 
     .date-field {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       flex: 1;
       min-width: 0;
 
-      // 平板：保持水平佈局
-      @media (max-width: 1024px) {
-        gap: 8px;
+      // 1600px 以下 - 防止重疊問題
+      @media (max-width: 1600px) and (min-width: 1025px) {
+        flex: 2; // 給日期欄位更多空間
+        min-width: 350px;
+        gap: 10px;
+        
+        .date-input {
+          flex: 1 1 140px;
+          min-width: 140px;
+        }
+      }
+
+      // 平板：保持水平佈局，允許適度換行
+      @media (max-width: 1024px) and (min-width: 769px) {
+        gap: 10px;
+        flex-wrap: wrap;
+        min-width: 300px; // 確保日期欄位有足夠空間
+        
+        .date-input {
+          flex: 1 1 120px;
+          min-width: 120px;
+        }
       }
 
       // 手機：改為垂直佈局
       @media (max-width: 768px) {
         flex-direction: column;
         align-items: stretch;
-        gap: 8px;
+        gap: 10px;
         width: 100%;
       }
 
       // 小手機調整
       @media (max-width: 480px) {
-        gap: 6px;
+        gap: 8px;
       }
 
       label {
@@ -860,14 +1023,15 @@ onMounted(async () => {
         color: #333;
         white-space: nowrap;
         font-weight: 500;
+        margin-bottom: 0;
 
-        @media (max-width: 1024px) {
+        @media (max-width: 1024px) and (min-width: 769px) {
           font-size: 13px;
         }
 
         @media (max-width: 768px) {
           font-size: 14px;
-          margin-bottom: 4px;
+          margin-bottom: 6px;
           align-self: flex-start;
         }
       }
@@ -877,41 +1041,47 @@ onMounted(async () => {
         border: 1px solid #ddd;
         border-radius: 6px;
         font-size: 14px;
-        transition: border-color 0.3s;
+        transition: border-color 0.3s, box-shadow 0.3s;
         flex: 1;
-        min-width: 120px;
+        min-width: 140px;
         box-sizing: border-box;
 
         // 平板調整
-        @media (max-width: 1024px) {
+        @media (max-width: 1024px) and (min-width: 769px) {
           padding: 11px 14px;
-          min-width: 110px;
+          min-width: 120px;
+          font-size: 13px;
         }
 
         // 手機調整
-        @media (max-width: 768px) {
+        @media (max-width: 768px) and (min-width: 481px) {
           padding: 14px 16px;
           font-size: 16px; // 防止iOS縮放
-          border-radius: 4px;
+          border-radius: 6px;
           width: 100%;
           min-width: 0;
+          min-height: 48px;
         }
 
         // 小手機調整
         @media (max-width: 480px) {
           padding: 12px 14px;
+          font-size: 16px;
+          min-height: 44px;
+          border-radius: 4px;
         }
 
         &:focus {
           outline: none;
           border-color: #6c5ce7;
-          box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.1);
+          box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.1);
         }
 
         &:disabled {
           background-color: #f8f9fa;
           color: #999;
           cursor: not-allowed;
+          opacity: 0.7;
         }
       }
 
@@ -919,29 +1089,34 @@ onMounted(async () => {
         color: #666;
         font-weight: bold;
         font-size: 16px;
+        user-select: none;
+
+        @media (max-width: 1024px) and (min-width: 769px) {
+          font-size: 14px;
+        }
 
         @media (max-width: 768px) {
           align-self: center;
-          margin: 4px 0;
+          margin: 2px 0;
+          font-size: 14px;
         }
       }
 
-      // 日期範圍容器（用於包裝兩個日期輸入和分隔符）
-      &.date-range {
-        @media (max-width: 768px) {
-          .date-inputs-wrapper {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            width: 100%;
+      // 針對手機的日期範圍特殊佈局
+      @media (max-width: 768px) {
+        .date-range-wrapper {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          width: 100%;
 
-            .date-input {
-              flex: 1;
-            }
+          .date-input {
+            flex: 1;
+          }
 
-            .date-separator {
-              margin: 0;
-            }
+          .date-separator {
+            margin: 0;
+            flex-shrink: 0;
           }
         }
       }
@@ -952,20 +1127,25 @@ onMounted(async () => {
       display: flex;
       gap: 15px;
       justify-content: flex-start;
+      align-items: center;
 
-      @media (max-width: 1024px) {
+      // 平板調整
+      @media (max-width: 1024px) and (min-width: 769px) {
         margin-top: 24px;
         gap: 12px;
       }
 
+      // 手機：改為垂直佈局
       @media (max-width: 768px) {
-        margin-top: 20px;
+        margin-top: 24px;
         flex-direction: column;
         gap: 12px;
+        align-items: stretch;
       }
 
+      // 小手機調整
       @media (max-width: 480px) {
-        margin-top: 16px;
+        margin-top: 20px;
         gap: 10px;
       }
 
@@ -978,40 +1158,50 @@ onMounted(async () => {
         font-size: 14px;
         font-weight: 500;
         cursor: pointer;
-        transition: all 0.3s;
+        transition: all 0.3s ease;
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 8px;
+        min-height: 44px;
         
         // 改善觸控體驗
         -webkit-tap-highlight-color: transparent;
         touch-action: manipulation;
 
-        @media (max-width: 1024px) {
+        // 平板調整
+        @media (max-width: 1024px) and (min-width: 769px) {
           padding: 11px 24px;
           font-size: 13px;
+          min-height: 42px;
         }
 
-        @media (max-width: 768px) {
+        // 手機調整
+        @media (max-width: 768px) and (min-width: 481px) {
           padding: 16px 24px;
-          font-size: 14px;
+          font-size: 15px;
           width: 100%;
-          min-height: 48px; // 確保觸控目標足夠大
+          min-height: 50px;
+          border-radius: 6px;
         }
 
+        // 小手機調整
         @media (max-width: 480px) {
           padding: 14px 20px;
-          min-height: 44px;
+          font-size: 14px;
+          min-height: 46px;
+          border-radius: 4px;
         }
 
         &:hover:not(:disabled) {
           background: #5b4bcf;
           transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba(108, 92, 231, 0.3);
 
           // 手機上使用不同的hover效果
           @media (max-width: 768px) {
             transform: none;
+            box-shadow: none;
             background: #5b4bcf;
           }
         }
@@ -1025,6 +1215,11 @@ onMounted(async () => {
           background: #ccc;
           cursor: not-allowed;
           transform: none;
+          box-shadow: none;
+        }
+
+        .loading-spinner {
+          animation: spin 1s linear infinite;
         }
       }
 
@@ -1037,50 +1232,169 @@ onMounted(async () => {
         font-size: 14px;
         font-weight: 500;
         cursor: pointer;
-        transition: all 0.3s;
+        transition: all 0.3s ease;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         
         // 改善觸控體驗
         -webkit-tap-highlight-color: transparent;
         touch-action: manipulation;
 
-        @media (max-width: 1024px) {
+        // 平板調整
+        @media (max-width: 1024px) and (min-width: 769px) {
           padding: 11px 18px;
           font-size: 13px;
+          min-height: 42px;
         }
 
-        @media (max-width: 768px) {
+        // 手機調整
+        @media (max-width: 768px) and (min-width: 481px) {
           padding: 16px 24px;
-          font-size: 14px;
+          font-size: 15px;
           width: 100%;
-          min-height: 48px;
-          justify-content: center;
-          display: flex;
-          align-items: center;
+          min-height: 50px;
+          border-radius: 6px;
         }
 
+        // 小手機調整
         @media (max-width: 480px) {
           padding: 14px 20px;
-          min-height: 44px;
+          font-size: 14px;
+          min-height: 46px;
+          border-radius: 4px;
         }
 
         &:hover:not(:disabled) {
           background: #f8f9fa;
           border-color: #6c5ce7;
           color: #6c5ce7;
+          transform: translateY(-1px);
 
           @media (max-width: 768px) {
+            transform: none;
             background: #f8f9fa;
           }
         }
 
         &:active {
           background: #e9ecef;
+          transform: translateY(0);
         }
 
         &:disabled {
           background: #f8f9fa;
           color: #ccc;
           cursor: not-allowed;
+          transform: none;
+        }
+      }
+    }
+  }
+}
+
+// 無權限提示
+.no-permission {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+  .no-permission-content {
+    text-align: center;
+    color: #666;
+
+    .no-permission-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    h3 {
+      margin: 0 0 8px;
+      color: #333;
+      font-size: 18px;
+    }
+
+    p {
+      margin: 0;
+      font-size: 14px;
+    }
+  }
+}
+
+.loading-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+  .loading-content {
+    text-align: center;
+    color: #666;
+
+    .loading-spinner {
+      font-size: 24px;
+      margin-bottom: 12px;
+      display: inline-block;
+      animation: spin 1s linear infinite;
+    }
+
+    p {
+      margin: 0;
+      font-size: 14px;
+    }
+  }
+}
+
+// 針對特定螢幕比例的優化
+@media (min-width: 769px) and (max-width: 1024px) and (orientation: landscape) {
+  .report-section .form-container {
+    .form-row {
+      gap: 14px;
+      
+      .form-field {
+        min-width: 160px;
+        flex: 1 1 calc(33.333% - 10px);
+      }
+    }
+    
+    .form-field .form-input,
+    .form-field .form-select,
+    .date-field .date-input {
+      padding: 10px 14px;
+      font-size: 13px;
+    }
+  }
+}
+
+// 針對 iPhone SE 等超小螢幕的特殊處理
+@media (max-width: 375px) {
+  .report-section {
+    padding: 12px 8px;
+    margin: 0 -4px;
+
+    .form-container {
+      .form-field .form-input,
+      .form-field .form-select,
+      .date-field .date-input {
+        padding: 12px;
+        font-size: 16px;
+        min-height: 42px;
+      }
+
+      .form-actions {
+        .download-btn,
+        .reset-btn {
+          padding: 12px 16px;
+          min-height: 44px;
+          font-size: 14px;
         }
       }
     }
@@ -1111,26 +1425,71 @@ onMounted(async () => {
   }
 }
 
-// 針對 iPhone SE 等小螢幕的特殊處理
-@media (max-width: 375px) {
+// 針對日期欄位的特殊處理（手機版本）
+@media (max-width: 768px) {
+  .report-section .form-container .date-field {
+    // 創建一個包裝器來處理兩個日期輸入框的佈局
+    &.has-range {
+      .date-inputs {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 6px;
+
+        .date-input {
+          flex: 1;
+        }
+
+        .date-separator {
+          flex-shrink: 0;
+          margin: 0;
+        }
+      }
+    }
+  }
+}
+
+// 提升可訪問性
+.report-section {
+  .form-field,
+  .date-field {
+    label {
+      // 確保標籤與輸入框的關聯性
+      @media (max-width: 768px) {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 500;
+        color: #333;
+      }
+    }
+  }
+
+  // 改善焦點指示器
+  input:focus,
+  select:focus {
+    outline: 2px solid #6c5ce7;
+    outline-offset: 2px;
+    
+    @media (max-width: 768px) {
+      outline-width: 3px;
+    }
+  }
+}
+
+// 確保在所有裝置上的滾動順暢
+.report-section * {
+  -webkit-overflow-scrolling: touch;
+}
+
+// 防止在 iOS 上的縮放
+@media (max-width: 768px) {
   .report-section {
-    padding: 12px;
-    margin: 0 -2px;
-  }
-
-  .form-field .form-input,
-  .form-field .form-select,
-  .date-field .date-input {
-    padding: 12px;
-    font-size: 16px;
-  }
-
-  .form-actions {
-    .download-btn,
-    .reset-btn {
-      padding: 12px 16px;
-      min-height: 42px;
-      font-size: 14px;
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    select {
+      font-size: 16px !important;
+      transform: translateZ(0); // 啟用硬體加速
     }
   }
 }
@@ -1138,15 +1497,5 @@ onMounted(async () => {
 // 確保在所有裝置上的滾動順暢
 * {
   -webkit-overflow-scrolling: touch;
-}
-
-// 防止在 iOS 上的縮放
-@media (max-width: 768px) {
-  input[type="text"],
-  input[type="number"],
-  input[type="date"],
-  select {
-    font-size: 16px !important;
-  }
 }
 </style>

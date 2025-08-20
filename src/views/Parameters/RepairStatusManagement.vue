@@ -1,7 +1,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRepairStatusStore } from '@/stores/repair.status'
-import { formatDate, formatDateTime } from '@/utils/dateUtils'
+import { formatDateTime } from '@/utils/dateUtils'
 import { useRouter } from 'vue-router'
 import { PERMISSIONS } from '@/utils/permissions'
 import { useAuthStore } from '@/stores/auth'
