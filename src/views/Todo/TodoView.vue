@@ -126,6 +126,10 @@ const handAssign = () => {
 }
 
 const deleteAssign = async () => {
+  if(!hasWriteTodoPermission.value){
+    alert('您沒有權限刪除案件')
+    return
+  }
   // 實作刪除案件邏輯
   console.log('刪除案件')
   // 可以呼叫 API 或顯示確認對話框
@@ -451,7 +455,7 @@ onMounted(async () => {
                 <button 
                   @click="deleteAssign" 
                   class="reassign-btn" 
-                  v-if="todoId && !(todoDetail.repair_status === '歸檔' || todoDetail.repair_status === '已完成')"
+                  v-if="todoId && !(todoDetail.repair_status === '歸檔' || todoDetail.repair_status === '已完成') && hasWriteTodoPermission"
                   :disabled="false"
                 >
                   <span class="btn-text">刪除派工</span>
