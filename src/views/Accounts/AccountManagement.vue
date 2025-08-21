@@ -165,6 +165,8 @@ const handleReset = async () => {
 }
 
 const loadData = async () => {
+  console.log(currentPage.value);
+  
   isLoading.value = true
   const params = {
     text: searchForm.keyword,
@@ -224,9 +226,9 @@ const getSortClass = (field) => {
 
 const goToPage = async (page) => {
   console.log(page);
-  await loadData();
   if (page >= 1 && page <= totalPages.value) {
     currentPage.value = page
+    await loadData();
   }
 }
 
