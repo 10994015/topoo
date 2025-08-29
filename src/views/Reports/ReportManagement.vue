@@ -611,7 +611,7 @@ onMounted(async () => {
           
           <div class="form-field">
             <select v-model="completeRepairForm.repairCategoryId" class="form-select" :disabled="isLoading">
-              <option value="">報修類別</option>
+              <option value="">故障類別</option>
               <option v-for="category in categories" :key="category.id" :value="category.id">
                 {{ category.name }}
               </option>
@@ -620,7 +620,7 @@ onMounted(async () => {
           
           <div class="form-field">
             <select v-model="completeRepairForm.repairReasonId" class="form-select" :disabled="isLoading">
-              <option value="">報修原因</option>
+              <option value="">故障原因</option>
               <option v-for="reason in reasons" :key="reason.id" :value="reason.id">
                 {{ reason.name }}
               </option>
