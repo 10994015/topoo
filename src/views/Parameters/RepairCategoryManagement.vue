@@ -324,6 +324,7 @@ onUnmounted(() => {
                 </span>
                 <span class="sort-icon neutral" v-else>⇅</span>
               </th>
+              <th v-if="hasWriteManageRepairCategoryPermission">編輯</th>
               <th width="120" v-if="hasReadManageRepairReasonPermission">展開/收合</th>
             </tr>
           </thead>
@@ -354,11 +355,20 @@ onUnmounted(() => {
               <tr class="table-row category-row">
                 <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
                 <td>
-                  <router-link :to="`/settings/parameter/repair-category/edit/${item.id}`" class="category-name">
                     {{ item.name }}
-                  </router-link>
                 </td>
                 <td>{{ formatDateTime(item.updated_at) }}</td>
+                <td v-if="hasWriteManageRepairCategoryPermission">
+                  <button 
+                    class="edit-btn"
+                    @click="editCategory(item)"
+                    title="編輯"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24">
+                      <path :d="mdiPencil" fill="currentColor"></path>
+                    </svg>
+                  </button>
+                </td>
                 <td v-if="hasReadManageRepairReasonPermission">
                   <button 
                     class="action-btn expand-btn" 
@@ -368,11 +378,12 @@ onUnmounted(() => {
                     {{ expandedCategories.has(item.id) ? '收合' : '展開' }}
                   </button>
                 </td>
+                
               </tr>
               
               <!-- 展開的原因列表 -->
               <tr v-if="expandedCategories.has(item.id)" class="expanded-row">
-                <td :colspan="hasReadManageRepairReasonPermission ? 4 : 3" class="expanded-content">
+                <td :colspan="hasReadManageRepairReasonPermission ? 5 : 4" class="expanded-content">
                   <div class="reasons-container">
                     <div class="reasons-header">
                       <h4>{{ item.name }} - 故障原因</h4>
@@ -1423,7 +1434,21 @@ onUnmounted(() => {
     }
   }
 }
+.edit-btn, .delete-btn, .top-btn {
+  background: #f8f9fa;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  color: #666;
+  transition: all 0.2s;
+  margin: 0 2px;
 
+  &:hover {
+    transform: scale(1.1);
+  }
+}
 // 分頁區域
 .pagination-section {
   display: flex;
