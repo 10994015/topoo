@@ -4,11 +4,13 @@ import { useRoute, useRouter } from 'vue-router'
 import { useBackendRepairStore } from '@/stores/backend.repair'
 import FilePreviewModal from '@/components/FilePreviewModal.vue'
 import { formatDateTime } from '@/utils/dateUtils'
+import { useSurveyStore } from '@/stores/survey'
 
 const route = useRoute()
 const router = useRouter()
 
 const backendRepairStore = useBackendRepairStore()
+const surveyStore = useSurveyStore()
 // 基本狀態
 const isLoading = ref(true)
 const isSaving = ref(false)
@@ -278,6 +280,7 @@ const saveRecord = async () => {
   
   try {
     isSaving.value = true
+    console.log(formData);
     
     const submitData = {
       repairId: formData.repairId,
@@ -285,9 +288,8 @@ const saveRecord = async () => {
       content: formData.content,
       fileIds: formData.fileIds
     }
-    
     console.log('提交處理記錄:', submitData)
-
+    surveyStore.fetchSurveys();
     const result = await backendRepairStore.createRepairWork(submitData)
     
     if(result.success) {

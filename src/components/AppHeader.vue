@@ -2,20 +2,22 @@
 import { ref, onMounted, onUnmounted, computed} from 'vue'
 import { useRouter, useRoute  } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useSurveyStore } from '@/stores/survey' // 引入問卷 store
 import { 
   mdiAccount,           // 👤 個人資料
   mdiKey,               // 🔑 修改密碼
-  mdiLogout             // 🚪 登出
+  mdiLogout,            // 🚪 登出
+  mdiClipboardTextOutline // 📋 問卷圖示
 } from '@mdi/js'
 
 // 響應式資料
 const isUserMenuOpen = ref(false)
 
-// 使用 router 和 store
+// 使用 router、store
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
-
+const surveyStore = useSurveyStore() // 使用問卷 store
 const pageTitle = computed(() => {
   return route.meta?.title || 'TOPOO'
 })
@@ -92,18 +94,31 @@ const logout = async () => {
   }
 }
 
+// 跳轉到問卷頁面
+const goToSurveys = () => {
+  router.push('/suvey-form') // 假設問卷列表頁面路由為 /surveys
+}
+
 // 生命週期
-onMounted( () => {
+onMounted( async () => {
   document.addEventListener('click', closeUserMenu)
-  const user =  authStore.user
+  const user = authStore.user
   console.log(user);
 
   if(user){
-      currentUser.value = {
-        name: user.name || 'User001',
-        role: user.nick_name || '系統管理員',
-        email: user.email || 'user001@company.com',
+    currentUser.value = {
+      name: user.name || 'User001',
+      role: user.nick_name || '系統管理員',
+      email: user.email || 'user001@company.com',
     }
+  }
+  
+  // 載入問卷總數量 - 使用新的方法
+  try {
+    await surveyStore.fetchTotalSurveyCount()
+    console.log('問卷總數量:', surveyStore.totalSurveyCount)
+  } catch (error) {
+    console.error('載入問卷資料失敗:', error)
   }
 })
 
@@ -136,8 +151,25 @@ onUnmounted(() => {
         </template>
       </nav>
     </div>
+
     
     <div class="user-section">
+      <!-- 待填寫問卷 - 使用 surveyCount 計算屬性 -->
+      <div class="survey-notification" @click="goToSurveys">
+        <div class="survey-icon-container">
+          <div class="survey-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24">
+              <path d="M19,3H14.82C14.4,1.84 13.3,1 12,1C10.7,1 9.6,1.84 9.18,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M12,3A1,1 0 0,1 13,4A1,1 0 0,1 12,5A1,1 0 0,1 11,4A1,1 0 0,1 12,3M7,7H17V9H7V7M7,11H17V13H7V11M7,15H13V17H7V15Z" fill="currentColor"/>
+            </svg>
+          </div>
+          <!-- 使用 surveyCount 而不是 surveyStore.surveyCount -->
+          <div class="survey-badge" v-if="surveyStore.surveyCount > 0">
+            {{ surveyStore.surveyCount }}
+          </div>
+        </div>
+        <span class="survey-text">待填寫問卷</span>
+      </div>
+
       <!-- 用戶下拉選單 -->
       <div class="user-dropdown" @click="toggleUserMenu">
         <!-- 用戶頭像 -->
@@ -258,6 +290,79 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     gap: 20px;
+
+    // 待填寫問卷通知
+    .survey-notification {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #333;
+  font-size: 14px;
+  position: relative;
+
+  &:hover {
+    background: #f8f9ff;
+    border-color: #3367d6;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(66, 133, 244, 0.2);
+  }
+
+  .survey-icon-container {
+    position: relative;
+    margin-right: 8px;
+
+    .survey-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #4285f4;
+      
+      svg {
+        transition: all 0.2s ease;
+      }
+    }
+
+    .survey-badge {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background: #ea4335;
+      color: white;
+      border-radius: 50%;
+      min-width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1;
+      box-shadow: 0 1px 3px rgba(234, 67, 53, 0.3);
+      animation: subtle-pulse 2s infinite;
+    }
+  }
+
+  .survey-text {
+    font-weight: 500;
+    color: #4285f4;
+  }
+}
+
+// 徽章動畫
+@keyframes subtle-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+}
+
+
 
     // 用戶下拉選單
     .user-dropdown {
@@ -451,6 +556,29 @@ onUnmounted(() => {
 
     .user-section {
       gap: 15px;
+
+      // 響應式調整
+        .survey-notification {
+          padding: 6px 10px;
+          font-size: 13px;
+
+          .survey-icon-container {
+            margin-right: 6px;
+
+            .survey-icon svg {
+              width: 18px;
+              height: 18px;
+            }
+
+            .survey-badge {
+              min-width: 16px;
+              height: 16px;
+              font-size: 10px;
+              top: -6px;
+              right: -6px;
+            }
+          }
+        }
 
       .username {
         display: none;

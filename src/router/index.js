@@ -39,6 +39,11 @@ import { Edit } from 'lucide-vue-next'
 import UnitManagement from '@/views/Units/UnitManagement.vue'
 import EditUnit from '@/views/Units/EditUnit.vue'
 import ReportManagement from '@/views/Reports/ReportManagement.vue'
+import SurveyForm from '@/views/Surveys/SurveyForm.vue'
+import SurveyManagement from '@/views/Surveys/SurveyManagement.vue'
+import SurveyQuestions from '@/views/Surveys/SurveyQuestions.vue'
+import EditSurvey from '@/views/Surveys/EditSurvey.vue'
+import SurveyResponse from '@/views/Surveys/SurveyResponse.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -117,6 +122,18 @@ const router = createRouter({
               { text: '首頁', to: '/' },
               { text: '線上報修', to: '/repair-system' },
               { text: '報修進度檢視', to: null },
+            ],
+          }
+        },
+        {
+          path: 'suvey-form',
+          name: 'app.suvey-form',
+          component: SurveyForm,
+          meta: { 
+            title: '問卷填寫',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '問卷填寫', to: null },
             ],
           }
         },
@@ -624,6 +641,83 @@ const router = createRouter({
               PERMISSIONS.REPAIR_PROGRESS_SUMMARY_EXCEL_DOWNLOAD
             ],
             permissionMode: 'Readonly'
+          },
+        },
+        // 問卷填寫紀錄
+        {
+          path: 'survey-management',
+          name: 'app.settings.survey-management',
+          component: SurveyManagement,
+          meta: { 
+            title: '問卷填寫紀錄',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '問卷填寫紀錄', to: null },
+            ],
+            permission: PERMISSIONS.SURVEY_MANAGEMENT,
+            permissionMode: 'Readonly'
+          },
+        },
+        {
+          path: 'survey-question-management',
+          name: 'app.settings.survey-question-management',
+          component: SurveyQuestions,
+          meta: { 
+            title: '問卷題目管理',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '問卷填寫紀錄', to: '/settings/survey-management' },
+              { text: '問卷題目管理', to: null },
+            ],
+            permission: PERMISSIONS.SURVEY_MANAGEMENT,
+            permissionMode: 'Readonly'
+          },
+        },
+        {
+          path: 'survey-question/create',
+          name: 'app.settings.survey-question.create',
+          component: EditSurvey,
+          meta: { 
+            title: '新增問卷題目',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '問卷填寫紀錄', to: '/settings/survey-management' },
+              { text: '問卷題目管理', to: '/settings/survey-question-management' },
+              { text: '新增問卷題目', to: null },
+            ],
+            permission: PERMISSIONS.SURVEY_MANAGEMENT,
+            permissionMode: 'Full' 
+          },
+        },
+        {
+          path: 'survey-question/edit/:id',
+          name: 'app.settings.survey-question.edit',
+          component: EditSurvey,
+          meta: { 
+            title: '編輯問卷題目',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '問卷填寫紀錄', to: '/settings/survey-management' },
+              { text: '問卷題目管理', to: '/settings/survey-question-management' },
+              { text: '編輯問卷題目', to: null },
+            ],
+            permission: PERMISSIONS.SURVEY_MANAGEMENT,
+            permissionMode: 'Full' 
+          },
+        },
+        {
+          path: 'survey-response/:id',
+          name: 'app.settings.survey-response',
+          component: SurveyResponse,
+          meta: { 
+            title: '檢視問卷回覆',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '問卷填寫紀錄', to: '/settings/survey-management' },
+              { text: '檢視問卷回覆', to: null },
+            ],
+            permission: PERMISSIONS.SURVEY_MANAGEMENT,
+            permissionMode: 'Readonly' 
           },
         },
       ]

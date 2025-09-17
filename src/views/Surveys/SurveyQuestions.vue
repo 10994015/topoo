@@ -1,64 +1,27 @@
 <script setup>
 import { ref, computed, reactive, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAccountStore } from '@/stores/account'
-import { useAuthStore } from '@/stores/auth'
-import { PERMISSIONS, checkPermission } from '@/utils/permissions'
+import { useSurveyStore } from '@/stores/survey'
 import { formatDate, formatDateTime } from '@/utils/dateUtils'
-import { mdiOpenInNew, mdiMagnify } from '@mdi/js'
+import { mdiOpenInNew, mdiMagnify, mdiDownload, mdiPlus } from '@mdi/js'
 
-const authStore = useAuthStore()
 const router = useRouter()
-const accountStore = useAccountStore()
-
-const hasFullPermission = computed(() => authStore.canModify(PERMISSIONS.ACCOUNT_MANAGEMENT));
+const surveyStore = useSurveyStore()
 
 // 響應式視窗寬度監聽
 const windowWidth = ref(window.innerWidth)
 
 // 搜尋表單
 const searchForm = reactive({
-  keyword: '',
-  accountStatus: '',
-  loginSource: '',
-  startDate: '',
-  endDate: ''
+  content: '',
+  status: ''
 })
 
 // 排序設定
 const sortConfig = ref({
-  field: 'created_at',
-  order: 'ASC'
+  field: 'updated_at',
+  order: 'DESC'
 })
-
-const enumStatus = {
-  Open: '啟用',
-  UnderReview: '待審核',
-  ReviewFailed: '審核未通過',
-  Invalid: '停用',
-  Lock: '封鎖',
-  Inconvenient: '不便',
-  Leave: '請假'
-}
-
-// 帳號狀態選項
-const accountStatuses = ref([
-  { value: '', label: '全部狀態' },
-  { value: 'Open', label: '啟用' },
-  { value: 'UnderReview', label: '未審核' },
-  { value: 'ReviewFailed', label: '審核未通過' },
-  { value: 'Invalid', label: '停用' },
-  { value: 'Lock', label: '封鎖' },
-  { value: 'Inconvenient', label: '不便' },
-  { value: 'Leave', label: '請假' }
-])
-
-// 登入來源選項
-const loginSources = ref([
-  { value: '', label: '全部來源' },
-  { value: 'system', label: '系統登入' },
-  { value: 'google', label: 'Google登入' }
-])
 
 // 分頁設定
 const currentPage = ref(1)
@@ -68,6 +31,10 @@ const totalItems = ref(0)
 // 載入狀態
 const isLoading = ref(false)
 const isSearching = ref(false)
+const isDownloadingTemplate = ref(false)
+
+// 問卷資料
+const questionData = ref([])
 
 // 批次匯入相關變數
 const showImportModal = ref(false)
@@ -77,17 +44,11 @@ const importProgress = ref(0)
 const importResult = ref(null)
 const isDragging = ref(false)
 
-// 模擬帳號資料
-const accountData = ref([
-  {
-    id: 1,
-    account: 'user001',
-    name: '張小明',
-    email: 'user001@example.com',
-    accountStatus: '啟用',
-    establishDate: '2025/05/01',
-    loginSource: '網頁'
-  },
+// 問卷狀態選項
+const statusOptions = ref([
+  { value: '', label: '全部狀態' },
+  { value: 'Open', label: '啟用' },
+  { value: 'Invalid', label: '停用' }
 ])
 
 // 響應式計算屬性 - 判斷是否為手機模式
@@ -155,111 +116,142 @@ const handleSearch = async () => {
 }
 
 const handleReset = async () => {
-  searchForm.keyword = ''
-  searchForm.accountStatus = ''
-  searchForm.loginSource = ''
-  searchForm.startDate = '2025/05/01'
-  searchForm.endDate = '2025/05/30'
+  searchForm.content = ''
+  searchForm.status = ''
   currentPage.value = 1
   await loadData()
 }
 
 const loadData = async () => {
-  console.log(currentPage.value);
+  console.log(currentPage.value)
   
   isLoading.value = true
   const params = {
-    text: searchForm.keyword,
-    status: searchForm.accountStatus,
-    startAt: searchForm.startDate,
-    endAt: searchForm.endDate,
-    sortField: sortConfig.value.field,
+    content: searchForm.content,
+    status: searchForm.status,
+    sortBy: sortConfig.value.field,
     sortOrder: sortConfig.value.order,
     page: currentPage.value,
-    pageSize: pageSize.value,
-    provider: searchForm.loginSource
-  };
-  console.log(params);
+    pageSize: pageSize.value
+  }
+  console.log(params)
   
-  await accountStore.fetchAccounts(params);
-
-  accountData.value = accountStore.accounts.data;
-  console.log(accountStore.accounts.total);
-  
-  totalItems.value = accountStore.accounts.total
-  totalPages.value = accountStore.accounts.totalPages
-  isLoading.value = false
+  try {
+    const response = await surveyStore.fetchSurveyQuestions(params)
+    console.log(response.data);
+    
+    questionData.value = response.data || []
+    totalItems.value = response.total || 0
+    totalPages.value = response.totalPages || 0
+  } catch (error) {
+    console.error('載入問卷資料失敗:', error)
+    questionData.value = []
+    totalItems.value = 0
+    totalPages.value = 0
+  } finally {
+    isLoading.value = false
+  }
 }
 
 // 排序功能
 const handleSort = (field) => {
   if (sortConfig.value.field === field) {
-    if (sortConfig.value.order === 'asc') {
-      sortConfig.value.order = 'desc'
-    } else if (sortConfig.value.order === 'desc') {
+    if (sortConfig.value.order === 'ASC') {
+      sortConfig.value.order = 'DESC'
+    } else if (sortConfig.value.order === 'DESC') {
       sortConfig.value.field = ''
       sortConfig.value.order = ''
     } else {
-      sortConfig.value.order = 'asc'
+      sortConfig.value.order = 'ASC'
     }
   } else {
     sortConfig.value.field = field
-    sortConfig.value.order = 'asc'
+    sortConfig.value.order = 'ASC'
   }
   
   loadData()
 }
 
-const getSortIcon = (field) => {
-  if (sortConfig.value.field !== field) {
-    return '⇅'
-  }
-  return sortConfig.value.order === 'asc' ? '↑' : '↓'
-}
-
 const getSortClass = (field) => {
   if (sortConfig.value.field === field) {
-    return `sorted-${sortConfig.value.order}`
+    return `sorted-${sortConfig.value.order.toLowerCase()}`
   }
   return ''
 }
 
 const goToPage = async (page) => {
-  console.log(page);
+  console.log(page)
   if (page >= 1 && page <= totalPages.value) {
     currentPage.value = page
-    await loadData();
+    await loadData()
   }
 }
 
+const viewQuestion = (question) => {
+  console.log('查看問卷詳情:', question)
+  router.push(`/settings/survey-question/edit/${question.id}`)
+}
+
 const downloadTemplate = async () => {
-  await accountStore.downloadImportTemplate()
+  console.log('開始下載問卷題目匯入模板')
+  
+  try {
+    // 顯示載入狀態
+    isDownloadingTemplate.value = true
+    
+    // 呼叫 store 方法下載模板
+    const result = await surveyStore.downloadSurveyQuestionTemplate()
+    console.log(result);
+    
+    if (result.success) {
+      console.log('模板下載成功')
+      // 可以在這裡顯示成功訊息，例如使用 toast 通知
+    } else {
+      console.error('模板下載失敗:', result.message)
+      // 可以在這裡顯示錯誤訊息
+      alert(result.message)
+    }
+  } catch (error) {
+    console.error('下載模板時發生錯誤:', error)
+    alert('下載失敗，請稍後再試')
+  } finally {
+    isDownloadingTemplate.value = false
+  }
 }
 
-const createNewAccount = () => {
-  console.log('新增帳號')
-  router.push('/settings/account/create')
+const importQuestions = async () => {
+  showImportModal.value = true
+  resetImportForm()
 }
 
-const viewAccount = (account) => {
-  console.log('查看帳號詳情:', account)
-  router.push(`/settings/account-view/${account.id}`)
+const createNewQuestion = () => {
+  console.log('新增問卷題目')
+  router.push('/settings/survey-question/create')
 }
 
 const getStatusClass = (status) => {
   const statusMap = {
-    '啟用': 'status-active',
-    '停用': 'status-inactive', 
-    '待審核': 'status-pending',
     'Open': 'status-active',
-    'UnderReview': 'status-pending',
-    'ReviewFailed': 'status-inactive',
-    'Invalid': 'status-inactive',
-    'Lock': 'status-inactive',
-    'Inconvenient': 'status-inactive',
-    'Leave': 'status-inactive'
+    'Invalid': 'status-inactive'
   }
   return statusMap[status] || ''
+}
+
+const getStatusText = (status) => {
+  const statusMap = {
+    'Open': '啟用',
+    'Invalid': '停用'
+  }
+  return statusMap[status] || status
+}
+
+const getTypeText = (type) => {
+  const typeMap = {
+    'SingleChoice': '單選題',
+    'MultipleChoice': '多選題',
+    'ShortAnswer': '簡答題'
+  }
+  return typeMap[type] || type
 }
 
 // 批次匯入相關方法
@@ -291,18 +283,13 @@ const handleFileSelect = (event) => {
 const resetImportForm = () => {
   importFile.value = null
   importProgress.value = 0
-  importResult.value = null  // 清除匯入結果
+  importResult.value = null
   isImporting.value = false
   
   const fileInput = document.getElementById('import-file-input')
   if (fileInput) {
     fileInput.value = ''
   }
-}
-
-const batchImport = async () => {
-  showImportModal.value = true
-  resetImportForm()
 }
 
 const confirmImport = async () => {
@@ -324,19 +311,19 @@ const confirmImport = async () => {
       }
     }, 200)
     
-    const result = await accountStore.importAccounts(formData)
+    const result = await surveyStore.importSurveyQuestions(formData)
 
-    console.log(result);
+    console.log(result)
 
-    let message = '';
-    let resultData = {};
+    let message = ''
+    let resultData = {}
     
     if(result.data.statusCode === 200){
-      const { data: responseData } = result.data;
-      const successCount = responseData.successItems.length;
-      const errorItems = responseData.errorItems.filter(item => item != 'undefined');
-      const errorCount = errorItems.length;
-      const totalCount = successCount + errorCount;
+      const { data: responseData } = result.data
+      const successCount = responseData.successItems.length
+      const errorItems = responseData.errorItems.filter(item => item != 'undefined')
+      const errorCount = errorItems.length
+      const totalCount = successCount + errorCount
       
       // 構建結構化的結果數據
       resultData = {
@@ -346,10 +333,10 @@ const confirmImport = async () => {
         successItems: responseData.successItems,
         errorItems: errorItems,
         originalMessage: result.data.message
-      };
+      }
       
       // 構建美觀的 message
-      message = result.data.message;
+      message = result.data.message
     }
     
     clearInterval(progressInterval)
@@ -367,7 +354,7 @@ const confirmImport = async () => {
     
   } catch (error) {
     console.error('批次匯入失敗:', error)
-    let resultData = {};
+    let resultData = {}
     resultData = {
       message: error.response?.data?.message || '匯入失敗，請檢查檔案資料格式',
     }
@@ -378,7 +365,7 @@ const confirmImport = async () => {
       data: resultData,
     }
 
-    console.log(importResult.value);
+    console.log(importResult.value)
     
     isImporting.value = false
   }
@@ -424,14 +411,6 @@ const formatFileSize = (bytes) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
-// watch pageSize
-watch(pageSize, async (newSize) => {
-  console.log('分頁大小變更:', newSize)
-  pageSize.value = newSize
-  currentPage.value = 1
-  await loadData();
-})
-
 const triggerFileInput = () => {
   const fileInput = document.getElementById('import-file-input')
   if (fileInput) {
@@ -439,10 +418,18 @@ const triggerFileInput = () => {
   }
 }
 
+// watch pageSize
+watch(pageSize, async (newSize) => {
+  console.log('分頁大小變更:', newSize)
+  pageSize.value = newSize
+  currentPage.value = 1
+  await loadData()
+})
+
 onMounted(() => {
   // 添加視窗尺寸監聽器
   window.addEventListener('resize', handleResize)
-  loadData();
+  loadData()
 })
 
 // 清理函數
@@ -452,15 +439,15 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="account-management">
+  <div class="survey-question-management">
     <!-- 搜尋區域 -->
     <section class="search-section">
       <div class="search-row">
         <div class="search-field">
           <input 
             type="text" 
-            v-model="searchForm.keyword"
-            placeholder="輸入帳號、姓名及暱稱"
+            v-model="searchForm.content"
+            placeholder="請輸入問卷題目"
             class="search-input"
             @keyup.enter="handleSearch"
             :disabled="isLoading"
@@ -474,40 +461,11 @@ onUnmounted(() => {
         </div>
         
         <div class="select-field">
-          <select v-model="searchForm.accountStatus" class="search-select" :disabled="isLoading">
-            <option v-for="status in accountStatuses" :key="status.value" :value="status.value">
+          <select v-model="searchForm.status" class="search-select" :disabled="isLoading">
+            <option v-for="status in statusOptions" :key="status.value" :value="status.value">
               {{ status.label }}
             </option>
           </select>
-        </div>
-        
-        <div class="select-field">
-          <select v-model="searchForm.loginSource" class="search-select" :disabled="isLoading">
-            <option v-for="source in loginSources" :key="source.value" :value="source.value">
-              {{ source.label }}
-            </option>
-          </select>
-        </div>
-      </div>
-      
-      <div class="search-row">
-        <div class="date-field">
-          <label>帳號建立日期</label>
-          <div class="date-inputs">
-            <input 
-              type="date" 
-              v-model="searchForm.startDate"
-              class="date-input"
-              :disabled="isLoading"
-            />
-            <span class="date-separator">-</span>
-            <input 
-              type="date" 
-              v-model="searchForm.endDate"
-              class="date-input"
-              :disabled="isLoading"
-            />
-          </div>
         </div>
         
         <div class="action-buttons">
@@ -532,14 +490,22 @@ onUnmounted(() => {
         </div>
         
         <div class="right-controls">
-          <button class="control-btn template-btn" @click="downloadTemplate" v-if="hasFullPermission" :disabled="isLoading">
-            下載帳號匯入範本
+          <button class="control-btn template-btn" @click="downloadTemplate" :disabled="isDownloadingTemplate">
+            <span v-if="isDownloadingTemplate" class="loading-spinner">⟳</span>
+            <svg v-else width="16" height="16" viewBox="0 0 24 24">
+              <path :d="mdiDownload" fill="currentColor"></path>
+            </svg>
+            <span v-if="isDownloadingTemplate">下載中...</span>
+            <span v-else>下載問卷題目匯入範本</span>
           </button>
-          <button class="control-btn import-btn" @click="batchImport" v-if="hasFullPermission" :disabled="isLoading">
-            批次匯入帳號
+          <button class="control-btn import-btn" @click="importQuestions" :disabled="isLoading">
+            匯入問卷題目
           </button>
-          <button class="control-btn create-btn" @click="createNewAccount" v-if="hasFullPermission" :disabled="isLoading">
-            新增帳號
+          <button class="control-btn create-btn" @click="createNewQuestion" :disabled="isLoading">
+            <svg width="16" height="16" viewBox="0 0 24 24">
+              <path :d="mdiPlus" fill="currentColor"></path>
+            </svg>
+            新增問卷題目
           </button>
         </div>
       </div>
@@ -551,62 +517,49 @@ onUnmounted(() => {
             <tr>
               <th>項次</th>
               <th 
-                class="sortable" 
-                :class="getSortClass('credential')"
-                @click="!isLoading && handleSort('credential')"
+                class="sortable content-column" 
+                :class="getSortClass('content')"
+                @click="!isLoading && handleSort('content')"
               >
-                帳號
-                <span class="sort-icon" v-if="sortConfig.field === 'credential'">
-                  <span v-if="sortConfig.order === 'asc'">↑</span>
+                問卷題目
+                <span class="sort-icon" v-if="sortConfig.field === 'content'">
+                  <span v-if="sortConfig.order === 'ASC'">↑</span>
                   <span v-else>↓</span>
                 </span>
                 <span class="sort-icon neutral" v-else>⇅</span>
               </th>
               <th 
                 class="sortable" 
-                :class="getSortClass('name')"
-                @click="!isLoading && handleSort('name')"
+                :class="getSortClass('type')"
+                @click="!isLoading && handleSort('type')"
               >
-                姓名
-                <span class="sort-icon" v-if="sortConfig.field === 'name'">
-                  <span v-if="sortConfig.order === 'asc'">↑</span>
+                題目類型
+                <span class="sort-icon" v-if="sortConfig.field === 'type'">
+                  <span v-if="sortConfig.order === 'ASC'">↑</span>
                   <span v-else>↓</span>
                 </span>
                 <span class="sort-icon neutral" v-else>⇅</span>
               </th>
-              <th>暱稱</th>
               <th 
                 class="sortable" 
                 :class="getSortClass('status')"
                 @click="!isLoading && handleSort('status')"
               >
-                帳號狀態
+                題目狀態
                 <span class="sort-icon" v-if="sortConfig.field === 'status'">
-                  <span v-if="sortConfig.order === 'asc'">↑</span>
+                  <span v-if="sortConfig.order === 'ASC'">↑</span>
                   <span v-else>↓</span>
                 </span>
                 <span class="sort-icon neutral" v-else>⇅</span>
               </th>
               <th 
                 class="sortable" 
-                :class="getSortClass('created_at')"
-                @click="!isLoading && handleSort('created_at')"
+                :class="getSortClass('updated_at')"
+                @click="!isLoading && handleSort('updated_at')"
               >
-                建立日期
-                <span class="sort-icon" v-if="sortConfig.field === 'created_at'">
-                  <span v-if="sortConfig.order === 'asc'">↑</span>
-                  <span v-else>↓</span>
-                </span>
-                <span class="sort-icon neutral" v-else>⇅</span>
-              </th>
-              <th 
-                class="sortable" 
-                :class="getSortClass('last_login_at')"
-                @click="!isLoading && handleSort('last_login_at')"
-              >
-                登入來源
-                <span class="sort-icon" v-if="sortConfig.field === 'last_login_at'">
-                  <span v-if="sortConfig.order === 'asc'">↑</span>
+                更新時間
+                <span class="sort-icon" v-if="sortConfig.field === 'updated_at'">
+                  <span v-if="sortConfig.order === 'ASC'">↑</span>
                   <span v-else>↓</span>
                 </span>
                 <span class="sort-icon neutral" v-else>⇅</span>
@@ -617,7 +570,7 @@ onUnmounted(() => {
           <tbody>
             <!-- Loading 狀態 -->
             <tr v-if="isLoading" class="loading-row">
-              <td colspan="8" class="loading-cell">
+              <td colspan="6" class="loading-cell">
                 <div class="loading-container">
                   <div class="loading-spinner large">⟳</div>
                   <div class="loading-text">資料載入中...</div>
@@ -627,7 +580,7 @@ onUnmounted(() => {
             
             <!-- 搜尋中狀態 -->
             <tr v-else-if="isSearching" class="loading-row">
-              <td colspan="8" class="loading-cell">
+              <td colspan="6" class="loading-cell">
                 <div class="loading-container">
                   <div class="loading-spinner large">⟳</div>
                   <div class="loading-text">搜尋中...</div>
@@ -636,22 +589,20 @@ onUnmounted(() => {
             </tr>
             
             <!-- 正常資料顯示 -->
-            <tr v-else v-for="(item, index) in accountData" :key="item.id" class="table-row">
-              <td>{{ index + 1 }}</td>
-              <td>{{ item.credential }}</td>
-              <td>{{ item.name }}</td>
-              <td>{{ item.nick_name }}</td>
+            <tr v-else v-for="(item, index) in questionData" :key="item.id" class="table-row">
+              <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
+              <td class="content-cell">{{ item.content }}</td>
+              <td>{{ getTypeText(item.type) }}</td>
               <td>
                 <span class="status-badge" :class="getStatusClass(item.status)">
-                  {{ enumStatus[item.status] || item.status }}
+                  {{ getStatusText(item.status) }}
                 </span>
               </td>
-              <td>{{ formatDateTime(item.created_at) }}</td>
-              <td>{{ item.provider ?? '系統登入' }}</td>
+              <td>{{ formatDateTime(item.updated_at) }}</td>
               <td>
                 <button 
                   class="action-btn view-btn" 
-                  @click="viewAccount(item)"
+                  @click="viewQuestion(item)"
                   title="查看詳情"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24">
@@ -662,8 +613,8 @@ onUnmounted(() => {
             </tr>
             
             <!-- 無資料狀態 -->
-            <tr v-if="!isLoading && !isSearching && accountData.length === 0">
-              <td colspan="8" class="no-data">暫無資料</td>
+            <tr v-if="!isLoading && !isSearching && questionData.length === 0">
+              <td colspan="6" class="no-data">暫無資料</td>
             </tr>
           </tbody>
         </table>
@@ -684,33 +635,25 @@ onUnmounted(() => {
         </div>
         
         <!-- 正常資料顯示 -->
-        <div v-else v-for="(item, index) in accountData" :key="item.id" class="mobile-card" @click="viewAccount(item)">
+        <div v-else v-for="(item, index) in questionData" :key="item.id" class="mobile-card" @click="viewQuestion(item)">
           <div class="card-header">
-            <div class="card-title">{{ item.credential }}</div>
-            <div class="card-index">#{{ index + 1 }}</div>
+            <div class="card-title">{{ item.content }}</div>
+            <div class="card-index">#{{ (currentPage - 1) * pageSize + index + 1 }}</div>
           </div>
           <div class="card-content">
             <div class="card-field">
-              <span class="field-label">姓名：</span>
-              <span class="field-value">{{ item.name }}</span>
+              <span class="field-label">題目類型：</span>
+              <span class="field-value">{{ item.type }}</span>
             </div>
             <div class="card-field">
-              <span class="field-label">暱稱：</span>
-              <span class="field-value">{{ item.nick_name || '無' }}</span>
-            </div>
-            <div class="card-field">
-              <span class="field-label">帳號狀態：</span>
+              <span class="field-label">題目狀態：</span>
               <span class="field-value status" :class="getStatusClass(item.status)">
-                {{ enumStatus[item.status] || item.status }}
+                {{ getStatusText(item.status) }}
               </span>
             </div>
             <div class="card-field">
-              <span class="field-label">建立日期：</span>
-              <span class="field-value">{{ formatDateTime(item.created_at) }}</span>
-            </div>
-            <div class="card-field">
-              <span class="field-label">登入來源：</span>
-              <span class="field-value">{{ item.provider ?? '系統登入' }}</span>
+              <span class="field-label">更新時間：</span>
+              <span class="field-value">{{ formatDateTime(item.updated_at) }}</span>
             </div>
           </div>
           <div class="card-action">
@@ -719,8 +662,8 @@ onUnmounted(() => {
         </div>
         
         <!-- 無資料狀態 -->
-        <div v-if="!isLoading && !isSearching && accountData.length === 0" class="no-data-mobile">
-          <div class="no-data-icon">👤</div>
+        <div v-if="!isLoading && !isSearching && questionData.length === 0" class="no-data-mobile">
+          <div class="no-data-icon">📋</div>
           <div class="no-data-text">暫無資料</div>
         </div>
       </div>
@@ -777,7 +720,7 @@ onUnmounted(() => {
     <div v-if="showImportModal" class="modal-overlay" @click="closeImportModal">
       <div class="import-modal" @click.stop>
         <div class="modal-header">
-          <h3>批次匯入帳號</h3>
+          <h3>批次匯入問卷題目</h3>
           <button class="close-btn" @click="closeImportModal">×</button>
         </div>
         
@@ -883,14 +826,15 @@ onUnmounted(() => {
                   </div>
                 </div>
                 
-                <div v-if="!importResult.success" class="stat-card failed-card">
+                <div v-if="importResult.data.failed" class="stat-card failed-card">
                   <div class="stat-icon">❌</div>
                   <div class="stat-info">
-                    <div class="stat-number">{{ importResult.message }}</div>
+                    <div class="stat-number">{{ importResult.data.failed }}</div>
                     <div class="stat-label">匯入失敗</div>
                   </div>
                 </div>
               </div>
+              
               <!-- 失敗項次詳情 -->
               <div v-if="importResult.data.errorItems && importResult.data.errorItems.length" class="error-details">
                 <div class="error-header">
@@ -913,7 +857,8 @@ onUnmounted(() => {
               </div>
             </div>
           </div>
-          <!-- 匯入失敗結果 - 新增這個區塊 -->
+          
+          <!-- 匯入失敗結果 -->
           <div v-if="importResult && importResult.success === false" class="result-error">
             <!-- 失敗標題區域 -->
             <div class="error-header-main">
@@ -1008,7 +953,7 @@ onUnmounted(() => {
 </template>
 
 <style lang="scss" scoped>
-.account-management {
+.survey-question-management {
   padding: 20px;
   background-color: #f5f5f5;
   min-height: 100vh;
@@ -1063,190 +1008,141 @@ onUnmounted(() => {
     display: flex;
     gap: 20px;
     align-items: end;
-    margin-bottom: 20px;
 
-    &:last-child {
-      margin-bottom: 0;
-    }
-  }
+    .search-field {
+      position: relative;
+      flex: 1;
 
-  .search-field {
-    position: relative;
-    flex: 1;
-
-    .search-input {
-      width: 100%;
-      padding: 12px 45px 12px 15px;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      font-size: 14px;
-      transition: border-color 0.3s;
-      
-      &:focus {
-        outline: none;
-        border-color: #6c5ce7;
-        box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.1);
-      }
-
-      &:disabled {
-        background-color: #f8f9fa;
-        color: #999;
-        cursor: not-allowed;
-      }
-    }
-
-    .search-btn {
-      position: absolute;
-      right: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      cursor: pointer;
-      font-size: 16px;
-      color: #666;
-      transition: color 0.3s;
-      svg {
-        transition: all 0.3s;
-      }
-
-      &:hover:not(:disabled) {
-        color: #6c5ce7;
-        svg {
-          transform: scale(1.1);
+      .search-input {
+        width: 100%;
+        padding: 12px 45px 12px 15px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: border-color 0.3s;
+        
+        &:focus {
+          outline: none;
+          border-color: #6c5ce7;
+          box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.1);
         }
 
+        &:disabled {
+          background-color: #f8f9fa;
+          color: #999;
+          cursor: not-allowed;
+        }
       }
 
-      &:disabled {
-        color: #ccc;
-        cursor: not-allowed;
+      .search-btn {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 16px;
+        color: #666;
+        transition: color 0.3s;
+        
         svg {
+          transition: all 0.3s;
+        }
+
+        &:hover:not(:disabled) {
+          color: #6c5ce7;
+          svg {
+            transform: scale(1.1);
+          }
+        }
+
+        &:disabled {
+          color: #ccc;
+          cursor: not-allowed;
+          svg {
+            transform: none;
+          }
+        }
+      }
+    }
+
+    .select-field {
+      .search-select {
+        padding: 12px 15px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+        background: white;
+        min-width: 150px;
+        transition: border-color 0.3s;
+
+        &:focus {
+          outline: none;
+          border-color: #6c5ce7;
+          box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.1);
+        }
+
+        &:disabled {
+          background-color: #f8f9fa;
+          color: #999;
+          cursor: not-allowed;
+        }
+      }
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+
+      .query-btn {
+        background: #6c5ce7;
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        &:hover:not(:disabled) {
+          background: #5b4bcf;
+          transform: translateY(-1px);
+        }
+
+        &:disabled {
+          background: #ccc;
+          cursor: not-allowed;
           transform: none;
         }
       }
-    }
-  }
 
-  .select-field {
-    .search-select {
-      padding: 12px 15px;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      font-size: 14px;
-      background: white;
-      min-width: 150px;
-      transition: border-color 0.3s;
+      .reset-btn {
+        background: white;
+        color: #666;
+        border: 1px solid #ddd;
+        padding: 12px 20px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
 
-      &:focus {
-        outline: none;
-        border-color: #6c5ce7;
-        box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.1);
-      }
+        &:hover:not(:disabled) {
+          background: #f8f9fa;
+          border-color: #6c5ce7;
+          color: #6c5ce7;
+        }
 
-      &:disabled {
-        background-color: #f8f9fa;
-        color: #999;
-        cursor: not-allowed;
-      }
-    }
-  }
-
-  .date-field {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-
-    label {
-      font-size: 14px;
-      color: #333;
-      white-space: nowrap;
-      font-weight: 500;
-    }
-
-    .date-inputs {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .date-input {
-      padding: 12px 15px;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      font-size: 14px;
-      transition: border-color 0.3s;
-
-      &:focus {
-        outline: none;
-        border-color: #6c5ce7;
-        box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.1);
-      }
-
-      &:disabled {
-        background-color: #f8f9fa;
-        color: #999;
-        cursor: not-allowed;
-      }
-    }
-
-    .date-separator {
-      color: #666;
-      font-weight: bold;
-    }
-  }
-
-  .action-buttons {
-    display: flex;
-    gap: 10px;
-
-    .query-btn {
-      background: #6c5ce7;
-      color: white;
-      border: none;
-      padding: 12px 30px;
-      border-radius: 6px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.3s;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-
-      &:hover:not(:disabled) {
-        background: #5b4bcf;
-        transform: translateY(-1px);
-      }
-
-      &:disabled {
-        background: #ccc;
-        cursor: not-allowed;
-        transform: none;
-      }
-    }
-
-    .reset-btn {
-      background: white;
-      color: #666;
-      border: 1px solid #ddd;
-      padding: 12px 20px;
-      border-radius: 6px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.3s;
-
-      &:hover:not(:disabled) {
-        background: #f8f9fa;
-        border-color: #6c5ce7;
-        color: #6c5ce7;
-      }
-
-      &:disabled {
-        background: #f8f9fa;
-        color: #ccc;
-        cursor: not-allowed;
+        &:disabled {
+          background: #f8f9fa;
+          color: #ccc;
+          cursor: not-allowed;
+        }
       }
     }
   }
@@ -1291,6 +1187,9 @@ onUnmounted(() => {
         cursor: pointer;
         transition: all 0.3s;
         border: none;
+        display: flex;
+        align-items: center;
+        gap: 6px;
 
         &:disabled {
           opacity: 0.6;
@@ -1349,6 +1248,10 @@ onUnmounted(() => {
           font-size: 14px;
           position: relative;
 
+          &.content-column {
+            min-width: 300px;
+          }
+
           &.sortable {
             cursor: pointer;
             user-select: none;
@@ -1386,6 +1289,12 @@ onUnmounted(() => {
             padding: 15px 20px;
             font-size: 14px;
             color: #333;
+
+            &.content-cell {
+              max-width: 400px;
+              word-wrap: break-word;
+              line-height: 1.5;
+            }
           }
         }
 
@@ -1409,12 +1318,15 @@ onUnmounted(() => {
           transition: all 0.2s;
           background: #f8f9fa;
           color: #666;
+          
           svg {
             transition: all 0.2s;
           }
+          
           &:hover {
             transform: translateY(-1px);
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            
             svg {
               transform: scale(1.1);
             }
@@ -1429,6 +1341,24 @@ onUnmounted(() => {
         }
       }
     }
+  }
+}
+
+// 狀態標籤
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+
+  &.status-active {
+    background: #d4edda;
+    color: #155724;
+  }
+
+  &.status-inactive {
+    background: #f8d7da;
+    color: #721c24;
   }
 }
 
@@ -1542,29 +1472,6 @@ onUnmounted(() => {
       font-size: 16px;
       font-style: italic;
     }
-  }
-}
-
-// 狀態標籤
-.status-badge {
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 500;
-
-  &.status-active {
-    background: #d4edda;
-    color: #155724;
-  }
-
-  &.status-inactive {
-    background: #f8d7da;
-    color: #721c24;
-  }
-
-  &.status-pending {
-    background: #fff3cd;
-    color: #856404;
   }
 }
 
@@ -2326,7 +2233,7 @@ onUnmounted(() => {
 
 /* 大螢幕 (1400px+) */
 @media (min-width: 1400px) {
-  .account-management {
+  .survey-question-management {
     padding: 24px;
   }
 
@@ -2345,14 +2252,6 @@ onUnmounted(() => {
 
 /* 平板橫向 (992px - 1399px) */
 @media (max-width: 1399px) and (min-width: 992px) {
-  .search-section {
-    .search-row {
-      .select-field .search-select {
-        min-width: 140px;
-      }
-    }
-  }
-
   .table-section {
     .data-table {
       th, td {
@@ -2365,7 +2264,7 @@ onUnmounted(() => {
 
 /* 平板直向 (768px - 991px) */
 @media (max-width: 991px) and (min-width: 768px) {
-  .account-management {
+  .survey-question-management {
     padding: 16px;
   }
 
@@ -2385,20 +2284,6 @@ onUnmounted(() => {
         
         .search-select {
           min-width: 120px;
-        }
-      }
-
-      .date-field {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-
-        .date-inputs {
-          flex-wrap: wrap;
-        }
-
-        .date-input {
-          min-width: 140px;
         }
       }
 
@@ -2446,7 +2331,7 @@ onUnmounted(() => {
 
 /* 大手機 (576px - 767px) */
 @media (max-width: 767px) {
-  .account-management {
+  .survey-question-management {
     padding: 12px;
   }
 
@@ -2466,25 +2351,6 @@ onUnmounted(() => {
       .select-field .search-select {
         width: 100%;
         min-width: auto;
-      }
-
-      .date-field {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 8px;
-
-        label {
-          text-align: left;
-        }
-
-        .date-inputs {
-          justify-content: space-between;
-        }
-
-        .date-input {
-          flex: 1;
-          min-width: 0;
-        }
       }
 
       .action-buttons {
@@ -2671,7 +2537,7 @@ onUnmounted(() => {
 
 /* 小手機 (480px 以下) */
 @media (max-width: 479px) {
-  .account-management {
+  .survey-question-management {
     padding: 8px;
   }
 
@@ -2690,13 +2556,6 @@ onUnmounted(() => {
       .select-field .search-select {
         padding: 10px 12px;
         font-size: 13px;
-      }
-
-      .date-field {
-        .date-input {
-          padding: 10px 12px;
-          font-size: 13px;
-        }
       }
 
       .action-buttons {
@@ -2825,15 +2684,6 @@ onUnmounted(() => {
     .search-row {
       .action-buttons {
         flex-direction: column;
-      }
-
-      .date-field .date-inputs {
-        flex-direction: column;
-        gap: 8px;
-
-        .date-separator {
-          display: none;
-        }
       }
     }
   }

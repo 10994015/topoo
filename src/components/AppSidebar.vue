@@ -144,6 +144,13 @@ const menuItems = [
           PERMISSIONS.MAIL_MANAGEMENT
         ],
         permissionMode: 'Readonly'
+      },
+      {
+        name: 'survey-management',
+        label: '問卷管理',
+        path: '/settings/survey-management',
+        permission: '單位管理',
+        permissionMode: 'Readonly'
       }
     ]
   }
