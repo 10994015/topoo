@@ -44,6 +44,10 @@ import SurveyManagement from '@/views/Surveys/SurveyManagement.vue'
 import SurveyQuestions from '@/views/Surveys/SurveyQuestions.vue'
 import EditSurvey from '@/views/Surveys/EditSurvey.vue'
 import SurveyResponse from '@/views/Surveys/SurveyResponse.vue'
+import Faq from '@/views/Faq/Faq.vue'
+import FaqManagement from '@/views/Faq/FaqManagement.vue'
+import EditFaqCategory from '@/views/Faq/EditFaqCategory.vue'
+import EditFaq from '@/views/Faq/EditFaq.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -134,6 +138,18 @@ const router = createRouter({
             breadcrumbs: [
               { text: '首頁', to: '/' },
               { text: '問卷填寫', to: null },
+            ],
+          }
+        },
+        {
+          path: 'faq',
+          name: 'app.faq',
+          component: Faq,
+          meta: { 
+            title: '常見問答',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '常見問答', to: null },
             ],
           }
         },
@@ -718,6 +734,81 @@ const router = createRouter({
             ],
             permission: PERMISSIONS.SURVEY_MANAGEMENT,
             permissionMode: 'Readonly' 
+          },
+        },
+        // 常見問答管理
+        {
+          path: 'faq-management',
+          name: 'app.settings.faq-management',
+          component: FaqManagement,
+          meta: { 
+            title: '常見問題管理',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '常見問題管理', to: null },
+            ],
+            permission: PERMISSIONS.FAQ_MANAGEMENT,
+            permissionMode: 'Readonly'
+          },
+        },
+        {
+          path: 'faq-category/create',
+          name: 'app.settings.faq-category.create',
+          component: EditFaqCategory,
+          meta: { 
+            title: '新增常見問題分類',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '常見問題管理', to: '/settings/faq-management' },
+              { text: '新增常見問題分類', to: null },
+            ],
+            permission: PERMISSIONS.FAQ_MANAGEMENT,
+            permissionMode: 'Full' 
+          },
+        },
+        {
+          path: 'faq-category/edit/:id',
+          name: 'app.settings.faq-category.edit',
+          component: EditFaqCategory,
+          meta: { 
+            title: '編輯常見問題分類',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '常見問題管理', to: '/settings/faq-management' },
+              { text: '編輯常見問題分類', to: null },
+            ],
+            permission: PERMISSIONS.FAQ_MANAGEMENT,
+            permissionMode: 'Full' 
+          },
+        },
+        {
+          path: 'faq/:categoryId/create',
+          name: 'app.settings.faq.create',
+          component: EditFaq,
+          meta: { 
+            title: '新增常見問題',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '常見問題管理', to: '/settings/faq-management' },
+              { text: '新增常見問題', to: null },
+            ],
+            permission: PERMISSIONS.FAQ_MANAGEMENT,
+            permissionMode: 'Full' 
+          },
+        },
+        {
+          path: 'faq/edit/:categoryId/:id',
+          name: 'app.settings.faq.edit',
+          component: EditFaq,
+          meta: { 
+            title: '編輯常見問題',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '常見問題管理', to: '/settings/faq-management' },
+              { text: '編輯常見問題', to: null },
+            ],
+            permission: PERMISSIONS.FAQ_MANAGEMENT,
+            permissionMode: 'Full' 
           },
         },
       ]

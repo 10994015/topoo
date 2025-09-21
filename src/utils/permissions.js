@@ -17,6 +17,7 @@ export const PERMISSIONS = {
   REPAIR_PROGRESS_SUMMARY_EXCEL_DOWNLOAD: '報修進度綜合表查詢Excel下載',
   SURVEY_MANAGEMENT: '滿意度問卷管理',
   SURVEY_EXCEL_DOWNLOAD: '問卷滿意度報表Excel下載',
+  FAQ_MANAGEMENT: '常見問題管理',
 }
 
 // 權限檢查輔助函數

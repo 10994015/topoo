@@ -75,6 +75,12 @@ const menuItems = [
     path: '/repair-system',
   },
   {
+    name: 'faq',
+    label: '常見問題',
+    icon: mdiToolbox,
+    path: '/faq',
+  },
+  {
     name: 'settings',
     label: '系統管理',
     icon: mdiCog,
@@ -149,7 +155,14 @@ const menuItems = [
         name: 'survey-management',
         label: '問卷管理',
         path: '/settings/survey-management',
-        permission: '單位管理',
+        permission: '滿意度問卷管理',
+        permissionMode: 'Readonly'
+      },
+      {
+        name: 'faq-management',
+        label: '常見問題管理',
+        path: '/settings/faq-management',
+        permission: '常見問題管理',
         permissionMode: 'Readonly'
       }
     ]
