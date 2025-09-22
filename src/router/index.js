@@ -48,6 +48,8 @@ import Faq from '@/views/Faq/Faq.vue'
 import FaqManagement from '@/views/Faq/FaqManagement.vue'
 import EditFaqCategory from '@/views/Faq/EditFaqCategory.vue'
 import EditFaq from '@/views/Faq/EditFaq.vue'
+import LogManagement from '@/views/Logs/LogManagement.vue'
+import LogView from '@/views/Logs/LogView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -809,6 +811,36 @@ const router = createRouter({
             ],
             permission: PERMISSIONS.FAQ_MANAGEMENT,
             permissionMode: 'Full' 
+          },
+        },
+        // 系統日誌查詢
+        {
+          path: 'log-management',
+          name: 'app.settings.log',
+          component: LogManagement,
+          meta: { 
+            title: '系統日誌查詢',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '系統日誌查詢', to: null },
+            ],
+            permission: PERMISSIONS.LOG_MANAGEMENT,
+            permissionMode: 'Readonly'
+          },
+        },
+        {
+          path: 'log/:id',
+          name: 'app.settings.log-view',
+          component: LogView,
+          meta: { 
+            title: '系統日誌查詢',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '系統日誌查詢', to: '/settings/log-management' },
+              { text: '日誌詳情', to: null },
+            ],
+            permission: PERMISSIONS.LOG_MANAGEMENT,
+            permissionMode: 'Readonly'
           },
         },
       ]

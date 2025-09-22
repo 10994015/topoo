@@ -164,6 +164,13 @@ const menuItems = [
         path: '/settings/faq-management',
         permission: '常見問題管理',
         permissionMode: 'Readonly'
+      },
+      {
+        name: 'log-management',
+        label: '系統日誌查詢',
+        path: '/settings/log-management',
+        permission: '系統日誌查詢',
+        permissionMode: 'Readonly'
       }
     ]
   }

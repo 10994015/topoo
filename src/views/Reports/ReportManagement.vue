@@ -16,6 +16,8 @@ const hasDownloadAccountPermission = computed(() => authStore.canAccessPage(PERM
 const hasDownloadRepairNoticePermission = computed(() => authStore.canAccessPage(PERMISSIONS.REPAIR_NOTICE_EXCEL_DOWNLOAD))
 //報修進度綜合表查詢Excel下載
 const hasDownloadRepairSummaryPermission = computed(() => authStore.canAccessPage(PERMISSIONS.REPAIR_PROGRESS_SUMMARY_EXCEL_DOWNLOAD))
+//問卷滿意度報表下載 (假設權限名稱)
+const hasDownloadSatisfactionSurveyPermission = computed(() => authStore.canAccessPage(PERMISSIONS.SURVEY_EXCEL_DOWNLOAD))
 
 // 計算預設的 activeTab (按照指定的優先順序)
 const getDefaultTab = () => {
@@ -30,6 +32,10 @@ const getDefaultTab = () => {
   // 第三優先：完修記錄報表  
   else if (hasDownloadRepairNoticePermission.value) {
     return 'complete-repair'
+  }
+  // 第四優先：問卷滿意度報表
+  else if (hasDownloadSatisfactionSurveyPermission.value) {
+    return 'satisfaction-survey'
   }
   // 都沒有權限
   return null
@@ -115,6 +121,16 @@ const completeRepairForm = reactive({
   endAt: ''
 })
 
+// 問卷滿意度報表表單
+const satisfactionSurveyForm = reactive({
+  assignUser: '',
+  credential: '',
+  unitName: '',
+  assignUserName: '',
+  startAt: '',
+  endAt: ''
+})
+
 // 緊急程度和重要程度選項
 const levelOptions = [
   { value: '1', label: '普級' },
@@ -141,6 +157,9 @@ const validTabs = computed(() => {
   if (hasDownloadRepairNoticePermission.value) {
     tabs.push('complete-repair')
   }
+  if (hasDownloadSatisfactionSurveyPermission.value) {
+    tabs.push('satisfaction-survey')
+  }
   
   return tabs
 })
@@ -149,7 +168,8 @@ const validTabs = computed(() => {
 const hasAnyPermission = computed(() => {
   return hasDownloadRepairSummaryPermission.value || 
          hasDownloadAccountPermission.value || 
-         hasDownloadRepairNoticePermission.value
+         hasDownloadRepairNoticePermission.value ||
+         hasDownloadSatisfactionSurveyPermission.value
 })
 
 // 監聽權限變化，確保 activeTab 總是有效的
@@ -210,7 +230,7 @@ watch(() => completeRepairForm.repairCategoryId, async (newCategoryId, oldCatego
   }
 })
 
-// 監聽日期變化並驗證
+// 監聽日期變化並驗證 - 報修進度綜合表
 watch(() => repairProgressForm.startAt, (newValue) => {
   if (newValue && !validateDateRange(newValue)) {
     alert('報修時間不能選擇超過當前時間1年的日期')
@@ -225,6 +245,7 @@ watch(() => repairProgressForm.endAt, (newValue) => {
   }
 })
 
+// 監聽日期變化並驗證 - 帳號管理報表
 watch(() => accountManagementForm.startAt, (newValue) => {
   if (newValue && !validateDateRange(newValue)) {
     alert('帳號建立時間不能選擇超過當前時間1年的日期')
@@ -239,6 +260,7 @@ watch(() => accountManagementForm.endAt, (newValue) => {
   }
 })
 
+// 監聽日期變化並驗證 - 完修記錄報表
 watch(() => completeRepairForm.startAt, (newValue) => {
   if (newValue && !validateDateRange(newValue)) {
     alert('完修記錄建立時間不能選擇超過當前時間1年的日期')
@@ -250,6 +272,21 @@ watch(() => completeRepairForm.endAt, (newValue) => {
   if (newValue && !validateDateRange(newValue)) {
     alert('完修記錄建立時間不能選擇超過當前時間1年的日期')
     completeRepairForm.endAt = ''
+  }
+})
+
+// 監聽日期變化並驗證 - 問卷滿意度報表
+watch(() => satisfactionSurveyForm.startAt, (newValue) => {
+  if (newValue && !validateDateRange(newValue)) {
+    alert('問卷填寫時間不能選擇超過當前時間1年的日期')
+    satisfactionSurveyForm.startAt = ''
+  }
+})
+
+watch(() => satisfactionSurveyForm.endAt, (newValue) => {
+  if (newValue && !validateDateRange(newValue)) {
+    alert('問卷填寫時間不能選擇超過當前時間1年的日期')
+    satisfactionSurveyForm.endAt = ''
   }
 })
 
@@ -269,6 +306,11 @@ const resetForm = async (formType) => {
     case 'complete-repair':
       Object.keys(completeRepairForm).forEach(key => {
         completeRepairForm[key] = ''
+      })
+      break
+    case 'satisfaction-survey':
+      Object.keys(satisfactionSurveyForm).forEach(key => {
+        satisfactionSurveyForm[key] = ''
       })
       break
   }
@@ -298,6 +340,9 @@ const downloadReport = async (reportType) => {
       case 'complete-repair':
         result = await reportStore.downloadCompleteRepairRecord(completeRepairForm)
         break
+      case 'satisfaction-survey':
+        result = await reportStore.downloadSatisfactionSurvey(satisfactionSurveyForm)
+        break
     }
     
     if (result && result.success) {
@@ -317,7 +362,8 @@ const switchTab = async (tabName) => {
   const hasPermission = 
     (tabName === 'repair-progress' && hasDownloadRepairSummaryPermission.value) ||
     (tabName === 'account-management' && hasDownloadAccountPermission.value) ||
-    (tabName === 'complete-repair' && hasDownloadRepairNoticePermission.value)
+    (tabName === 'complete-repair' && hasDownloadRepairNoticePermission.value) ||
+    (tabName === 'satisfaction-survey' && hasDownloadSatisfactionSurveyPermission.value)
   
   if (!hasPermission) {
     console.warn(`無權限訪問 ${tabName} 頁面`)
@@ -386,6 +432,13 @@ onMounted(async () => {
           v-if="hasDownloadRepairNoticePermission"
         >
           完修記錄報表
+        </button>
+        <button 
+          :class="['tab-btn', { active: activeTab === 'satisfaction-survey' }]"
+          @click="switchTab('satisfaction-survey')"
+          v-if="hasDownloadSatisfactionSurveyPermission"
+        >
+          問卷滿意度報表
         </button>
       </div>
     </section>
@@ -641,6 +694,85 @@ onMounted(async () => {
           <button 
             class="reset-btn"
             @click="resetForm('complete-repair')"
+            :disabled="isLoading"
+          >
+            重置
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 問卷滿意度報表 -->
+    <section v-if="activeTab === 'satisfaction-survey'" class="report-section">
+      <div class="form-container">
+        <div class="form-row">
+          <div class="form-field">
+            <input 
+              type="text" 
+              v-model="satisfactionSurveyForm.credential"
+              placeholder="請輸入填寫者帳號"
+              class="form-input"
+              :disabled="isLoading"
+            />
+          </div>
+          
+          <div class="form-field">
+            <input 
+              type="text" 
+              v-model="satisfactionSurveyForm.unitName"
+              placeholder="請輸入報修單位"
+              class="form-input"
+              :disabled="isLoading"
+            />
+          </div>
+          
+          <div class="form-field">
+            <input 
+              type="text" 
+              v-model="satisfactionSurveyForm.assignUserName"
+              placeholder="承辦人員"
+              class="form-input"
+              :disabled="isLoading"
+            />
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="date-field">
+            <label>填寫時間</label>
+            <input 
+              type="date" 
+              v-model="satisfactionSurveyForm.startAt"
+              class="date-input"
+              :min="minDate"
+              :max="maxDate"
+              :disabled="isLoading"
+            />
+            <span class="date-separator">-</span>
+            <input 
+              type="date" 
+              v-model="satisfactionSurveyForm.endAt"
+              class="date-input"
+              :min="minDate"
+              :max="maxDate"
+              :disabled="isLoading"
+            />
+          </div>
+        </div>
+        
+        <div class="form-actions">
+          <button 
+            class="download-btn"
+            @click="downloadReport('satisfaction-survey')"
+            :disabled="isLoading || reportStore.isLoading"
+          >
+            <span v-if="reportStore.isLoading" class="loading-spinner">⟳</span>
+            <span v-else>📥</span>
+            下載
+          </button>
+          <button 
+            class="reset-btn"
+            @click="resetForm('satisfaction-survey')"
             :disabled="isLoading"
           >
             重置
