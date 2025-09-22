@@ -136,6 +136,23 @@ const hasUploadingFiles = computed(() => {
 const canSubmit = computed(() => {
   return !isSaving.value && !hasUploadingFiles.value
 })
+const formatDateForInput = (dateString) => {
+  if (!dateString) return ''
+  
+  const date = new Date(dateString)
+  
+  // 檢查是否為有效日期
+  if (isNaN(date.getTime())) return ''
+  
+  // 使用本地時間格式化，避免時區轉換問題
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  
+  return `${year}-${month}-${day}T${hours}:${minutes}`
+}
 
 // 獲取報修詳細資料
 const fetchTodoDetail = async () => {
@@ -155,8 +172,9 @@ const fetchTodoDetail = async () => {
       formData.importanceLevel = todoDetail.value.importance_level || ''
       formData.emergencyLevel = todoDetail.value.emergency_level || ''
       formData.estimatedCompletionTime = todoDetail.value.estimated_completion_time 
-        ? new Date(todoDetail.value.estimated_completion_time).toISOString().slice(0, 16)
-        : ''
+      ? formatDateForInput(todoDetail.value.estimated_completion_time)
+      : ''
+
 
       todoDetail.value.files = [];
       if(isEdit.value){
@@ -507,7 +525,7 @@ const saveForm = async () => {
       assignUserId: formData.assignUserId,
       importanceLevel: formData.importanceLevel,
       emergencyLevel: formData.emergencyLevel,
-      estimatedCompletionTime: new Date(formData.estimatedCompletionTime).toISOString(),
+      estimatedCompletionTime: formData.estimatedCompletionTime,
       fileIds: formData.fileIds
     }
     

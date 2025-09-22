@@ -466,7 +466,7 @@ const deleteQuestion = async (item) => {
       
       // 如果刪除的是當前編輯的題目，跳轉到新增模式
       if (isEditMode.value && item.id === questionId.value) {
-        router.push('/survey/question/create')
+        router.push('/settings/survey-question/create')
       }
     } else {
       console.error('刪除失敗:', result.message)

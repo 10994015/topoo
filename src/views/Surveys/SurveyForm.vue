@@ -114,7 +114,7 @@ const handleSearch = async () => {
 
 const getQuestionTypeLabel = (type) => {
   const typeMap = {
-    'SingleChoice': '(評分題)',
+    'SingleChoice': '(單選題)',
     'MultipleChoice': '(複選題)',
     'ShortAnswer': '(簡答題)'
   }
@@ -303,7 +303,7 @@ const handleSubmit = async () => {
 
       // 根據不同題型處理回答，包含所有選項及其選中狀態
       if (question.type === 'SingleChoice') {
-        // 評分題：根據最大值生成所有可能的選項
+        // 單選題：根據最大值生成所有可能的選項
         const maxValue = question.maxValue || 5
         const selectedScore = formData[question.id] || 0
         

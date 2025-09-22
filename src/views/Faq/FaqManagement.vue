@@ -657,7 +657,7 @@ onUnmounted(() => {
     .search-field {
       position: relative;
       flex: 1;
-      max-width: 300px;
+      max-width: 600px;
 
       .search-input {
         width: 100%;

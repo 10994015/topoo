@@ -20,7 +20,7 @@ export const useTodoStore = defineStore('todo', () => {
         importanceLevel: '',
         startAt: '',
         endAt: ''
-    }, column = "repair_time", sortDirection = "desc", limit = 10, page = 1) => {
+    }, column , sortDirection , limit = 10, page = 1) => {
         try {
             console.log('搜尋參數:', searchForm);
             console.log('時間範圍:', searchForm.startAt, searchForm.endAt);

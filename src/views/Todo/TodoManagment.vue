@@ -46,8 +46,8 @@ const emergencyLevels = ref([
 // 分頁設定
 const currentPage = ref(1)
 const pageSize = ref(10)
-const sortColumn = ref('repair_time')
-const sortDirection = ref('desc')
+const sortColumn = ref('')
+const sortDirection = ref('')
 
 // 載入狀態
 const isLoading = ref(true)
@@ -217,7 +217,7 @@ const getLevelClass = (level) => {
   return levelClassMap[level] || ''
 }
 
-const getTodoData = async(searchForm, column = "repair_time", sortDirection = "desc", limit = 10, page = 1) => {
+const getTodoData = async(searchForm, column , sortDirection, limit = 10, page = 1) => {
   console.log('獲取待辦資料:', searchForm, column, sortDirection);
   isSearching.value = true
   
