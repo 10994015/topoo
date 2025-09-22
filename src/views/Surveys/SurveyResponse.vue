@@ -69,6 +69,13 @@ const getSelectedOptions = (question) => {
   
   return question.options?.filter(opt => opt.selected === 1).map(opt => opt.option_content) || []
 }
+const getAllMultipleChoiceOptions = (question) => {
+  if (question.type !== 'MultipleChoice') return []
+  return question.options?.map(opt => ({
+    content: opt.option_content,
+    selected: opt.selected === 1
+  })) || []
+}
 
 // 獲取簡答題的回答內容
 const getTextAnswer = (question) => {
@@ -242,17 +249,20 @@ onMounted(() => {
 
             <!-- 複選題顯示 -->
             <div v-if="question.type === 'MultipleChoice'" class="options-container readonly">
-              <div class="selected-options-display">
+              <div class="all-options-display">
                 <div 
-                  v-for="option in getSelectedOptions(question)"
-                  :key="option"
-                  class="selected-option-item"
+                  v-for="option in getAllMultipleChoiceOptions(question)"
+                  :key="option.content"
+                  class="option-item"
+                  :class="{ 'selected': option.selected }"
                 >
-                  <div class="option-circle selected">●</div>
-                  <span>{{ option }}</span>
+                  <div class="option-circle" :class="{ 'selected': option.selected }">
+                    {{ option.selected ? '●' : '○' }}
+                  </div>
+                  <span>{{ option.content }}</span>
                 </div>
-                <div v-if="getSelectedOptions(question).length === 0" class="no-selection-msg">
-                  <span class="empty-text">未選擇任何選項</span>
+                <div v-if="getAllMultipleChoiceOptions(question).length === 0" class="no-options-msg">
+                  <span class="empty-text">無選項</span>
                 </div>
               </div>
             </div>
@@ -671,25 +681,38 @@ onMounted(() => {
 // 複選題顯示樣式 (只讀模式)
 .options-container {
   &.readonly {
-    .selected-options-display {
+    .all-options-display {
       display: flex;
       flex-direction: column;
       gap: 12px;
 
-      .selected-option-item {
+      .option-item {
         display: flex;
         align-items: center;
         gap: 10px;
         padding: 12px 16px;
-        background: #dce1ec;
-        border: 1px solid #6F91DF;
         border-radius: 8px;
-        color: #291557;
+        transition: all 0.3s ease;
+
+        // 未選中的選項樣式
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        color: #6c757d;
+
+        // 選中的選項樣式
+        &.selected {
+          background: #dce1ec;
+          border: 1px solid #6F91DF;
+          color: #291557;
+        }
 
         .option-circle {
           font-size: 16px;
-          color: #6F91DF;
           font-weight: bold;
+          transition: color 0.3s ease;
+
+          // 未選中狀態
+          color: #adb5bd;
 
           &.selected {
             color: #6F91DF;
@@ -702,7 +725,7 @@ onMounted(() => {
         }
       }
 
-      .no-selection-msg {
+      .no-options-msg {
         padding: 20px;
         text-align: center;
         background: #fff3cd;
