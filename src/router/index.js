@@ -48,8 +48,8 @@ import Faq from '@/views/Faq/Faq.vue'
 import FaqManagement from '@/views/Faq/FaqManagement.vue'
 import EditFaqCategory from '@/views/Faq/EditFaqCategory.vue'
 import EditFaq from '@/views/Faq/EditFaq.vue'
-import LogManagement from '@/views/Logs/LogManagement.vue'
-import LogView from '@/views/Logs/LogView.vue'
+import LogManagement from '@/views/LogComponent/LogManagement.vue'
+import LogView from '@/views/LogComponent/LogView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
