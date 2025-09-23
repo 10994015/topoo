@@ -734,14 +734,15 @@ onUnmounted(() => {
     align-items: end;
 
     .date-field {
-      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
 
       label {
-        display: block;
-        margin-bottom: 8px;
         font-size: 14px;
-        font-weight: 500;
         color: #333;
+        white-space: nowrap;
+        font-weight: 500;
       }
 
       .date-range {

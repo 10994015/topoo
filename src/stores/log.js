@@ -63,8 +63,7 @@ export const useLogStore = defineStore('log', () => {
     const fetchLogs = async (searchForm = {
         credential: '',
         ip: '',
-        requestStatusCode: '',
-        responseStatusCode: '',
+        response_status_code: '',
         level: '',
         logMsgCode: '',
         startAt: '',
@@ -82,12 +81,9 @@ export const useLogStore = defineStore('log', () => {
             // 只添加有值的參數
             if (searchForm.credential) params.credential = searchForm.credential;
             if (searchForm.ip) params.ip = searchForm.ip;
-            if (searchForm.requestStatusCode) params.requestStatusCode = searchForm.requestStatusCode;
-            if (searchForm.responseStatusCode) params.responseStatusCode = searchForm.responseStatusCode;
+            if (searchForm.response_status_code) params.responseStatusCode = searchForm.response_status_code;
             if (searchForm.level) params.level = searchForm.level;
             if (searchForm.logMsgCode) params.logMsgCode = searchForm.logMsgCode;
-            if (searchForm.log_category) params.log_category = searchForm.log_category;
-            if (searchForm.log_action) params.log_action = searchForm.log_action;
             
             // 處理開始時間：設為當天開始
             if (searchForm.startAt) {

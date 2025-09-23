@@ -262,7 +262,7 @@ onMounted(async () => {
     statuses.value = todoStore.statuses.data || []
 
     // 載入待辦資料
-    await getTodoData(searchForm, "repair_time", "desc", pageSize.value, currentPage.value);
+    await getTodoData(searchForm, "", "", pageSize.value, currentPage.value);
     
   } catch (error) {
     console.error('載入資料失敗:', error)

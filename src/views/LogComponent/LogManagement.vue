@@ -15,7 +15,6 @@ const windowWidth = ref(window.innerWidth)
 const searchForm = reactive({
   credential: '',
   ip: '',
-  requestStatusCode: '',
   response_status_code: '',
   level: '',
   logMsgCode: '',
@@ -225,6 +224,7 @@ onUnmounted(() => {
   <div class="log-management">
     <!-- 搜尋區域 -->
     <section class="search-section">
+      <!-- 第一排：帳號、IP、Status狀態碼、日誌等級 -->
       <div class="search-row">
         <div class="search-field">
           <input 
@@ -253,11 +253,15 @@ onUnmounted(() => {
             :disabled="isLoading"
           />
         </div>
-      </div>
-      
-      <div class="search-row">
-        <div class="select-field ">
-            <input type="text" v-model="searchForm.response_status_code" placeholder="請輸入Status狀態碼" class="search-select" :disabled="isLoading">
+
+        <div class="select-field">
+          <input 
+            type="text" 
+            v-model="searchForm.response_status_code" 
+            placeholder="請輸入Status狀態碼" 
+            class="search-select" 
+            :disabled="isLoading"
+          />
         </div>
         
         <div class="select-field">
@@ -266,7 +270,10 @@ onUnmounted(() => {
             <option v-for="level in logStore.logLevels" :key="level.id" :value="level.id">{{ level.name }}</option>
           </select>
         </div>
-
+      </div>
+      
+      <!-- 第二排：紀錄模組、紀錄操作、紀錄時間、操作按鈕 -->
+      <div class="search-row">
         <div class="select-field">
           <select v-model="searchForm.log_category" class="search-select" :disabled="isLoading || logStore.isLoadingActions">
             <option value="">紀錄模組</option>
@@ -275,9 +282,10 @@ onUnmounted(() => {
             </option>
           </select>
         </div>
+        
         <div class="select-field">
           <select 
-            v-model="searchForm.log_action" 
+            v-model="searchForm.logMsgCode" 
             class="search-select" 
             :disabled="isLoading || logStore.isLoadingActions || !searchForm.log_category"
           >
@@ -291,8 +299,9 @@ onUnmounted(() => {
             </option>
           </select>
         </div>
+        
         <div class="date-field">
-          <label>自訂建立日期</label>
+          <label>紀錄時間</label>
           <div class="date-inputs">
             <input 
               type="date" 
@@ -387,7 +396,7 @@ onUnmounted(() => {
                 <span class="sort-icon neutral" v-else>⇅</span>
               </th>
               <th class="sortable" @click="!isLoading && sortBy('created_at')">
-                建立日期 
+                紀錄時間 
                 <span class="sort-icon" v-if="sortColumn === 'created_at'">
                   <span v-if="sortDirection === 'asc'">↑</span>
                   <span v-else>↓</span>
@@ -512,7 +521,7 @@ onUnmounted(() => {
               <span class="field-value message-text">{{ item.msg || '某帳號登入失敗' }}</span>
             </div>
             <div class="card-field">
-              <span class="field-label">建立日期：</span>
+              <span class="field-label">紀錄時間：</span>
               <span class="field-value">{{ formatDateTime(item.created_at) || '2025/08/11 00:22' }}</span>
             </div>
           </div>
@@ -657,11 +666,41 @@ export default {
     &:last-child {
       margin-bottom: 0;
     }
+
+    // 第一排：每個欄位平均分配空間
+    &:first-child {
+      .search-field {
+        flex: 1;
+        min-width: 0;
+      }
+      
+      .select-field {
+        flex: 1;
+        min-width: 0;
+      }
+    }
+
+    // 第二排：調整空間分配
+    &:last-child {
+      .select-field {
+        flex: 1;
+        min-width: 150px;
+      }
+
+      .date-field {
+        flex: 1.5;
+        min-width: 280px;
+      }
+
+      .action-buttons {
+        flex: 0 0 auto;
+        min-width: 140px;
+      }
+    }
   }
 
   .search-field {
     position: relative;
-    flex: 1;
 
     .search-input {
       width: 100%;
@@ -719,12 +758,12 @@ export default {
 
   .select-field {
     .search-select {
+      width: 100%;
       padding: 12px 15px;
       border: 1px solid #ddd;
       border-radius: 6px;
       font-size: 14px;
       background: white;
-      min-width: 150px;
       transition: border-color 0.3s;
 
       &:focus {
@@ -751,20 +790,24 @@ export default {
       color: #333;
       white-space: nowrap;
       font-weight: 500;
+      flex-shrink: 0;
     }
 
     .date-inputs {
       display: flex;
       align-items: center;
       gap: 10px;
+      flex: 1;
     }
 
     .date-input {
+      flex: 1;
       padding: 12px 15px;
       border: 1px solid #ddd;
       border-radius: 6px;
       font-size: 14px;
       transition: border-color 0.3s;
+      min-width: 0;
 
       &:focus {
         outline: none;
@@ -782,6 +825,7 @@ export default {
     .date-separator {
       color: #666;
       font-weight: bold;
+      flex-shrink: 0;
     }
   }
 
@@ -802,6 +846,7 @@ export default {
       display: flex;
       align-items: center;
       gap: 8px;
+      white-space: nowrap;
 
       &:hover:not(:disabled) {
         background: #5b4bcf;
@@ -825,6 +870,7 @@ export default {
       font-weight: 500;
       cursor: pointer;
       transition: all 0.3s;
+      white-space: nowrap;
 
       &:hover:not(:disabled) {
         background: #f8f9fa;
@@ -1194,6 +1240,7 @@ export default {
     }
   }
 }
+
 .action-btn {
     display: inline-flex;
     align-items: center;
@@ -1207,24 +1254,27 @@ export default {
     transition: all 0.2s;
     background: #f8f9fa;
     color: #666;
+    
     svg {
-    transition: all 0.2s;
+      transition: all 0.2s;
     }
+    
     &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    svg {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      svg {
         transform: scale(1.1);
-    }
+      }
     }
 
     &.view-btn {
-    &:hover {
+      &:hover {
         background: #e3f2fd;
         color: #1976d2;
+      }
     }
-    }
-    }
+}
+
 /* ===== 響應式設計 ===== */
 
 /* 大螢幕 (1400px+) */
@@ -1250,8 +1300,23 @@ export default {
 @media (max-width: 1399px) and (min-width: 992px) {
   .search-section {
     .search-row {
-      .select-field .search-select {
-        min-width: 140px;
+      // 第一排在中等螢幕上保持橫向佈局
+      &:first-child {
+        .search-field,
+        .select-field {
+          min-width: 180px;
+        }
+      }
+      
+      // 第二排可能需要換行
+      &:last-child {
+        .date-field {
+          min-width: 240px;
+        }
+        
+        .action-buttons {
+          min-width: 120px;
+        }
       }
     }
   }
@@ -1287,35 +1352,32 @@ export default {
       flex-wrap: wrap;
       gap: 15px;
 
-      .search-field {
-        min-width: 250px;
+      // 第一排：每個欄位至少佔一半寬度
+      &:first-child {
+        .search-field,
+        .select-field {
+          flex: 1 1 calc(50% - 7.5px);
+          min-width: 200px;
+        }
       }
 
-      .select-field {
-        min-width: 150px;
+      // 第二排：調整佈局
+      &:last-child {
+        .select-field {
+          flex: 1 1 calc(50% - 7.5px);
+          min-width: 150px;
+        }
         
-        .search-select {
-          min-width: 120px;
-        }
-      }
-
-      .date-field {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-
-        .date-inputs {
-          flex-wrap: wrap;
+        .date-field {
+          flex: 1 1 100%;
+          min-width: 280px;
         }
 
-        .date-input {
-          min-width: 140px;
+        .action-buttons {
+          flex: 1 1 100%;
+          justify-content: flex-end;
+          margin-top: 10px;
         }
-      }
-
-      .action-buttons {
-        width: 100%;
-        justify-content: flex-end;
       }
     }
   }
@@ -1384,7 +1446,6 @@ export default {
 
       .select-field .search-select {
         width: 100%;
-        min-width: auto;
       }
 
       .date-field {
@@ -1458,9 +1519,8 @@ export default {
         .field-value {
           font-size: 12px;
 
-          &.url-text,
           &.message-text {
-            font-size: 10px;
+            font-size: 11px;
           }
         }
       }
@@ -1577,10 +1637,6 @@ export default {
 
         .field-value {
           font-size: 11px;
-
-          &.url-text {
-            font-size: 9px;
-          }
         }
       }
 
