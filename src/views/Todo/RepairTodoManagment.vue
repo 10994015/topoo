@@ -404,14 +404,6 @@ onUnmounted(() => {
                 </span>
                 <span class="sort-icon neutral" v-else>⇅</span>
               </th>
-              <th class="sortable" @click="!isLoading && sortBy('repair_reason_id')">
-                故障原因 
-                <span class="sort-icon" v-if="sortColumn === 'repair_reason_id'">
-                  <span v-if="sortDirection === 'asc'">↑</span>
-                  <span v-else>↓</span>
-                </span>
-                <span class="sort-icon neutral" v-else>⇅</span>
-              </th>
               <th class="sortable" @click="!isLoading && sortBy('user_id')">
                 報修人員 
                 <span class="sort-icon" v-if="sortColumn === 'user_id'">
@@ -423,6 +415,14 @@ onUnmounted(() => {
               <th class="sortable" @click="!isLoading && sortBy('repair_time')">
                 報修時間 
                 <span class="sort-icon" v-if="sortColumn === 'repair_time'">
+                  <span v-if="sortDirection === 'asc'">↑</span>
+                  <span v-else>↓</span>
+                </span>
+                <span class="sort-icon neutral" v-else>⇅</span>
+              </th>
+              <th class="sortable" @click="!isLoading && sortBy('estimated_completion_time')">
+                預計完成時間 
+                <span class="sort-icon" v-if="sortColumn === 'estimated_completion_time'">
                   <span v-if="sortDirection === 'asc'">↑</span>
                   <span v-else>↓</span>
                 </span>
@@ -481,9 +481,9 @@ onUnmounted(() => {
               <td>{{ index + 1 }}</td>
               <td>{{ item.title }}</td>
               <td>{{ item.repair_category }}</td>
-              <td>{{ item.repair_reason }}</td>
               <td>{{ item.repair_name || '無資料' }}</td>
               <td>{{ formatDateTime(item.repair_time) }}</td>
+              <td>{{ formatDateTime(item.estimated_completion_time) }}</td>
               <td>
                 <span :class="['level-badge', getLevelClass(item.importance_level)]">
                   {{ getImportanceLevelText(item.importance_level) || '-' }}
