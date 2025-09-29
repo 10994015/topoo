@@ -115,7 +115,7 @@ const handleSearch = async () => {
 const getQuestionTypeLabel = (type) => {
   const typeMap = {
     'SingleChoice': '(單選題)',
-    'MultipleChoice': '(多選題)',
+    'MultipleChoice': '(複選題)',
     'ShortAnswer': '(簡答題)'
   }
   return typeMap[type] || ''
@@ -178,7 +178,7 @@ const handleMouseUp = () => {
   document.removeEventListener('mouseup', handleMouseUp)
 }
 
-// 多選題相關方法 - 修正為使用索引
+// 複選題相關方法 - 修正為使用索引
 const isOptionSelected = (questionId, optionIndex) => {
   const selectedOptions = formData[questionId] || []
   return selectedOptions.includes(optionIndex)
@@ -315,7 +315,7 @@ const handleSubmit = async () => {
           })
         }
       } else if (question.type === 'MultipleChoice') {
-        // 多選題：包含所有選項及其選中狀態
+        // 複選題：包含所有選項及其選中狀態
         const selectedIndices = formData[question.id] || []
         
         if (question.options && question.options.length > 0) {
@@ -585,7 +585,7 @@ onUnmounted(() => {
               </div>
             </div>
 
-            <!-- 多選題 -->
+            <!-- 複選題 -->
             <div v-if="question.type === 'MultipleChoice'" class="options-container">
               <!-- 將選項分組，每行兩個 -->
               <div 

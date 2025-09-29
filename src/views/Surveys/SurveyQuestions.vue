@@ -248,7 +248,7 @@ const getStatusText = (status) => {
 const getTypeText = (type) => {
   const typeMap = {
     'SingleChoice': '單選題',
-    'MultipleChoice': '多選題',
+    'MultipleChoice': '複選題',
     'ShortAnswer': '簡答題'
   }
   return typeMap[type] || type

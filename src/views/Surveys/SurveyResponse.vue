@@ -37,7 +37,7 @@ const responseInfo = computed(() => {
 const getQuestionTypeLabel = (type) => {
   const typeMap = {
     'SingleChoice': '(單選題)',
-    'MultipleChoice': '(多選題)',
+    'MultipleChoice': '(複選題)',
     'ShortAnswer': '(簡答題)'
   }
   return typeMap[type] || ''
@@ -63,7 +63,7 @@ const getRatingScore = (question) => {
   return selectedOption ? parseInt(selectedOption.option_content) || 0 : 0
 }
 
-// 獲取多選題的選中選項
+// 獲取複選題的選中選項
 const getSelectedOptions = (question) => {
   if (question.type !== 'MultipleChoice') return []
   
@@ -247,7 +247,7 @@ onMounted(() => {
               </div>
             </div>
 
-            <!-- 多選題顯示 -->
+            <!-- 複選題顯示 -->
             <div v-if="question.type === 'MultipleChoice'" class="options-container readonly">
               <div class="all-options-display">
                 <div 
@@ -678,7 +678,7 @@ onMounted(() => {
   }
 }
 
-// 多選題顯示樣式 (只讀模式)
+// 複選題顯示樣式 (只讀模式)
 .options-container {
   &.readonly {
     .all-options-display {
