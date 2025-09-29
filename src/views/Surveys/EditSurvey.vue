@@ -21,7 +21,7 @@ const formData = reactive({
 // 問卷題目類型選項
 const questionTypes = ref([
   { value: 'SingleChoice', label: '單選題' },
-  { value: 'MultipleChoice', label: '複選題' },
+  { value: 'MultipleChoice', label: '多選題' },
   { value: 'ShortAnswer', label: '簡答題' }
 ])
 

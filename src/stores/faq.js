@@ -218,11 +218,16 @@ export const useFaqStore = defineStore('faq', () => {
                 params.status = searchForm.status
             }
             if (searchForm.startAt) {
-                params.startAt = new Date(searchForm.startAt).toISOString()
+                const startDate = new Date(searchForm.startAt)
+                startDate.setHours(0, 0, 0, 0)
+                params.startAt = startDate.toISOString()
             }
             if (searchForm.endAt) {
-                params.endAt = new Date(searchForm.endAt).toISOString()
+                const endDate = new Date(searchForm.endAt)
+                endDate.setHours(23, 59, 59, 999)
+                params.endAt = endDate.toISOString()
             }
+
             
             console.log('獲取後台 FAQ 列表參數:', params)
             

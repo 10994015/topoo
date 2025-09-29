@@ -237,7 +237,7 @@ onUnmounted(() => {
           <input 
             type="text" 
             v-model="searchForm.question"
-            placeholder="請輸入問題"
+            placeholder="請輸入問題分類"
             class="search-input"
             @keyup.enter="handleSearch"
             :disabled="isLoading"

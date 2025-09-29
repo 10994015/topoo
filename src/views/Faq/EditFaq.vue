@@ -22,7 +22,11 @@ const formData = reactive({
   answer: '',
   status: 'Open'
 })
-
+// 狀態選項
+const statusOptions = [
+  { value: 'Open', label: '啟用' },
+  { value: 'Invalid', label: '停用' }
+]
 // 狀態管理
 const isLoading = ref(false)
 const isSaving = ref(false)
@@ -488,7 +492,6 @@ const goToPage = async (page) => {
 const handleSubmit = async () => {
   if (!hasWritePermission.value) return
   
-  // 表單驗證
   if (!validateForm()) {
     return
   }
@@ -497,19 +500,17 @@ const handleSubmit = async () => {
     isSaving.value = true
     
     const submitData = {
-      parentId: formData.parentId, // 選擇的分類ID
+      parentId: formData.parentId,
       question: formData.question.trim(),
       answer: formData.answer.trim(),
-      status: formData.status
+      status: formData.status // 加入狀態欄位
     }
 
     let result
     
     if (isEditMode.value) {
-      // 編輯模式
       result = await faqStore.updateFaq(route.params.id, submitData)
     } else {
-      // 新增模式
       result = await faqStore.createFaq(submitData)
     }
 
@@ -517,18 +518,15 @@ const handleSubmit = async () => {
       const action = isEditMode.value ? '更新' : '新增'
       alert(`${action}成功！`)
       
-      // 強制重新載入列表（清除快取確保獲取最新資料）
       await forceReloadFaqList()
       
       if (!isEditMode.value) {
-        // 新增模式：清除輸入框但保留分類
         handleReset()
       }
     } else {
       console.error('操作失敗:', result.message)
       alert(`操作失敗: ${result.message}`)
       
-      // 如果是驗證錯誤，嘗試解析錯誤訊息
       if (result.error && typeof result.error === 'object') {
         if (result.error.question) {
           errors.value.question = Array.isArray(result.error.question) 
@@ -554,6 +552,7 @@ const handleSubmit = async () => {
     isSaving.value = false
   }
 }
+
 
 // 取消操作
 const handleCancel = () => {
@@ -766,6 +765,25 @@ onMounted(async () => {
               <span v-if="errors.answer" class="error-message">{{ errors.answer }}</span>
             </div>
 
+            <!-- 新增：狀態選擇欄位 -->
+            <div class="form-group">
+              <label for="faqStatus" class="form-label">狀態</label>
+              <select
+                id="faqStatus"
+                v-model="formData.status"
+                class="form-select"
+                :disabled="isSaving"
+              >
+                <option 
+                  v-for="option in statusOptions" 
+                  :key="option.value" 
+                  :value="option.value"
+                >
+                  {{ option.label }}
+                </option>
+              </select>
+            </div>
+
             <div class="form-actions">
               <button
                 type="submit"
@@ -843,6 +861,25 @@ onMounted(async () => {
                 rows="6"
               ></textarea>
               <span v-if="errors.answer" class="error-message">{{ errors.answer }}</span>
+            </div>
+
+            <!-- 新增：編輯模式的狀態選擇欄位 -->
+            <div class="form-group">
+              <label for="editFaqStatus" class="form-label">狀態</label>
+              <select
+                id="editFaqStatus"
+                v-model="formData.status"
+                class="form-select"
+                :disabled="isSaving"
+              >
+                <option 
+                  v-for="option in statusOptions" 
+                  :key="option.value" 
+                  :value="option.value"
+                >
+                  {{ option.label }}
+                </option>
+              </select>
             </div>
 
             <div class="info-row">
@@ -964,6 +1001,14 @@ onMounted(async () => {
                     常見問題
                     <span class="sort-icon">{{ getSortIcon('question') }}</span>
                   </th>
+                   <th 
+                    class="status-column sortable-header"
+                    :class="getSortClass('status')"
+                    @click="handleSort('status')"
+                  >
+                    狀態
+                    <span class="sort-icon">{{ getSortIcon('status') }}</span>
+                  </th>
                   <th 
                     class="time-column sortable-header" 
                     :class="getSortClass('updated_at')"
@@ -1008,6 +1053,11 @@ onMounted(async () => {
                     <div class="question-content">
                       <div class="question-title">{{ item.question.substring(0, 50) }}{{ item.question.length > 50 ? '...' : '' }}</div>
                     </div>
+                  </td>
+                  <td class="status-cell">
+                    <span :class="['status-badge', getStatusClass(item.status)]">
+                      {{ getStatusText(item.status) }}
+                    </span>
                   </td>
                   <td class="time-cell">{{ formatDateTime(item.updated_at) || formatDateTime(item.created_at) }}</td>
                   <td class="action-cell" v-if="hasWritePermission">

@@ -9,17 +9,57 @@ export const useSurveyStore = defineStore('survey', () => {
     const surveyDetail = ref(null) // 單一問卷詳細資料
     const surveyResponses = ref(null) // 問卷回覆列表
     const surveyQuestionsList = ref(null) // 前台問卷題目列表
+    const surveyUnits = ref([]) // 新增：報修單位列表
     const isLoading = ref(false)
     const isSubmitting = ref(false)
+    const isSearchingUnits = ref(false) // 新增：查詢單位載入狀態
     const totalSurveyCount = ref(0) // 總問卷數量（不受搜尋影響）
     const currentSurveyCount = ref(0) // 當前顯示的問卷數量（受搜尋影響）
 
     // 計算屬性：header 顯示的問卷數量（使用總數量）
     const surveyCount = computed(() => totalSurveyCount.value)
 
+    // 新增：根據關鍵字查詢報修單位
+    const searchSurveyUnits = async (name) => {
+        try {
+            isSearchingUnits.value = true
+            console.log('查詢報修單位，關鍵字:', name)
+            
+            // 如果關鍵字為空，清空單位列表
+            if (!name || name.trim() === '') {
+                surveyUnits.value = []
+                return { success: true, data: [] }
+            }
+            
+            const response = await axiosClient.get(`/backend/survey/unit/${name.trim()}`)
+            console.log('報修單位查詢 API 回應:', response.data)
+            
+            surveyUnits.value = response.data.data || []
+            
+            return {
+                success: true,
+                data: surveyUnits.value
+            }
+        } catch (error) {
+            console.error('查詢報修單位失敗:', error)
+            surveyUnits.value = []
+            
+            return {
+                success: false,
+                message: error.response?.data?.message || '查詢報修單位失敗',
+                data: []
+            }
+        } finally {
+            isSearchingUnits.value = false
+        }
+    }
+
+    // 新增：清空報修單位列表
+    const clearSurveyUnits = () => {
+        surveyUnits.value = []
+    }
 
     // 獲取問卷列表
-    // 在 store 中修正 fetchSurveys
     const fetchSurveys = async (title = '') => {
         try {
             isLoading.value = true
@@ -93,7 +133,6 @@ export const useSurveyStore = defineStore('survey', () => {
         }
     }
 
-
     const submitSurveyResponse = async (data) => {
         try {
             isSubmitting.value = true
@@ -124,7 +163,6 @@ export const useSurveyStore = defineStore('survey', () => {
         }
     }
 
-
     const fetchSurveyResponseDetail = async (id) => {
         try {
             isLoading.value = true
@@ -147,8 +185,6 @@ export const useSurveyStore = defineStore('survey', () => {
             isLoading.value = false
         }
     }
-
-
 
     // 獲取問卷回覆列表
     const fetchSurveyResponses = async (searchForm = {
@@ -405,22 +441,25 @@ export const useSurveyStore = defineStore('survey', () => {
         }
     }
 
-
     return {
         // 狀態
         surveys,
         surveyDetail,
         surveyResponses,
-        surveyQuestionsList, // 新增前台問卷題目列表狀態
+        surveyQuestionsList, // 前台問卷題目列表狀態
+        surveyUnits, // 新增：報修單位列表狀態
         isLoading,
         isSubmitting,
+        isSearchingUnits, // 新增：查詢單位載入狀態
         surveyCount,
 
         // 方法
         fetchSurveys,
         fetchSurveyResponses,
         fetchSurveyQuestions,
-        fetchSurveyQuestionsList, // 新增前台問卷題目列表方法
+        fetchSurveyQuestionsList, // 前台問卷題目列表方法
+        searchSurveyUnits, // 新增：查詢報修單位方法
+        clearSurveyUnits, // 新增：清空報修單位列表方法
 
         fetchTotalSurveyCount,
         fetchSurveyQuestionDetail,
