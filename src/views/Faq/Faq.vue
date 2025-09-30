@@ -31,7 +31,7 @@ const filteredFaqList = computed(() => {
 // 選中的 FAQ 詳細資料
 const selectedFaqDetail = computed(() => {
   if (!selectedFaqId.value) return null
-  return faqStore.getFaqDetail(selectedFaqId.value)
+  return faqStore.getFaqDetail(selectedFaqId.value, false) // false = 使用前台快取
 })
 
 // 檢查子問題是否展開
@@ -62,7 +62,7 @@ const selectFaq = async (faqId) => {
   // 如果還沒有詳細資料，載入它
   if (!faqStore.getFaqDetail(faqId)) {
     try {
-      await faqStore.fetchFaqDetail(faqId)
+      const result = await faqStore.fetchFaqDetail(faqId, false)
     } catch (error) {
       console.error('載入FAQ詳細資料失敗:', error)
       // 可以在這裡加入錯誤提示

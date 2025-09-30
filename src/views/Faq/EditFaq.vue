@@ -204,28 +204,24 @@ const handleDrop = async (e, targetIndex) => {
   }
   
   try {
-    // 開始更新狀態
     isUpdatingSequence.value = true
     
-    // 計算新的順序
-    const newSequence = targetIndex + 1 // 因為順序從 1 開始
+    const newSequence = targetIndex + 1
     
-    // 調用 API 更新順序 - 這裡使用 sub_fqa 的 ID
     const result = await faqStore.updateFaqSequence(
       draggedItem.value.id, 
       newSequence
     )
     
     if (result.success) {
-      // 重新載入列表以反映新順序
+      // 清除父分類的快取（前後台都清除）
+      faqStore.clearFaqDetailCache(formData.parentId, false)
+      faqStore.clearFaqDetailCache(formData.parentId, true)
+      
+      // 強制重新載入列表
       await forceReloadFaqList()
       
-      // 顯示成功訊息 - 可以改成 toast 通知
       console.log('常見問題順序更新成功')
-      
-      // 可選：顯示成功提示
-      // 如果你有 toast 組件，可以這樣使用：
-      // showToast('常見問題順序更新成功', 'success')
     } else {
       console.error('更新順序失敗:', result.message)
       alert(`更新順序失敗: ${result.message}`)
@@ -234,11 +230,11 @@ const handleDrop = async (e, targetIndex) => {
     console.error('更新順序異常:', error)
     alert('更新順序時發生錯誤，請稍後再試')
   } finally {
-    // 重置所有狀態
     dragOverIndex.value = -1
     isUpdatingSequence.value = false
   }
 }
+
 
 // 取得狀態顯示文字
 const getStatusText = (status) => {
@@ -331,7 +327,8 @@ const loadFaqList = async (forceRefresh = false) => {
     
     // 如果強制刷新，先清除快取
     if (forceRefresh) {
-      faqStore.clearFaqDetailCache(formData.parentId)
+      faqStore.clearFaqDetailCache(formData.parentId, false)
+      faqStore.clearFaqDetailCache(formData.parentId, true)
     }
     
     // 使用分類ID獲取該分類的詳細資料，包含sub_fqas
@@ -401,12 +398,16 @@ const loadFaqList = async (forceRefresh = false) => {
 const forceReloadFaqList = async () => {
   console.log('強制重新載入FAQ列表...')
   
-  // 清除相關快取
+  // 清除相關快取（前後台都清除）
   if (formData.parentId) {
-    faqStore.clearFaqDetailCache(formData.parentId)
+    faqStore.clearFaqDetailCache(formData.parentId, false)
+    faqStore.clearFaqDetailCache(formData.parentId, true)
   }
   
-  // 重新載入列表
+  // 重置當前頁面到第一頁（可選）
+  // currentPage.value = 1
+  
+  // 重新載入列表，傳入 true 強制刷新
   await loadFaqList(true)
 }
 
@@ -799,7 +800,7 @@ onMounted(async () => {
                 @click="handleCancel"
                 :disabled="isSaving"
               >
-                取消
+                {{ hasWritePermission ? '取消' : '返回' }}
               </button>
             </div>
           </form>
@@ -843,7 +844,7 @@ onMounted(async () => {
                 v-model="formData.question"
                 :class="['form-input', { 'error': errors.question }]"
                 placeholder="請輸入問題內容"
-                :disabled="isSaving"
+                :disabled="isSaving || !hasWritePermission"
                 maxlength="200"
               />
               <span v-if="errors.question" class="error-message">{{ errors.question }}</span>
@@ -856,7 +857,7 @@ onMounted(async () => {
                 v-model="formData.answer"
                 :class="['form-textarea', { 'error': errors.answer }]"
                 placeholder="請輸入答案內容"
-                :disabled="isSaving"
+                :disabled="isSaving || !hasWritePermission"
                 maxlength="1000"
                 rows="6"
               ></textarea>
@@ -870,7 +871,7 @@ onMounted(async () => {
                 id="editFaqStatus"
                 v-model="formData.status"
                 class="form-select"
-                :disabled="isSaving"
+                :disabled="isSaving || !hasWritePermission"
               >
                 <option 
                   v-for="option in statusOptions" 
@@ -904,7 +905,7 @@ onMounted(async () => {
                 @click="handleCancel"
                 :disabled="isSaving"
               >
-                取消
+                {{ hasWritePermission ? '取消' : '返回' }}
               </button>
             </div>
           </div>
@@ -989,7 +990,7 @@ onMounted(async () => {
             <table class="data-table">
               <thead>
                 <tr>
-                  <th class="drag-column" v-if="!isMobile">
+                  <th class="drag-column" v-if="!isMobile && hasWritePermission">
                     {{ isUpdatingSequence ? '更新中' : '拖曳' }}
                   </th>
                   <th class="id-column">項次</th>
@@ -1039,7 +1040,7 @@ onMounted(async () => {
                   @drop="isUpdatingSequence ? null : handleDrop($event, index)"
                   @click="isUpdatingSequence ? null : editFaq(item)"
                 >
-                  <td class="drag-cell" v-if="!isMobile">
+                  <td class="drag-cell" v-if="!isMobile && hasWritePermission">
                     <div class="drag-handle" 
                         :class="{ 'disabled': isUpdatingSequence }"
                         @mousedown.stop="">

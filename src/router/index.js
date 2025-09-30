@@ -656,7 +656,8 @@ const router = createRouter({
             anyPermissions: [
               PERMISSIONS.ACCOUNT_EXCEL_DOWNLOAD,
               PERMISSIONS.REPAIR_NOTICE_EXCEL_DOWNLOAD,
-              PERMISSIONS.REPAIR_PROGRESS_SUMMARY_EXCEL_DOWNLOAD
+              PERMISSIONS.REPAIR_PROGRESS_SUMMARY_EXCEL_DOWNLOAD,
+              PERMISSIONS.SURVEY_EXCEL_DOWNLOAD
             ],
             permissionMode: 'Readonly'
           },
@@ -720,7 +721,7 @@ const router = createRouter({
               { text: '編輯問卷題目', to: null },
             ],
             permission: PERMISSIONS.SURVEY_MANAGEMENT,
-            permissionMode: 'Full' 
+            permissionMode: 'Readonly' 
           },
         },
         {
@@ -810,7 +811,7 @@ const router = createRouter({
               { text: '編輯常見問題', to: null },
             ],
             permission: PERMISSIONS.FAQ_MANAGEMENT,
-            permissionMode: 'Full' 
+            permissionMode: 'Readonly' 
           },
         },
         // 系統日誌查詢

@@ -411,7 +411,7 @@ onUnmounted(() => {
           <tbody>
             <!-- Loading 狀態 -->
             <tr v-if="isLoading" class="loading-row">
-              <td colspan="8" class="loading-cell">
+              <td colspan="9" class="loading-cell">
                 <div class="loading-container">
                   <div class="loading-spinner large">⟳</div>
                   <div class="loading-text">資料載入中...</div>
@@ -421,7 +421,7 @@ onUnmounted(() => {
             
             <!-- 搜尋中狀態 -->
             <tr v-else-if="isSearching" class="loading-row">
-              <td colspan="8" class="loading-cell">
+              <td colspan="9" class="loading-cell">
                 <div class="loading-container">
                   <div class="loading-spinner large">⟳</div>
                   <div class="loading-text">搜尋中...</div>
@@ -465,7 +465,7 @@ onUnmounted(() => {
             </tr>
             <!-- 無資料狀態 -->
             <tr v-if="!isLoading && !isSearching && (!logData.data || logData.data.length === 0)">
-              <td colspan="8" class="no-data">暫無資料</td>
+              <td colspan="9" class="no-data">暫無資料</td>
             </tr>
           </tbody>
         </table>
@@ -540,7 +540,7 @@ onUnmounted(() => {
       <!-- 分頁控制 -->
       <div class="pagination-section" :class="{ disabled: isLoading }">
         <div class="pagination-info">
-          <span v-if="isLoading">載入中...</span>
+          <span v-if="isLoading"></span>
           <span v-else>顯示第 {{ startItem }} 到 {{ endItem }} 筆結果 共 {{ totalItems }} 項</span>
         </div>
         

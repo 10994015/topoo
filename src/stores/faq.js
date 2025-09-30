@@ -5,7 +5,8 @@ import axiosClient from '../axios' // 引入 axios 實例
 export const useFaqStore = defineStore('faq', () => {
     // 狀態
     const faqList = ref([]) // FAQ 列表
-    const faqDetails = ref(new Map()) // FAQ 詳細內容 Map<faqId, detailContent>
+    const faqDetails = ref(new Map()) // 前台 FAQ 詳細內容 Map<faqId, detailContent>
+    const backendFaqDetails = ref(new Map()) // 後台 FAQ 詳細內容 Map<faqId, detailContent>
     const isLoading = ref(false)
     const isLoadingDetail = ref(new Set()) // 正在載入詳細內容的 FAQ ID
     
@@ -22,8 +23,9 @@ export const useFaqStore = defineStore('faq', () => {
 
     // 計算屬性 - 獲取特定 FAQ 的詳細內容
     const getFaqDetail = computed(() => {
-        return (faqId) => {
-            return faqDetails.value.get(faqId) || null
+        return (faqId, isBackend = false) => {
+            const cache = isBackend ? backendFaqDetails.value : faqDetails.value
+            return cache.get(faqId) || null
         }
     })
 
@@ -271,18 +273,22 @@ export const useFaqStore = defineStore('faq', () => {
      */
     const fetchFaqDetail = async (faqId, useBackendApi = false) => {
         try {
+            // 選擇對應的快取
+            const cache = useBackendApi ? backendFaqDetails.value : faqDetails.value
+            
             // 如果已經有詳細內容，直接返回
-            if (faqDetails.value.has(faqId)) {
+            if (cache.has(faqId)) {
+                console.log(`使用 ${useBackendApi ? '後台' : '前台'} 快取的 FAQ ${faqId} 詳細內容`)
                 return {
                     success: true,
-                    data: faqDetails.value.get(faqId)
+                    data: cache.get(faqId)
                 }
             }
 
             // 添加到載入中的集合
             isLoadingDetail.value.add(faqId)
             
-            console.log(`獲取 FAQ ${faqId} 詳細內容`)
+            console.log(`獲取 ${useBackendApi ? '後台' : '前台'} FAQ ${faqId} 詳細內容`)
             
             // 根據是否使用後台API選擇不同的endpoint
             const apiPath = useBackendApi ? `/backend/fqa/${faqId}` : `/fqa/${faqId}`
@@ -290,10 +296,23 @@ export const useFaqStore = defineStore('faq', () => {
             console.log(`FAQ ${faqId} 詳細內容回應:`, response.data)
             
             // 根據 API 文檔，詳細內容在 response.data.data.data 中 (嵌套結構)
-            const detailData = response.data.data.data || response.data.data
+            let detailData = response.data.data.data || response.data.data
             
-            // 將詳細內容存入 Map (包含 sub_fqas)
-            faqDetails.value.set(faqId, detailData)
+            // 前台 API 需要過濾停用狀態
+            if (!useBackendApi) {
+                // 只保留啟用的 sub_fqas
+                if (detailData.sub_fqas && Array.isArray(detailData.sub_fqas)) {
+                    detailData = {
+                        ...detailData,
+                        sub_fqas: detailData.sub_fqas.filter(sub => sub.status === 'Open')
+                    }
+                    console.log(`前台過濾後的 sub_fqas 數量:`, detailData.sub_fqas.length)
+                }
+            }
+            
+            // 將詳細內容存入對應的快取 (包含 sub_fqas)
+            cache.set(faqId, detailData)
+            console.log(`已存入 ${useBackendApi ? '後台' : '前台'} 快取`)
             
             return {
                 success: true,
@@ -324,6 +343,11 @@ export const useFaqStore = defineStore('faq', () => {
             
             const response = await axiosClient.post('/backend/fqa', faqData)
             console.log('新增 FAQ 回應:', response.data)
+            
+            // 清除相關快取
+            if (faqData.parentId) {
+                clearFaqDetailCache(faqData.parentId, true) // 清除後台快取
+            }
             
             return {
                 success: true,
@@ -360,8 +384,15 @@ export const useFaqStore = defineStore('faq', () => {
             const response = await axiosClient.patch(`/backend/fqa/${faqId}`, faqData)
             console.log('更新 FAQ 回應:', response.data)
             
-            // 清除快取以確保資料一致性
-            clearFaqDetailCache(faqId)
+            // 清除前後台快取以確保資料一致性
+            clearFaqDetailCache(faqId, false) // 清除前台快取
+            clearFaqDetailCache(faqId, true)  // 清除後台快取
+            
+            // 如果有 parentId，也清除父項目的快取
+            if (faqData.parentId) {
+                clearFaqDetailCache(faqData.parentId, false)
+                clearFaqDetailCache(faqData.parentId, true)
+            }
             
             return {
                 success: true,
@@ -397,8 +428,9 @@ export const useFaqStore = defineStore('faq', () => {
             const response = await axiosClient.delete(`/backend/fqa/${faqId}`)
             console.log('刪除 FAQ 回應:', response.data)
             
-            // 清除快取
-            clearFaqDetailCache(faqId)
+            // 清除前後台快取
+            clearFaqDetailCache(faqId, false)
+            clearFaqDetailCache(faqId, true)
             
             return {
                 success: true,
@@ -434,8 +466,9 @@ export const useFaqStore = defineStore('faq', () => {
             const response = await axiosClient.patch(`/backend/fqa/${faqId}/status`, { status })
             console.log('切換 FAQ 狀態回應:', response.data)
             
-            // 清除快取以確保資料一致性
-            clearFaqDetailCache(faqId)
+            // 清除前後台快取以確保資料一致性
+            clearFaqDetailCache(faqId, false)
+            clearFaqDetailCache(faqId, true)
             
             return {
                 success: true,
@@ -460,7 +493,6 @@ export const useFaqStore = defineStore('faq', () => {
         }
     }
 
-
     /**
      * 批量操作 FAQ
      * @param {Array} faqIds - FAQ ID 陣列
@@ -477,7 +509,10 @@ export const useFaqStore = defineStore('faq', () => {
             console.log('批量操作 FAQ 回應:', response.data)
             
             // 清除相關快取
-            faqIds.forEach(id => clearFaqDetailCache(id))
+            faqIds.forEach(id => {
+                clearFaqDetailCache(id, false)
+                clearFaqDetailCache(id, true)
+            })
             
             return {
                 success: true,
@@ -523,47 +558,20 @@ export const useFaqStore = defineStore('faq', () => {
     }
 
     /**
-     * 清除特定 FAQ 的詳細內容快取
+     * 更新 FAQ 順序
      * @param {string} faqId - FAQ ID
+     * @param {number} newSequence - 新順序
      */
-    const clearFaqDetailCache = (faqId) => {
-        faqDetails.value.delete(faqId)
-        isLoadingDetail.value.delete(faqId)
-        console.log(`已清除 FAQ ${faqId} 的詳細內容快取`)
-    }
-
-    /**
-     * 清除所有快取
-     */
-    const clearAllCache = () => {
-        faqList.value = []
-        backendFaqList.value = []
-        faqDetails.value.clear()
-        isLoadingDetail.value.clear()
-        categoryOptions.value = [] // 清除分類快取
-        totalItems.value = 0
-        totalPages.value = 0
-        currentPage.value = 1
-        console.log('已清除所有 FAQ 快取')
-    }
-
-    /**
-     * 重置後台搜尋狀態
-     */
-    const resetBackendSearch = () => {
-        backendFaqList.value = []
-        totalItems.value = 0
-        totalPages.value = 0
-        currentPage.value = 1
-        isSearching.value = false
-    }
-
     const updateFaqSequence = async (faqId, newSequence) => {
         try {
             console.log(`更新 FAQ ${faqId} 順序為:`, newSequence)
             
             const response = await axiosClient.patch(`/backend/fqa/${faqId}/sequence`, { sequence: newSequence })
             console.log('更新 FAQ 順序回應:', response.data)
+            
+            // 清除相關快取
+            clearFaqDetailCache(faqId, false)
+            clearFaqDetailCache(faqId, true)
             
             return {
                 success: true,
@@ -588,11 +596,56 @@ export const useFaqStore = defineStore('faq', () => {
         }
     }
 
+    /**
+     * 清除特定 FAQ 的詳細內容快取
+     * @param {string} faqId - FAQ ID
+     * @param {boolean} isBackend - 是否為後台快取
+     */
+    const clearFaqDetailCache = (faqId, isBackend = false) => {
+        const cache = isBackend ? backendFaqDetails.value : faqDetails.value
+        const cacheType = isBackend ? '後台' : '前台'
+        
+        if (cache.has(faqId)) {
+            cache.delete(faqId)
+            console.log(`已清除 ${cacheType} FAQ ${faqId} 的詳細內容快取`)
+        }
+        
+        isLoadingDetail.value.delete(faqId)
+    }
+
+    /**
+     * 清除所有快取
+     */
+    const clearAllCache = () => {
+        faqList.value = []
+        backendFaqList.value = []
+        faqDetails.value.clear()
+        backendFaqDetails.value.clear() // 清除後台快取
+        isLoadingDetail.value.clear()
+        categoryOptions.value = []
+        totalItems.value = 0
+        totalPages.value = 0
+        currentPage.value = 1
+        console.log('已清除所有 FAQ 快取 (包含前後台)')
+    }
+
+    /**
+     * 重置後台搜尋狀態
+     */
+    const resetBackendSearch = () => {
+        backendFaqList.value = []
+        totalItems.value = 0
+        totalPages.value = 0
+        currentPage.value = 1
+        isSearching.value = false
+    }
+
     // 返回 store 的狀態和方法
     return {
         // 原有狀態
         faqList,
         faqDetails,
+        backendFaqDetails, // 新增：後台快取
         isLoading,
         isLoadingDetail,
         
@@ -603,7 +656,7 @@ export const useFaqStore = defineStore('faq', () => {
         currentPage,
         isSearching,
         
-        // 新增：分類相關狀態
+        // 分類相關狀態
         categoryOptions,
         isLoadingCategories,
         
@@ -629,7 +682,7 @@ export const useFaqStore = defineStore('faq', () => {
         updateFaqSubFqas,
         resetBackendSearch,
         
-        // 新增：分類相關方法
+        // 分類相關方法
         fetchCategoryOptions,
         fetchCategoryDetail,
         getCategoryName

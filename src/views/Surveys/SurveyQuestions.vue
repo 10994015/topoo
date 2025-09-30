@@ -5,8 +5,15 @@ import { useSurveyStore } from '@/stores/survey'
 import { formatDate, formatDateTime } from '@/utils/dateUtils'
 import { mdiOpenInNew, mdiMagnify, mdiDownload, mdiPlus } from '@mdi/js'
 
+import { useAuthStore } from '@/stores/auth'
+import { PERMISSIONS, checkPermission } from '@/utils/permissions'
+
 const router = useRouter()
 const surveyStore = useSurveyStore()
+const authStore = useAuthStore()
+
+const hasFullPermission = computed(() => authStore.canModify(PERMISSIONS.SURVEY_MANAGEMENT));
+
 
 // 響應式視窗寬度監聽
 const windowWidth = ref(window.innerWidth)
@@ -19,8 +26,8 @@ const searchForm = reactive({
 
 // 排序設定
 const sortConfig = ref({
-  field: 'updated_at',
-  order: 'DESC'
+  field: 'sequence',
+  order: 'ASC'
 })
 
 // 分頁設定
@@ -489,7 +496,7 @@ onUnmounted(() => {
           </select>
         </div>
         
-        <div class="right-controls">
+        <div class="right-controls" v-if="hasFullPermission">
           <button class="control-btn template-btn" @click="downloadTemplate" :disabled="isDownloadingTemplate">
             <span v-if="isDownloadingTemplate" class="loading-spinner">⟳</span>
             <svg v-else width="16" height="16" viewBox="0 0 24 24">

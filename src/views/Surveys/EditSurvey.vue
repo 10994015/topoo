@@ -4,10 +4,15 @@ import { useRouter, useRoute } from 'vue-router'
 import { useSurveyStore } from '@/stores/survey'
 import { formatDateTime } from '@/utils/dateUtils'
 import { mdiDelete, mdiDragVertical } from '@mdi/js'
+import { useAuthStore } from '@/stores/auth'
+import { PERMISSIONS } from '@/utils/permissions'
 
 const router = useRouter()
 const route = useRoute()
+const authStore = useAuthStore()
 const surveyStore = useSurveyStore()
+
+const hasFullPermission = computed(() => authStore.canModify(PERMISSIONS.SURVEY_MANAGEMENT));
 
 // 表單資料
 const formData = reactive({
@@ -645,6 +650,7 @@ onMounted(async () => {
                     @click="removeOption(index)"
                     class="remove-option-btn"
                     :disabled="isSaving || formData.surveyOptions.length <= 2"
+                    v-if="hasFullPermission"
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24">
                       <path :d="mdiDelete" fill="currentColor"></path>
@@ -678,7 +684,7 @@ onMounted(async () => {
                 @click="handleCancel"
                 :disabled="isSaving"
               >
-                取消
+                {{ hasFullPermission ? '取消' : '返回' }}
               </button>
             </div>
           </form>
@@ -702,7 +708,7 @@ onMounted(async () => {
                 v-model="formData.content"
                 :class="['form-input', { 'error': errors.content }]"
                 placeholder="請輸入問卷題目"
-                :disabled="isSaving"
+                :disabled="isSaving || !hasFullPermission"
                 maxlength="200"
               />
               <span v-if="errors.content" class="error-message">{{ errors.content }}</span>
@@ -714,7 +720,7 @@ onMounted(async () => {
                 id="editQuestionType"
                 v-model="formData.type"
                 class="form-select"
-                :disabled="isSaving"
+                :disabled="isSaving || !hasFullPermission"
               >
                 <option v-for="type in questionTypes" :key="type.value" :value="type.value">
                   {{ type.label }}
@@ -728,7 +734,7 @@ onMounted(async () => {
                 id="editQuestionStatus"
                 v-model="formData.status"
                 class="form-select"
-                :disabled="isSaving"
+                :disabled="isSaving || !hasFullPermission"
               >
                 <option v-for="status in statusOptions" :key="status.value" :value="status.value">
                   {{ status.label }}
@@ -742,7 +748,7 @@ onMounted(async () => {
                   type="checkbox"
                   v-model="formData.required"
                   class="form-checkbox"
-                  :disabled="isSaving"
+                  :disabled="isSaving || !hasFullPermission"
                 />
                 <span class="checkbox-text">必填</span>
               </label>
@@ -762,13 +768,14 @@ onMounted(async () => {
                     v-model="formData.surveyOptions[index]"
                     :placeholder="`選項 ${index + 1}`"
                     class="option-input"
-                    :disabled="isSaving"
+                    :disabled="isSaving || !hasFullPermission"
                   />
                   <button
                     type="button"
                     @click="removeOption(index)"
                     class="remove-option-btn"
                     :disabled="isSaving || formData.surveyOptions.length <= 2"
+                    v-if="hasFullPermission"
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24">
                       <path :d="mdiDelete" fill="currentColor"></path>
@@ -779,8 +786,8 @@ onMounted(async () => {
                   type="button"
                   @click="addOption"
                   class="add-option-btn"
-                  :disabled="isSaving"
-                  v-if="formData.surveyOptions.length < 5"
+                  :disabled="isSaving || !hasFullPermission"
+                  v-if="formData.surveyOptions.length < 5 && hasFullPermission"
                 >
                   新增選項
                 </button>
@@ -799,6 +806,7 @@ onMounted(async () => {
                 class="btn btn-primary"
                 @click="handleSubmit"
                 :disabled="isSaving || !formData.content.trim()"
+                v-if="hasFullPermission"
               >
                 {{ isSaving ? '儲存中...' : '儲存' }}
               </button>
@@ -809,7 +817,7 @@ onMounted(async () => {
                 @click="handleCancel"
                 :disabled="isSaving"
               >
-                取消
+                {{ hasFullPermission ? '取消' : '返回' }}
               </button>
             </div>
           </div>
@@ -843,27 +851,64 @@ onMounted(async () => {
           </div>
 
           <!-- 手機版卡片式列表 -->
-          <div v-if="isMobile" class="mobile-card-list">
-            <div 
-              v-for="(item, index) in questionData" 
-              :key="item.id" 
-              class="mobile-card"
-              :class="{ 
-                'active': isEditMode && item.id === questionId,
-                'disabled': isUpdatingSequence
-              }"
-              @click="isUpdatingSequence ? null : editQuestion(item)"
-            >
-              <!-- 手機版內容保持不變 -->
-            </div>
-          </div>
+                        <div v-if="isMobile" class="mobile-card-list">
+                <div 
+                  v-for="(item, index) in questionData" 
+                  :key="item.id" 
+                  class="mobile-card"
+                  :class="{ 
+                    'active': isEditMode && item.id === questionId,
+                    'disabled': isUpdatingSequence
+                  }"
+                  @click="isUpdatingSequence ? null : editQuestion(item)"
+                >
+                  <div class="mobile-card-header">
+                    <div class="mobile-card-number">
+                      #{{ (currentPage - 1) * pageSize + index + 1 }}
+                    </div>
+                    <div class="mobile-card-actions" v-if="hasFullPermission">
+                      <button 
+                        class="mobile-delete-btn"
+                        :disabled="isUpdatingSequence"
+                        @click.stop="isUpdatingSequence ? null : deleteQuestion(item)"
+                        title="刪除"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24">
+                          <path :d="mdiDelete" fill="currentColor"></path>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div class="mobile-card-content">
+                    <h4 class="mobile-card-title">{{ item.content }}</h4>
+                    
+                    <div class="mobile-card-meta">
+                      <span class="mobile-card-type">
+                        {{ questionTypes.find(t => t.value === item.type)?.label }}
+                      </span>
+                      <span class="mobile-card-status" :class="getStatusClass(item.status)">
+                        {{ getStatusText(item.status) }}
+                      </span>
+                    </div>
+                    
+                    <p class="mobile-card-time">
+                      {{ formatDateTime(item.updated_at) || formatDateTime(item.created_at) }}
+                    </p>
+                  </div>
+                </div>
+                
+                <div v-if="questionData.length === 0" class="mobile-no-data">
+                  目前沒有任何問卷題目
+                </div>
+              </div>
 
           <!-- 平板/桌面版表格 -->
           <div v-else class="table-container">
             <table class="data-table">
               <thead>
                 <tr>
-                  <th class="drag-column" v-if="!isMobile">
+                  <th class="drag-column" v-if="!isMobile && hasFullPermission">
                     {{ isUpdatingSequence ? '更新中' : '拖曳' }}
                   </th>
                   <th class="id-column">項次</th>
@@ -871,7 +916,7 @@ onMounted(async () => {
                   <th class="type-column">題目類型</th>
                   <th class="status-column">題目狀態</th>
                   <th class="time-column">更新時間</th>
-                  <th class="action-column">刪除</th>
+                  <th class="action-column" v-if="hasFullPermission">刪除</th>
                 </tr>
               </thead>
               <tbody>
@@ -893,7 +938,7 @@ onMounted(async () => {
                   @drop="isUpdatingSequence ? null : handleDrop($event, index)"
                   @click="isUpdatingSequence ? null : editQuestion(item)"
                 >
-                  <td class="drag-cell" v-if="!isMobile">
+                  <td class="drag-cell" v-if="!isMobile && hasFullPermission">
                     <div class="drag-handle" 
                         :class="{ 'disabled': isUpdatingSequence }"
                         @mousedown.stop="">
@@ -911,7 +956,7 @@ onMounted(async () => {
                     </span>
                   </td>
                   <td class="time-cell">{{ formatDateTime(item.updated_at) || formatDateTime(item.created_at) }}</td>
-                  <td class="action-cell">
+                  <td class="action-cell" v-if="hasFullPermission">
                     <button 
                       class="delete-btn"
                       :disabled="isUpdatingSequence"

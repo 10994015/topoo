@@ -39,8 +39,8 @@ const searchForm = reactive({
 // 分頁設定
 const currentPage = ref(1)
 const pageSize = ref(10)
-const sortColumn = ref('created_at')
-const sortDirection = ref('desc')
+const sortColumn = ref('sequence')
+const sortDirection = ref('asc')
 
 // 載入狀態 - 使用Store的狀態
 const isLoading = computed(() => faqStore.isLoading)
@@ -406,7 +406,7 @@ onUnmounted(() => {
                           <th>常見問題</th>
                           <th width="150">更新時間</th>
                           <th width="80">狀態</th>
-                          <th width="80" v-if="hasWritePermission">操作</th>
+                          <th width="80">操作</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -421,7 +421,7 @@ onUnmounted(() => {
                               {{ getStatusText(subFaq.status) }}
                             </span>
                           </td>
-                          <td v-if="hasWritePermission">
+                          <td>
                             <button 
                               class="action-btn edit-btn" 
                               @click="editFaq(item.id, subFaq)"
@@ -435,7 +435,7 @@ onUnmounted(() => {
                         </tr>
                         <!-- 無子問題資料 -->
                         <tr v-if="!item.sub_fqas || item.sub_fqas.length === 0">
-                          <td :colspan="hasWritePermission ? 5 : 4" class="no-subfaqs">暫無常見問題</td>
+                          <td colspan="5" class="no-subfaqs">暫無常見問題</td>
                         </tr>
                       </tbody>
                     </table>
@@ -446,7 +446,7 @@ onUnmounted(() => {
             
             <!-- 無資料狀態 -->
             <tr v-if="!isLoading && !isSearching && faqData.length === 0">
-              <td :colspan="hasWritePermission ? 6 : 5" class="no-data">暫無資料</td>
+              <td colspan="6" class="no-data">暫無資料</td>
             </tr>
           </tbody>
         </table>
@@ -487,7 +487,7 @@ onUnmounted(() => {
           </div>
           
           <div class="card-actions">
-            <button v-if="hasWritePermission" class="edit-btn-mobile" @click="editFaq(item)">
+            <button class="edit-btn-mobile" @click="editFaq(item)">
               編輯
             </button>
             <button 
@@ -520,7 +520,7 @@ onUnmounted(() => {
                     </span>
                   </div>
                 </div>
-                <div class="subfaq-actions" v-if="hasWritePermission">
+                <div class="subfaq-actions">
                   <button 
                     class="edit-btn-mobile" 
                     @click="editFaq(subFaq)"
