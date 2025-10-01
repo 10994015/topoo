@@ -39,7 +39,7 @@ const passwordValidation = computed(() => {
     hasNumber: /\d/.test(password),
     hasUpper: /[A-Z]/.test(password),
     hasLower: /[a-z]/.test(password),
-    hasSpecial: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
+    hasSpecial: /[^A-Za-z0-9]/.test(password)
   }
 })
 
