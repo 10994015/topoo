@@ -25,7 +25,7 @@ const showConfirmPassword = ref(false)
 // 密碼驗證規則
 const validatePassword = (password) => {
   // 密碼應包含數字、英文大寫、英文小寫、特殊符號，密碼字串長度8~20碼
-  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,20}$/
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])[A-Za-z\d\W_]{8,20}$/
   return passwordRegex.test(password)
 }
 
