@@ -132,8 +132,21 @@ const router = createRouter({
           }
         },
         {
-          path: 'suvey-form',
-          name: 'app.suvey-form',
+          path: 'survey-form',
+          name: 'app.survey-form',
+          component: SurveyForm,
+          meta: { 
+            title: '問卷填寫',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '問卷填寫', to: null },
+            ],
+          }
+        },
+        //新增 repairId 參數
+        {
+          path: 'survey/:repairId',
+          name: 'app.survey-form-id',
           component: SurveyForm,
           meta: { 
             title: '問卷填寫',
@@ -919,22 +932,14 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
   
-  console.log(`導航到: ${to.path}, 需要認證: ${to.meta.requiresAuth}`)
+  console.log(`導航到: ${to.path}`)
   
-  // 如果是登入相關頁面，跳過認證檢查
-  const publicPages = ['/login', '/register', '/forgot-password', '/email-verification', '/init-password']
+  // 定義公開頁面
+  const publicPages = ['/login', '/register', '/forgot-password', '/email-verification', '/init-password', '/change-password/verify']
   const isPublicPage = publicPages.some(page => to.path.startsWith(page))
   
   if (isPublicPage) {
-    console.log('→ 公開頁面，跳過認證檢查')
-    
-    // 如果已登入用戶訪問登入頁或註冊頁，導向首頁
-    if ((to.name === 'login' || to.name === 'register') && authStore.isAuthenticated) {
-      console.log('→ 已登入，跳轉到首頁')
-      next('/')
-      return
-    }
-    
+    console.log('→ 公開頁面')
     next()
     return
   }
@@ -942,11 +947,13 @@ router.beforeEach(async (to, from, next) => {
   // 如果頁面需要認證
   if (to.meta.requiresAuth) {
     try {
-      const isAuthenticated = await authStore.checkAuth();
+      const isAuthenticated = await authStore.checkAuth()
       console.log('認證狀態:', isAuthenticated)
       
       if (!isAuthenticated) {
         console.log('未認證，跳轉到登入頁')
+        // ✨ 使用 sessionStorage 儲存原路徑
+        sessionStorage.setItem('redirectAfterLogin', to.fullPath)
         next('/login')
         return
       }
@@ -956,15 +963,10 @@ router.beforeEach(async (to, from, next) => {
         const permissionName = to.meta.permission
         const requiredMode = to.meta.permissionMode || 'Readonly'
         
-        console.log(`檢查權限: ${permissionName}, 需要模式: ${requiredMode}`)
-        
         const hasPagePermission = authStore.hasPermission(permissionName, requiredMode)
         
         if (!hasPagePermission) {
-          console.log(`無權限訪問: ${permissionName} (${requiredMode})`)
-          
           if (requiredMode === 'Full' && authStore.hasPermission(permissionName, 'Readonly')) {
-            console.log('用戶有讀取權限但沒有完整權限')
             alert('您沒有執行此操作的權限')
             next(from.path || '/')
             return
@@ -973,8 +975,6 @@ router.beforeEach(async (to, from, next) => {
           next('/')
           return
         }
-        
-        console.log(`權限檢查通過: ${permissionName} (${requiredMode})`)
       }
 
       // 檢查 anyPermissions
@@ -982,35 +982,25 @@ router.beforeEach(async (to, from, next) => {
         const permissions = to.meta.anyPermissions
         const requiredMode = to.meta.permissionMode || 'Readonly'
         
-        console.log(`檢查任一權限: [${permissions.join(', ')}], 需要模式: ${requiredMode}`)
-        
         const hasAnyPermission = checkAnyPermission(authStore, permissions, requiredMode)
         
         if (!hasAnyPermission) {
-          console.log(`無任何權限訪問: [${permissions.join(', ')}] (${requiredMode})`)
           next('/')
           return
         }
-        
-        console.log(`權限檢查通過: 至少有一個權限 (${requiredMode})`)
       }
     } catch (error) {
       console.error('認證檢查失敗:', error)
-      // 如果是 401 錯誤，表示 token 過期，跳轉到登入頁
-      if (error.response && error.response.status === 401) {
-        console.log('Token 過期，跳轉到登入頁')
-        next('/login')
-        return
-      }
-      // 其他錯誤也跳轉到登入頁
+      // ✨ Token 過期也儲存原路徑
+      sessionStorage.setItem('redirectAfterLogin', to.fullPath)
       next('/login')
       return
     }
   }
 
-  console.log('正常導航')
   next()
 })
+
 // 🎯 在路由切換後更新網頁標題
 router.afterEach((to, from) => {
   window.scrollTo(0, 0)

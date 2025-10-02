@@ -96,7 +96,7 @@ const logout = async () => {
 
 // 跳轉到問卷頁面
 const goToSurveys = () => {
-  router.push('/suvey-form') // 假設問卷列表頁面路由為 /surveys
+  router.push('/survey-form') // 假設問卷列表頁面路由為 /surveys
 }
 
 // 生命週期

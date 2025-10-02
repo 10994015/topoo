@@ -2,6 +2,8 @@
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useSurveyStore } from '@/stores/survey' // 引入 survey store
 import { mdiMagnify } from '@mdi/js'
+import { useRoute } from 'vue-router'
+const route = useRoute()
 
 // Store
 const surveyStore = useSurveyStore()
@@ -428,8 +430,26 @@ onMounted(async () => {
     await surveyStore.fetchSurveys()
     console.log('問卷列表載入完成:', surveyStore.surveys)
     
-    // 自動選擇第一個需要填寫問卷的案件
-    if (filteredTickets.value.length > 0) {
+    // 檢查是否有 repairId 路由參數
+    const routeRepairId = route.params.repairId
+    
+    if (routeRepairId && filteredTickets.value.length > 0) {
+      // 如果有路由參數，尋找對應的問卷
+      console.log('從路由參數取得 repairId:', routeRepairId)
+      const targetTicket = filteredTickets.value.find(ticket => {
+        const ticketId = ticket.repairId || ticket.id
+        return String(ticketId) === String(routeRepairId)
+      })
+      
+      if (targetTicket) {
+        console.log('找到對應的問卷，自動選擇')
+        await selectTicket(targetTicket)
+      } else {
+        console.log('找不到對應的問卷 ID，選擇第一個問卷')
+        await selectTicket(filteredTickets.value[0])
+      }
+    } else if (filteredTickets.value.length > 0) {
+      // 沒有路由參數時，自動選擇第一個需要填寫問卷的案件
       console.log('自動選擇第一個案件')
       await selectTicket(filteredTickets.value[0])
     }

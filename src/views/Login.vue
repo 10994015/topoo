@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { GoogleSignInButton } from "vue3-google-signin"
 import { 
   mdiEye, 
@@ -9,11 +9,12 @@ import {
   mdiAccount, 
   mdiLock, 
   mdiLoading,
-  mdiHandWave,  // 替換 👋 - 揮手圖標
-  mdiPhone      // 替換 📞 - 電話圖標
+  mdiHandWave,
+  mdiPhone
 } from '@mdi/js'
 
 const router = useRouter()
+const route = useRoute() // ✨ 用來取得 query 參數
 
 const account = ref('')
 const password = ref('')
@@ -49,13 +50,10 @@ const handleLogin = async () => {
   errorMsg.value = ''
   
   try {
-    console.log(useAuthStore);
     const result = await useAuthStore().login({
       credential: account.value,
       password: password.value
     })
-
-    console.log(result);
     
     if(result.success) {
       if(result.statusCode === 202) {
@@ -65,7 +63,13 @@ const handleLogin = async () => {
         return;
       }
       console.log('登入成功');
-      router.push('/')
+      
+      // ✨ 從 sessionStorage 取得重定向路徑
+      const redirectPath = sessionStorage.getItem('redirectAfterLogin') || '/'
+      sessionStorage.removeItem('redirectAfterLogin') // 清除
+      console.log('登入成功，重定向到:', redirectPath)
+      router.push(redirectPath)
+      
     } else {
       console.error('登入失敗', result.error);
       errorMsg.value = result.error || '登入失敗，請檢查帳號或密碼'
@@ -99,7 +103,13 @@ const handleGoogleSuccess = async (response) => {
         return;
       }
       console.log('Google登入成功');
-      router.push('/')
+      
+      // ✨ 從 sessionStorage 取得重定向路徑
+      const redirectPath = sessionStorage.getItem('redirectAfterLogin') || '/'
+      sessionStorage.removeItem('redirectAfterLogin') // 清除
+      console.log('Google登入成功，重定向到:', redirectPath)
+      router.push(redirectPath)
+      
     } else {
       console.error('Google登入失敗', result.error);
       alert(result.error || 'Google登入失敗')
@@ -111,6 +121,7 @@ const handleGoogleSuccess = async (response) => {
     isGoogleLoading.value = false
   }
 }
+
 
 const handleGoogleError = (error) => {
   console.error("Google登入錯誤:", error)
@@ -675,7 +686,7 @@ const handleGoogleError = (error) => {
   margin-bottom: 1.5rem;
   
   .hand-icon {
-    color: #fbbf24; /* 暖色調，類似手的膚色 */
+    color: #fbbf24;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -725,7 +736,7 @@ const handleGoogleError = (error) => {
     font-weight: 600;
     
     .phone-icon {
-      color: #10b981; /* 綠色，代表聯絡/溝通 */
+      color: #10b981;
       display: flex;
       align-items: center;
       justify-content: center;
