@@ -42,6 +42,14 @@ const isLoading = computed(() => unitStore.isLoading)
 const isSearching = ref(false)
 const isDeleting = ref(false)
 
+// 批次匯入相關變數
+const showImportModal = ref(false)
+const importFile = ref(null)
+const isImporting = ref(false)
+const importProgress = ref(0)
+const importResult = ref(null)
+const isDragging = ref(false)
+
 // 資料來源改為從 store 取得
 const unitData = computed(() => unitStore.units)
 
@@ -311,6 +319,190 @@ const deleteUnit = async (unitId, unitName) => {
   }
 }
 
+// 下載範本
+const downloadTemplate = async () => {
+  try {
+    await unitStore.downloadImportTemplate()
+  } catch (error) {
+    console.error('下載範本失敗:', error)
+    alert('下載範本失敗，請稍後再試')
+  }
+}
+
+// 批次匯入
+const batchImport = async () => {
+  showImportModal.value = true
+  resetImportForm()
+}
+
+// 處理檔案選擇
+const handleFileSelect = (event) => {
+  const file = event.target.files[0]
+  if (file) {
+    const allowedTypes = [
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-excel'
+    ]
+    
+    if (!allowedTypes.includes(file.type)) {
+      alert('請選擇有效的 Excel 檔案 (.xlsx)')
+      event.target.value = ''
+      return
+    }
+    
+    const maxSize = 5 * 1024 * 1024
+    if (file.size > maxSize) {
+      alert('檔案大小不能超過 5MB')
+      event.target.value = ''
+      return
+    }
+    
+    importFile.value = file
+  }
+}
+
+// 重置匯入表單
+const resetImportForm = () => {
+  importFile.value = null
+  importProgress.value = 0
+  importResult.value = null
+  isImporting.value = false
+  
+  const fileInput = document.getElementById('import-file-input')
+  if (fileInput) {
+    fileInput.value = ''
+  }
+}
+
+// 確認匯入
+const confirmImport = async () => {
+  if (!importFile.value) {
+    alert('請選擇要匯入的 Excel 檔案')
+    return
+  }
+  
+  isImporting.value = true
+  importProgress.value = 0
+  
+  try {
+    const formData = new FormData()
+    formData.append('file', importFile.value)
+    
+    const progressInterval = setInterval(() => {
+      if (importProgress.value < 90) {
+        importProgress.value += 10
+      }
+    }, 200)
+    
+    const result = await unitStore.importUnits(formData)
+
+    console.log(result);
+
+    let message = '';
+    let resultData = {};
+    
+    if(result.data.statusCode === 200){
+      const { data: responseData } = result.data;
+      const successCount = responseData.successItems.length;
+      const errorItems = responseData.errorItems.filter(item => item != 'undefined');
+      const errorCount = errorItems.length;
+      const totalCount = successCount + errorCount;
+      
+      // 構建結構化的結果數據
+      resultData = {
+        total: totalCount,
+        success: successCount,
+        failed: errorCount,
+        successItems: responseData.successItems,
+        errorItems: errorItems,
+        originalMessage: result.data.message
+      };
+      
+      // 構建美觀的 message
+      message = result.data.message;
+    }
+    
+    clearInterval(progressInterval)
+    importProgress.value = 100
+    
+    importResult.value = {
+      success: true,
+      message: message || '檔案匯入成功！',
+      data: resultData
+    }
+    
+    setTimeout(() => {
+      getUnitData()
+    }, 500)
+    
+  } catch (error) {
+    console.error('批次匯入失敗:', error)
+    let resultData = {};
+    resultData = {
+      message: error.response?.data?.message || '匯入失敗，請檢查檔案資料格式',
+    }
+    importResult.value = {
+      success: false,
+      message: error.response?.data?.message || '匯入失敗，請檢查檔案資料格式',
+      errors: error.response?.data?.errors || [],
+      data: resultData,
+    }
+
+    console.log(importResult.value);
+    
+    isImporting.value = false
+  }
+}
+
+// 關閉匯入彈窗
+const closeImportModal = () => {
+  showImportModal.value = false
+  resetImportForm()
+}
+
+// 拖拽相關
+const dragOver = (event) => {
+  event.preventDefault()
+  event.dataTransfer.dropEffect = 'copy'
+  isDragging.value = true
+}
+
+const dragLeave = (event) => {
+  event.preventDefault()
+  isDragging.value = false
+}
+
+const drop = (event) => {
+  event.preventDefault()
+  isDragging.value = false
+  const files = event.dataTransfer.files
+  if (files.length > 0) {
+    const file = files[0]
+    const mockEvent = {
+      target: {
+        files: [file],
+        value: ''
+      }
+    }
+    handleFileSelect(mockEvent)
+  }
+}
+
+const formatFileSize = (bytes) => {
+  if (bytes === 0) return '0 Bytes'
+  const k = 1024
+  const sizes = ['Bytes', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+const triggerFileInput = () => {
+  const fileInput = document.getElementById('import-file-input')
+  if (fileInput) {
+    fileInput.click()
+  }
+}
+
 // 判斷是否有下一個同層級的兄弟節點
 const hasNextSibling = (item, index) => {
   // 檢查下一個項目是否存在且層級大於等於當前層級
@@ -456,9 +648,33 @@ onUnmounted(() => {
           </select>
         </div>
         
-        <button v-if="hasWriteUnitPermission" class="new-unit-btn" @click="createNewUnit" :class="{ disabled: isLoading }" :disabled="isLoading">
-          新增單位
-        </button>
+        <div class="right-controls">
+          <button 
+            v-if="hasWriteUnitPermission" 
+            class="control-btn template-btn" 
+            @click="downloadTemplate" 
+            :disabled="isLoading"
+          >
+            下載單位匯入範本
+          </button>
+          <button 
+            v-if="hasWriteUnitPermission" 
+            class="control-btn import-btn" 
+            @click="batchImport" 
+            :disabled="isLoading"
+          >
+            批次匯入單位
+          </button>
+          <button 
+            v-if="hasWriteUnitPermission" 
+            class="new-unit-btn" 
+            @click="createNewUnit" 
+            :class="{ disabled: isLoading }" 
+            :disabled="isLoading"
+          >
+            新增單位
+          </button>
+        </div>
       </div>
 
       <!-- 桌面版和平板版表格 -->
@@ -467,7 +683,10 @@ onUnmounted(() => {
           <thead>
             <tr>
               <th width="80">項次</th>
-              <th class="sortable" @click="!isLoading && sortBy('name')">
+              <th 
+                class="sortable" 
+                @click="!isLoading && sortBy('name')"
+              >
                 單位名稱
                 <span class="sort-icon" v-if="sortColumn === 'name'">
                   <span v-if="sortDirection === 'asc'">↑</span>
@@ -725,6 +944,230 @@ onUnmounted(() => {
         </div>
       </div>
     </section>
+
+    <!-- 批次匯入彈窗 -->
+    <div v-if="showImportModal" class="modal-overlay" @click="closeImportModal">
+      <div class="import-modal" @click.stop>
+        <div class="modal-header">
+          <h3>批次匯入單位</h3>
+          <button class="close-btn" @click="closeImportModal">×</button>
+        </div>
+        
+        <div class="modal-body">
+          <!-- 匯入說明 -->
+          <div class="import-instructions">
+            <h4>📋 匯入說明</h4>
+            <ul>
+              <li>請使用提供的範本格式進行資料準備</li>
+              <li>支援檔案格式：.xlsx</li>
+              <li>檔案大小限制：5MB</li>
+              <li>請確保必填欄位已完整填寫</li>
+            </ul>
+          </div>
+          
+          <!-- 文件上傳區域 -->
+          <div class="file-upload-section">
+            <div 
+              class="file-drop-zone"
+              :class="{ 'has-file': importFile, 'dragging': isDragging }"
+              @dragover="dragOver"
+              @dragleave="dragLeave"
+              @drop="drop"
+              @click="triggerFileInput"
+            >
+              <input
+                id="import-file-input"
+                type="file"
+                accept=".xlsx"
+                style="display: none"
+                @change="handleFileSelect"
+              />
+              
+              <div v-if="!importFile" class="upload-placeholder">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">
+                  <p><strong>點擊選擇檔案</strong> 或拖拽檔案到此處</p>
+                  <p class="upload-hint">支援 .xlsx 格式</p>
+                </div>
+              </div>
+              
+              <div v-else class="file-info">
+                <div class="file-icon">📄</div>
+                <div class="file-details">
+                  <div class="file-name">{{ importFile.name }}</div>
+                  <div class="file-size">{{ formatFileSize(importFile.size) }}</div>
+                </div>
+                <button class="remove-file-btn" @click.stop="resetImportForm">
+                  🗑️
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 匯入進度 -->
+          <div v-if="isImporting" class="import-progress">
+            <div class="progress-header">
+              <span>匯入進度</span>
+              <span>{{ importProgress }}%</span>
+            </div>
+            <div class="progress-bar">
+              <div 
+                class="progress-fill" 
+                :style="{ width: importProgress + '%' }"
+              ></div>
+            </div>
+            <div class="progress-text">
+              <span v-if="importProgress < 100">正在匯入資料，請稍候...</span>
+              <span v-else>匯入完成！</span>
+            </div>
+          </div>
+          
+          <!-- 匯入結果 - 成功 -->
+          <div v-if="importResult?.success" class="result-success">
+            <div class="success-header">
+              <div class="success-icon-wrapper">
+                <div class="success-icon">✅</div>
+              </div>
+              <div class="success-content">
+                <h4 class="success-title">匯入成功</h4>
+                <p class="success-message">{{ importResult.message }}</p>
+              </div>
+            </div>
+
+            <div v-if="importResult.data" class="result-stats-container">
+              <div class="stats-grid">
+                <div v-if="importResult.data.total" class="stat-card total-card">
+                  <div class="stat-icon">📊</div>
+                  <div class="stat-info">
+                    <div class="stat-number">{{ importResult.data.total }}</div>
+                    <div class="stat-label">總計處理</div>
+                  </div>
+                </div>
+                
+                <div v-if="importResult.data.success" class="stat-card success-card">
+                  <div class="stat-icon">✅</div>
+                  <div class="stat-info">
+                    <div class="stat-number">{{ importResult.data.success }}</div>
+                    <div class="stat-label">成功匯入</div>
+                  </div>
+                </div>
+                
+                <div v-if="!importResult.success" class="stat-card failed-card">
+                  <div class="stat-icon">❌</div>
+                  <div class="stat-info">
+                    <div class="stat-number">{{ importResult.message }}</div>
+                    <div class="stat-label">匯入失敗</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div v-if="importResult.data.errorItems && importResult.data.errorItems.length" class="error-details">
+                <div class="error-header">
+                  <div class="error-icon">⚠️</div>
+                  <div class="error-title">失敗項次詳情</div>
+                  <div class="error-count">{{ importResult.data.errorItems.length }} 項</div>
+                </div>
+                <div class="error-content">
+                  <div class="error-items">
+                    <div 
+                      v-for="(item, idx) in importResult.data.errorItems" 
+                      :key="idx" 
+                      class="error-item"
+                    >
+                      <div class="error-item-icon">📍</div>
+                      <div class="error-item-text">項次 {{ item }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 匯入結果 - 失敗 -->
+          <div v-if="importResult && importResult.success === false" class="result-error">
+            <div class="error-header-main">
+              <div class="error-icon-wrapper">
+                <div class="error-icon-main">❌</div>
+              </div>
+              <div class="error-content-main">
+                <h4 class="error-title-main">匯入失敗</h4>
+                <p class="error-message">{{ importResult.message }}</p>
+              </div>
+            </div>
+            
+            <div v-if="importResult.errors && importResult.errors.length" class="error-details-section">
+              <div class="error-list-header">
+                <div class="error-list-icon">📋</div>
+                <div class="error-list-title">錯誤詳情</div>
+              </div>
+              <div class="error-list-content">
+                <div 
+                  v-for="(error, index) in importResult.errors" 
+                  :key="index" 
+                  class="error-list-item"
+                >
+                  <div class="error-bullet">•</div>
+                  <div class="error-text">{{ error }}</div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="error-suggestions">
+              <div class="suggestion-header">
+                <div class="suggestion-icon">💡</div>
+                <div class="suggestion-title">建議解決方案</div>
+              </div>
+              <div class="suggestion-content">
+                <ul>
+                  <li>請檢查檔案格式是否正確（.xlsx）</li>
+                  <li>確認必填欄位是否完整填寫</li>
+                  <li>檢查資料格式是否符合範本要求</li>
+                  <li>確認檔案大小未超過 5MB 限制</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <template v-if="importResult && importResult.success">
+            <button class="btn btn-secondary" @click="closeImportModal">
+              關閉
+            </button>
+            <button class="btn btn-primary" @click="resetImportForm">
+              繼續匯入
+            </button>
+          </template>
+          
+          <template v-else-if="importResult && !importResult.success">
+            <button class="btn btn-secondary" @click="closeImportModal">
+              關閉
+            </button>
+            <button class="btn btn-primary" @click="resetImportForm">
+              重新匯入
+            </button>
+          </template>
+          
+          <template v-else>
+            <button 
+              class="btn btn-secondary" 
+              @click="closeImportModal"
+              :disabled="isImporting"
+            >
+              取消
+            </button>
+            <button 
+              class="btn btn-primary" 
+              @click="confirmImport"
+              :disabled="!importFile || isImporting"
+            >
+              <span v-if="isImporting">匯入中...</span>
+              <span v-else>開始匯入</span>
+            </button>
+          </template>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -914,6 +1357,47 @@ onUnmounted(() => {
         background-color: #f8f9fa;
         color: #999;
         cursor: not-allowed;
+      }
+    }
+
+    .right-controls {
+      display: flex;
+      gap: 10px;
+
+      .control-btn {
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+        border: none;
+
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        &.template-btn {
+          background: #f8f9fa;
+          color: #6c5ce7;
+          border: 1px solid #6c5ce7;
+
+          &:hover:not(:disabled) {
+            background: #6c5ce7;
+            color: white;
+          }
+        }
+
+        &.import-btn {
+          background: #6c5ce7;
+          color: white;
+
+          &:hover:not(:disabled) {
+            background: #5b4bcf;
+            transform: translateY(-1px);
+          }
+        }
       }
     }
 
@@ -1502,6 +1986,703 @@ onUnmounted(() => {
   }
 }
 
+// 彈窗樣式
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.import-modal {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 25px;
+  border-bottom: 1px solid #eee;
+  
+  h3 {
+    margin: 0;
+    color: #333;
+    font-size: 18px;
+    font-weight: 600;
+  }
+  
+  .close-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #999;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s;
+    
+    &:hover {
+      background: #f5f5f5;
+      color: #666;
+    }
+  }
+}
+
+.modal-body {
+  padding: 25px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 20px 25px;
+  border-top: 1px solid #eee;
+  background: #f8f9fa;
+  border-radius: 0 0 12px 12px;
+}
+
+// 匯入說明
+.import-instructions {
+  margin-bottom: 25px;
+  
+  h4 {
+    margin: 0 0 15px 0;
+    color: #333;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  
+  ul {
+    margin: 0 0 15px 0;
+    padding-left: 20px;
+    
+    li {
+      margin-bottom: 8px;
+      color: #666;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+  }
+}
+
+// 文件上傳區域
+.file-upload-section {
+  margin-bottom: 25px;
+  
+  .file-drop-zone {
+    border: 2px dashed #ddd;
+    border-radius: 8px;
+    padding: 30px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: #fafafa;
+    
+    &:hover, &.dragging {
+      border-color: #6c5ce7;
+      background: #f8f7ff;
+    }
+    
+    &.has-file {
+      border-color: #28a745;
+      background: #f8fff9;
+    }
+    
+    .upload-placeholder {
+      .upload-icon {
+        font-size: 48px;
+        margin-bottom: 15px;
+        opacity: 0.6;
+      }
+      
+      .upload-text {
+        p {
+          margin: 5px 0;
+          
+          &:first-child {
+            font-size: 16px;
+            color: #333;
+          }
+          
+          &.upload-hint {
+            font-size: 14px;
+            color: #999;
+          }
+        }
+      }
+    }
+    
+    .file-info {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      text-align: left;
+      
+      .file-icon {
+        font-size: 32px;
+        opacity: 0.8;
+      }
+      
+      .file-details {
+        flex: 1;
+        
+        .file-name {
+          font-size: 16px;
+          font-weight: 500;
+          color: #333;
+          margin-bottom: 5px;
+        }
+        
+        .file-size {
+          font-size: 14px;
+          color: #666;
+        }
+      }
+      
+      .remove-file-btn {
+        background: #fff;
+        border: 1px solid #dc3545;
+        color: #dc3545;
+        padding: 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: all 0.2s;
+        
+        &:hover {
+          background: #dc3545;
+          color: white;
+        }
+      }
+    }
+  }
+}
+
+// 進度條
+.import-progress {
+  margin-bottom: 25px;
+  
+  .progress-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+  }
+  
+  .progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #f0f0f0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 10px;
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #6c5ce7, #a29bfe);
+      transition: width 0.3s ease;
+      border-radius: 4px;
+    }
+  }
+  
+  .progress-text {
+    text-align: center;
+    font-size: 14px;
+    color: #666;
+  }
+}
+
+// 成功結果顯示
+.result-success {
+  background: linear-gradient(135deg, #f8fff9 0%, #e8f8e8 100%);
+  border: 1px solid #c3e6cb;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(40, 167, 69, 0.12);
+  animation: slideInUp 0.5s ease-out;
+}
+
+// 成功標題區域
+.success-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 24px 20px 24px;
+  border-bottom: 1px solid rgba(195, 230, 203, 0.5);
+  
+  .success-icon-wrapper {
+    .success-icon {
+      font-size: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, #28a745, #20c997);
+      border-radius: 50%;
+      box-shadow: 0 4px 16px rgba(40, 167, 69, 0.3);
+      animation: bounceIn 0.6s ease-out 0.2s both;
+    }
+  }
+  
+  .success-content {
+    flex: 1;
+    
+    .success-title {
+      margin: 0 0 8px 0;
+      color: #155724;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    
+    .success-message {
+      margin: 0;
+      color: #28a745;
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 1.4;
+    }
+  }
+}
+
+// 統計數據容器
+.result-stats-container {
+  padding: 20px 24px 24px 24px;
+}
+
+// 統計卡片網格
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+  
+  .stat-card {
+    background: white;
+    border-radius: 10px;
+    padding: 18px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    border-left: 4px solid transparent;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+    }
+    
+    .stat-icon {
+      font-size: 24px;
+      opacity: 0.9;
+    }
+    
+    .stat-info {
+      .stat-number {
+        font-size: 22px;
+        font-weight: 700;
+        margin-bottom: 2px;
+        line-height: 1;
+      }
+      
+      .stat-label {
+        font-size: 11px;
+        color: #666;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+    }
+    
+    &.total-card {
+      border-left-color: #6c5ce7;
+      .stat-number { color: #6c5ce7; }
+    }
+    
+    &.success-card {
+      border-left-color: #28a745;
+      .stat-number { color: #28a745; }
+    }
+    
+    &.failed-card {
+      border-left-color: #dc3545;
+      .stat-number { color: #dc3545; }
+    }
+  }
+}
+
+// 失敗項次詳情
+.error-details {
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #ffeaa7;
+  
+  .error-header {
+    background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid #ffeaa7;
+    
+    .error-icon {
+      font-size: 18px;
+      animation: pulse 2s infinite;
+    }
+    
+    .error-title {
+      flex: 1;
+      font-weight: 600;
+      color: #856404;
+      font-size: 14px;
+    }
+    
+    .error-count {
+      background: #dc3545;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+  }
+  
+  .error-content {
+    padding: 16px 18px;
+    max-height: 200px;
+    overflow-y: auto;
+    
+    .error-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      
+      .error-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: #f8f9fa;
+        border: 1px solid #dc3545;
+        border-radius: 20px;
+        padding: 6px 12px;
+        font-size: 12px;
+        transition: all 0.2s ease;
+        
+        &:hover {
+          background: #dc3545;
+          color: white;
+          transform: scale(1.05);
+        }
+        
+        .error-item-icon {
+          font-size: 10px;
+          opacity: 0.8;
+        }
+        
+        .error-item-text {
+          font-weight: 500;
+          white-space: nowrap;
+        }
+      }
+    }
+  }
+}
+
+// 錯誤結果顯示樣式
+.result-error {
+  background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+  border: 1px solid #fc8181;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(220, 53, 69, 0.12);
+  animation: slideInUp 0.5s ease-out;
+  margin-bottom: 20px;
+}
+
+// 錯誤標題區域
+.error-header-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 24px 20px 24px;
+  border-bottom: 1px solid rgba(252, 129, 129, 0.3);
+  
+  .error-icon-wrapper {
+    .error-icon-main {
+      font-size: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, #dc3545, #c82333);
+      border-radius: 50%;
+      box-shadow: 0 4px 16px rgba(220, 53, 69, 0.3);
+      animation: shakeIn 0.6s ease-out 0.2s both;
+    }
+  }
+  
+  .error-content-main {
+    flex: 1;
+    
+    .error-title-main {
+      margin: 0 0 8px 0;
+      color: #721c24;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    
+    .error-message {
+      margin: 0;
+      color: #dc3545;
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 1.4;
+    }
+  }
+}
+
+// 錯誤詳情區塊
+.error-details-section {
+  background: white;
+  margin: 20px 24px;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #ffc9c9;
+  
+  .error-list-header {
+    background: linear-gradient(135deg, #ffe0e0, #ffc9c9);
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid #ffc9c9;
+    
+    .error-list-icon {
+      font-size: 18px;
+      color: #721c24;
+    }
+    
+    .error-list-title {
+      flex: 1;
+      font-weight: 600;
+      color: #721c24;
+      font-size: 14px;
+    }
+  }
+  
+  .error-list-content {
+    padding: 16px 18px;
+    max-height: 200px;
+    overflow-y: auto;
+    
+    .error-list-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 8px;
+      padding: 8px;
+      background: #fff5f5;
+      border-radius: 6px;
+      border-left: 3px solid #dc3545;
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+      
+      .error-bullet {
+        color: #dc3545;
+        font-weight: bold;
+        font-size: 16px;
+        line-height: 1.2;
+        margin-top: 1px;
+      }
+      
+      .error-text {
+        flex: 1;
+        color: #721c24;
+        font-size: 13px;
+        line-height: 1.4;
+        word-break: break-word;
+      }
+    }
+  }
+}
+
+// 建議解決方案區塊
+.error-suggestions {
+  background: white;
+  margin: 0 24px 24px 24px;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #bee5eb;
+  
+  .suggestion-header {
+    background: linear-gradient(135deg, #d1ecf1, #bee5eb);
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid #bee5eb;
+    
+    .suggestion-icon {
+      font-size: 18px;
+      color: #0c5460;
+    }
+    
+    .suggestion-title {
+      flex: 1;
+      font-weight: 600;
+      color: #0c5460;
+      font-size: 14px;
+    }
+  }
+  
+  .suggestion-content {
+    padding: 16px 18px;
+    
+    ul {
+      margin: 0;
+      padding-left: 20px;
+      
+      li {
+        margin-bottom: 8px;
+        color: #495057;
+        font-size: 13px;
+        line-height: 1.5;
+        
+        &:last-child {
+          margin-bottom: 0;
+        }
+        
+        &::marker {
+          color: #17a2b8;
+        }
+      }
+    }
+  }
+}
+
+// 按鈕樣式
+.btn {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: none;
+  
+  &.btn-secondary {
+    background: #6c757d;
+    color: white;
+    
+    &:hover:not(:disabled) {
+      background: #5a6268;
+    }
+  }
+  
+  &.btn-primary {
+    background: #6c5ce7;
+    color: white;
+    
+    &:hover:not(:disabled) {
+      background: #5b4bcf;
+    }
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+// 動畫效果
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shakeIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) rotate(-10deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05) rotate(5deg);
+  }
+  70% {
+    transform: scale(0.9) rotate(-2deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
 /* ===== 響應式設計 ===== */
 
 /* 大螢幕 (1400px+) */
@@ -1582,6 +2763,10 @@ onUnmounted(() => {
       padding: 16px 20px;
       flex-wrap: wrap;
       gap: 12px;
+
+      .right-controls {
+        flex-wrap: wrap;
+      }
     }
 
     .data-table {
@@ -1667,9 +2852,15 @@ onUnmounted(() => {
         align-self: flex-start;
       }
 
-      .new-unit-btn {
-        width: 100%;
-        padding: 12px;
+      .right-controls {
+        flex-direction: column;
+        gap: 8px;
+
+        .control-btn,
+        .new-unit-btn {
+          width: 100%;
+          padding: 12px;
+        }
       }
     }
   }
@@ -1757,6 +2948,95 @@ onUnmounted(() => {
       }
     }
   }
+
+  // 模態框響應式
+  .modal-overlay {
+    padding: 10px;
+  }
+  
+  .import-modal {
+    max-height: 95vh;
+  }
+  
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding: 15px 20px;
+  }
+  
+  .file-drop-zone {
+    padding: 20px 15px;
+    
+    .upload-placeholder .upload-icon {
+      font-size: 36px;
+    }
+  }
+  
+  .modal-footer {
+    flex-direction: column;
+    
+    .btn {
+      width: 100%;
+    }
+  }
+
+  .success-header {
+    padding: 20px 16px 16px 16px;
+    
+    .success-icon-wrapper .success-icon {
+      width: 48px;
+      height: 48px;
+      font-size: 28px;
+    }
+    
+    .success-content .success-title {
+      font-size: 18px;
+    }
+  }
+  
+  .result-stats-container {
+    padding: 16px;
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    
+    .stat-card {
+      padding: 16px;
+      
+      .stat-info .stat-number {
+        font-size: 20px;
+      }
+    }
+  }
+  
+  .error-details .error-content .error-items {
+    .error-item {
+      font-size: 11px;
+      padding: 4px 8px;
+    }
+  }
+
+  .error-header-main {
+    padding: 20px 16px 16px 16px;
+    
+    .error-icon-wrapper .error-icon-main {
+      width: 48px;
+      height: 48px;
+      font-size: 28px;
+    }
+    
+    .error-content-main .error-title-main {
+      font-size: 18px;
+    }
+  }
+  
+  .error-details-section,
+  .error-suggestions {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
 }
 
 /* 小手機 (480px 以下) */
@@ -1796,9 +3076,12 @@ onUnmounted(() => {
         font-size: 12px;
       }
 
-      .new-unit-btn {
-        padding: 10px;
-        font-size: 13px;
+      .right-controls {
+        .control-btn,
+        .new-unit-btn {
+          padding: 10px;
+          font-size: 13px;
+        }
       }
     }
   }
@@ -1909,6 +3192,22 @@ onUnmounted(() => {
       }
     }
   }
+
+  .success-header {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+  
+  .error-details-section .error-list-content {
+    max-height: 150px;
+  }
+
+  .error-header-main {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
 }
 
 /* 超小螢幕 (360px 以下) */
@@ -1962,6 +3261,14 @@ onUnmounted(() => {
       padding: 4px 6px;
       font-size: 10px;
       min-width: 28px;
+    }
+  }
+
+  .table-section .table-controls .right-controls {
+    .control-btn,
+    .new-unit-btn {
+      font-size: 12px;
+      padding: 8px;
     }
   }
 }

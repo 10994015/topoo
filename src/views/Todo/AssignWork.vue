@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTodoStore } from '@/stores/todo'
 import { formatDate, formatDateTime } from '@/utils/dateUtils'
@@ -701,6 +701,32 @@ onMounted(async () => {
         formData.estimatedCompletionTime = `${year}-${month}-${day}T${hours}:${minutes}`;
     }
 })
+
+// 監聽預計完成時間變化，自動計算緊急程度
+watch(() => formData.estimatedCompletionTime, (newTime) => {
+  if (!newTime) {
+    formData.emergencyLevel = ''
+    return
+  }
+  
+  const now = new Date()
+  const estimatedTime = new Date(newTime)
+  const diffInMs = estimatedTime - now
+  const diffInDays = diffInMs / (1000 * 60 * 60 * 24)
+  
+  if (diffInDays < 1) {
+    formData.emergencyLevel = '3' // 高級
+  } else if (diffInDays >= 1 && diffInDays < 3) {
+    formData.emergencyLevel = '2' // 中級
+  } else if (diffInDays >= 3 && diffInDays <= 5) {
+    formData.emergencyLevel = '1' // 普級
+  } else {
+    // 超過5天，預設為普級
+    formData.emergencyLevel = '1'
+  }
+  
+  console.log(`時間差: ${diffInDays.toFixed(2)} 天，緊急程度: ${formData.emergencyLevel}`)
+})
 </script>
 
 <template>
@@ -718,7 +744,6 @@ onMounted(async () => {
         <div class="assign-header">
           <div class="header-left">
             <h2 class="page-title">待辦案件資訊</h2>
-            <span class="case-number">{{ todoDetail.id }}</span>
           </div>
         </div>
 
@@ -729,10 +754,19 @@ onMounted(async () => {
             <h3 class="section-title">案件指派資訊</h3>
             
             <div class="form-grid">
+              <!-- 預計完成時間 -->
+              <div class="form-group full-width">
+                <label class="form-label required">預計完成時間</label>
+                <input 
+                  type="datetime-local" 
+                  v-model="formData.estimatedCompletionTime"
+                  class="form-input"
+                >
+              </div>
               <!-- 重要程度 -->
               <div class="form-group">
                 <label class="form-label required">重要程度</label>
-                <select v-model="formData.importanceLevel" class="form-select">
+                <select v-model="formData.importanceLevel" disabled class="form-select">
                   <option value="">選擇案件重要程度</option>
                   <option 
                     v-for="level in importanceLevels" 
@@ -747,7 +781,7 @@ onMounted(async () => {
               <!-- 緊急程度 -->
               <div class="form-group">
                 <label class="form-label required">緊急程度</label>
-                <select v-model="formData.emergencyLevel" class="form-select">
+                <select v-model="formData.emergencyLevel" disabled class="form-select">
                   <option value="">選擇案件緊急程度</option>
                   <option 
                     v-for="level in emergencyLevels" 
@@ -757,16 +791,6 @@ onMounted(async () => {
                     {{ level.label }}
                   </option>
                 </select>
-              </div>
-
-              <!-- 預計完成時間 -->
-              <div class="form-group full-width">
-                <label class="form-label required">預計完成時間</label>
-                <input 
-                  type="datetime-local" 
-                  v-model="formData.estimatedCompletionTime"
-                  class="form-input"
-                >
               </div>
 
               <!-- 承辦人員 -->
@@ -1260,7 +1284,7 @@ onMounted(async () => {
     .form-label {
       font-size: 14px;
       font-weight: 500;
-      color: #555;
+      color: #000;
 
       &.required::after {
         content: ' *';
@@ -1284,7 +1308,7 @@ onMounted(async () => {
 
     .form-select {
       background: white;
-      cursor: pointer;
+      color:#000 !important;
     }
   }
 

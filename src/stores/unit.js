@@ -41,6 +41,7 @@ export const useUnitStore = defineStore('unit', () => {
             throw error;
         }
     }
+
     const fetchUnitsByLayer = async (layerNumber = 1, searchParams = {}) => {
         try {
             console.log(`查詢第 ${layerNumber} 層單位:`, searchParams);
@@ -87,6 +88,7 @@ export const useUnitStore = defineStore('unit', () => {
             throw error;
         }
     }
+
     // 查詢單一單位 - 對應 GET /api/backend/unit/{id}  
     const fetchUnitById = async (unitId) => {
         try {
@@ -113,6 +115,7 @@ export const useUnitStore = defineStore('unit', () => {
             throw error;
         }
     }
+
     // 建立搜尋結果的樹狀結構
     const buildSearchResultTree = (searchResults) => {
         const processUnit = (unit) => {
@@ -121,6 +124,7 @@ export const useUnitStore = defineStore('unit', () => {
                 name: unit.name,
                 layer: unit.layer,
                 level: parseInt(unit.layer.substring(1)),
+                importance_level: unit.importance_level || '1', // 新增：重要程度
                 created_at: unit.created_at,
                 updated_at: unit.updated_at,
                 deleted_at: unit.deleted_at,
@@ -152,6 +156,7 @@ export const useUnitStore = defineStore('unit', () => {
         
         return searchResults.map(unit => processUnit(unit))
     }
+
     const buildUnitTree = async (parentUnits) => {
         const unitsWithChildren = []
         
@@ -161,6 +166,7 @@ export const useUnitStore = defineStore('unit', () => {
                 name: unit.name,
                 layer: unit.layer, // "L1", "L2", etc.
                 level: parseInt(unit.layer.substring(1)), // 轉換 "L1" -> 1
+                importance_level: unit.importance_level || '1', // 新增：重要程度
                 created_at: unit.created_at,
                 updated_at: unit.updated_at,
                 deleted_at: unit.deleted_at,
@@ -176,6 +182,7 @@ export const useUnitStore = defineStore('unit', () => {
         
         return unitsWithChildren
     }
+
     // 載入子單位資料
     const loadChildUnits = async (parentUnitId, parentIndex = null) => {
         try {
@@ -202,6 +209,7 @@ export const useUnitStore = defineStore('unit', () => {
                             name: subUnit.sub_unit_name,
                             layer: `L${parseInt(unitData.layer.substring(1)) + 1}`, // 父層 L1 -> 子層 L2
                             level: parseInt(unitData.layer.substring(1)) + 1,
+                            importance_level: subUnit.importance_level || '1', // 新增：子單位的重要程度
                             created_at: unitData.created_at, // 可能需要子單位自己的時間
                             updated_at: unitData.updated_at,
                             deleted_at: null, // 子單位資訊可能需要額外查詢
@@ -247,6 +255,7 @@ export const useUnitStore = defineStore('unit', () => {
             throw error
         }
     }
+
     // 初始化載入第一層單位
     const initializeUnits = async (searchParams = {}) => {
         try {
@@ -282,6 +291,7 @@ export const useUnitStore = defineStore('unit', () => {
             isInitialized.value = true
         }
     }
+
     // 搜尋單位（支援深度搜尋和第一層搜尋）
     const searchUnits = async (searchParams = {}) => {
         try {
@@ -327,6 +337,7 @@ export const useUnitStore = defineStore('unit', () => {
             throw error
         }
     }
+
     // 切換展開/收合狀態
     const toggleUnitExpansion = async (unitId, unitIndex) => {
         try {
@@ -364,6 +375,7 @@ export const useUnitStore = defineStore('unit', () => {
             throw error
         }
     }
+
     // 重置狀態
     const resetUnits = () => {
         units.value = []
@@ -371,6 +383,7 @@ export const useUnitStore = defineStore('unit', () => {
         isLoading.value = false
         isInitialized.value = false
     }
+
     // 查詢單位底下的有資格用戶 - 對應 GET /api/backend/unit/{id}/user
     const fetchUnitUsers = async (unitId, searchParams = {}) => {
         try {
@@ -416,7 +429,8 @@ export const useUnitStore = defineStore('unit', () => {
             throw error;
         }
     }
-    // 如果沒有單位ID 則用該funcion 查用戶
+
+    // 如果沒有單位ID 則用該function 查用戶
     const fetchEmptyUnitUsers = async (searchParams = {}) => {
         try {
             console.log('查詢所有有資格用戶:', searchParams);
@@ -461,7 +475,6 @@ export const useUnitStore = defineStore('unit', () => {
             throw error;
         }
     }
-
 
     // 新增單位 - 對應 POST /api/backend/unit/
     const createUnit = async (unitData) => {
@@ -522,10 +535,11 @@ export const useUnitStore = defineStore('unit', () => {
             throw error;
         }
     }
+
+    // 刪除單位 - 對應 DELETE /api/backend/unit/{id}
     const deleteUnit = async (unitId) => {
         try {
             console.log('刪除單位:', unitId);
-
             
             const response = await axiosClient.delete(`/backend/unit/${unitId}`);
             console.log('刪除單位回應:', response.data);
@@ -543,6 +557,116 @@ export const useUnitStore = defineStore('unit', () => {
                 throw new Error(error.response.data.message || '刪除單位失敗');
             }
             throw error;
+        }
+    }
+    
+    // 下載單位匯入Excel檔範本
+    const downloadImportTemplate = async () => {
+        try {
+            const response = await axiosClient.get('/backend/unit/import-template', {
+                responseType: 'blob' // 重要：指定回應類型為 blob
+            });
+            // 創建一個 URL 來下載檔案
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'unit_import_template.xlsx'); // 設定下載檔名
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link); // 下載後移除連結
+        } catch (error) {
+            console.error('下載單位匯入範本失敗:', error);
+            throw error;
+        }
+    }
+
+    // excel 匯入 新增單位
+    const importUnits = async (formData) => {
+        try {
+            isLoading.value = true;
+            
+            const response = await axiosClient.post('/backend/unit/import-unit', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                },
+                timeout: 60000, // 60秒超時，因為檔案處理可能需要較長時間
+                onUploadProgress: (progressEvent) => {
+                    const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                    console.log(`上傳進度: ${percentCompleted}%`);
+                }
+            });
+            
+            console.log('單位匯入回應:', response.data);
+            
+            // 匯入成功後，重新獲取單位列表
+            await initializeUnits();
+            
+            isLoading.value = false;
+            
+            // 返回標準化的響應格式
+            return {
+                success: true,
+                message: response.data.message || '匯入成功',
+                data: response.data
+            };
+            
+        } catch (error) {
+            isLoading.value = false;
+            console.error('單位匯入失敗:', error);
+            
+            let errorMessage = '匯入失敗';
+            let errorDetails = [];
+            
+            if (error.response) {
+                const status = error.response.status;
+                const errorData = error.response.data;
+                
+                switch (status) {
+                    case 400:
+                        errorMessage = errorData.message || '請求參數錯誤，請檢查檔案格式';
+                        break;
+                    case 401:
+                        errorMessage = '未授權，請重新登入';
+                        break;
+                    case 413:
+                        errorMessage = '檔案過大，請選擇較小的檔案（限制5MB）';
+                        break;
+                    case 422:
+                        errorMessage = errorData.message || '檔案格式錯誤或資料驗證失敗';
+                        errorDetails = errorData.errors || errorData.data?.errors || [];
+                        break;
+                    case 500:
+                        errorMessage = '服務器錯誤，請稍後再試';
+                        break;
+                    default:
+                        errorMessage = errorData.message || `服務器錯誤 (${status})`;
+                }
+                
+                // 如果有詳細的錯誤信息
+                if (errorData.errors && Array.isArray(errorData.errors)) {
+                    errorDetails = errorData.errors;
+                } else if (errorData.data && errorData.data.errors) {
+                    errorDetails = errorData.data.errors;
+                }
+                
+            } else if (error.request) {
+                errorMessage = '網路連接錯誤，請檢查網路連接';
+            } else if (error.code === 'ECONNABORTED') {
+                errorMessage = '請求超時，檔案可能過大或網路較慢，請重試';
+            } else {
+                errorMessage = error.message || '匯入過程中發生未知錯誤';
+            }
+            
+            // 拋出統一格式的錯誤
+            throw {
+                response: {
+                    data: {
+                        success: false,
+                        message: errorMessage,
+                        errors: errorDetails
+                    }
+                }
+            };
         }
     }
   
@@ -568,6 +692,8 @@ export const useUnitStore = defineStore('unit', () => {
         createUnit,
         updateUnit,
         deleteUnit,
-        fetchEmptyUnitUsers
+        fetchEmptyUnitUsers,
+        downloadImportTemplate, 
+        importUnits
     }
 })

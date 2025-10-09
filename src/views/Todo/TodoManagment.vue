@@ -472,7 +472,7 @@ onUnmounted(() => {
             </tr>
             
             <!-- 正常資料顯示 -->
-            <tr v-else v-for="(item, index) in todoData.data" :key="item.id" class="table-row">
+            <tr v-else v-for="(item, index) in todoData.data" :key="item.id" :class="['table-row']">
               <td>{{ index + 1 }}</td>
               <td>{{ item.title }}</td>
               <td>{{ item.repair_category }}</td>
@@ -526,7 +526,7 @@ onUnmounted(() => {
         </div>
         
         <!-- 正常資料顯示 -->
-        <div v-else v-for="(item, index) in todoData.data" :key="item.id" class="mobile-card" @click="viewTodo(item.id)">
+        <div v-else v-for="(item, index) in todoData.data" :key="item.id" :class="['mobile-card']" @click="viewTodo(item.id)">
           <div class="card-header">
             <div class="card-title">{{ item.title }}</div>
             <div class="card-index">#{{ index + 1 }}</div>
@@ -952,10 +952,20 @@ onUnmounted(() => {
           border-bottom: 1px solid #f0f0f0;
           transition: background-color 0.2s;
 
+          
+
           &:hover {
             background: #f8f9fa;
           }
-
+          &.alert{
+            background: #f8d7da;
+            &:hover {
+              background: #f5c6cb;
+            }
+            td{
+              color:#721c24 !important;
+             }
+          }
           td {
             padding: 15px 20px;
             font-size: 14px;
@@ -1019,6 +1029,15 @@ onUnmounted(() => {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     transition: all 0.3s;
     cursor: pointer;
+    &.alert{
+      background: #f8d7da;
+      &:hover {
+        background: #f5c6cb;
+      }
+      .field-value{
+        color:#721c24 !important;
+       }
+    }
 
     &:hover {
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);

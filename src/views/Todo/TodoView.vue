@@ -247,7 +247,7 @@ onMounted(async () => {
           <div class="header-content">
             <div class="header-left">
               <h2 class="page-title">報修資訊</h2>
-              <span class="repair-number">{{ todoDetail.id }}</span>
+              <span class="repair-number">{{ todoDetail.case_no }}</span>
             </div>
             <div class="header-actions">
               <button @click="goBack" class="back-btn-header">

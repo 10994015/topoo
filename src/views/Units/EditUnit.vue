@@ -14,6 +14,12 @@ const authStore = useAuthStore()
 
 const hasWriteUnitPermission = computed(() => authStore.canModify(PERMISSIONS.UNIT_MANAGEMENT))
 
+// 重要程度選項
+const importance_levelOptions = [
+  { value: '1', label: '普通' },
+  { value: '2', label: '保固級' },
+  { value: '3', label: '急件' }
+]
 
 // 路由參數
 const parentId = ref(route.params.parentId || null)
@@ -26,27 +32,30 @@ const isEditMode = computed(() => route.name === 'app.settings.unit.unit-edit')
 const formData = reactive({
   unitLayers: [
     { 
-      level: 1, // 確保第一層是 level 1
+      level: 1,
       type: 'select', 
       selectedId: '', 
       inputValue: '', 
+      importance_level: '1', // 新增：預設為普通
       options: [], 
       isLoading: false, 
       isLocked: false 
     }
   ]
 })
+
 // 備份資料
 const backupData = reactive({
   originalUnitName: '',
+  originalimportance_level: '', // 新增：備份重要程度
   originalUserSelections: []
 })
 
 // 編輯模式專用資料
 const editUnitData = ref(null)
 const originalUnitName = ref('')
-const isEditingUnitName = ref(false) // 控制單位名稱是否可編輯
-const unitUsersCount = ref(0) // 單位用戶數量
+const isEditingUnitName = ref(false)
+const unitUsersCount = ref(0)
 
 // 載入狀態
 const isLoading = ref(false)
@@ -97,14 +106,11 @@ const showEllipsis = computed(() => {
   return totalPages.value > 5 && currentPage.value < totalPages.value - 2
 })
 
-// 當前選擇的單位 ID（用於查詢用戶）
 const currentUnitId = computed(() => {
-  // 編輯模式：直接返回編輯單位的 ID
   if (isEditMode.value && editUnitData.value) {
     return editUnitData.value.id
   }
   
-  // 其他模式：找到最後一個有 selectedId 的層級
   for (let i = formData.unitLayers.length - 1; i >= 0; i--) {
     const layer = formData.unitLayers[i]
     if (layer.type === 'select' && layer.selectedId) {
@@ -118,7 +124,6 @@ const selectedUsers = computed(() => {
   return availableUsers.value.filter(user => user.isSelected)
 })
 
-// 計算最終單位路徑
 const unitPath = computed(() => {
   return formData.unitLayers
     .filter(layer => layer.selectedId || layer.inputValue)
@@ -140,7 +145,6 @@ const buildEditUnitPath = async (targetUnitId) => {
   try {
     console.log('建構編輯單位路徑，目標 ID:', targetUnitId)
     
-    // 查詢目標單位的詳細資料
     const response = await unitStore.fetchUnitById(targetUnitId)
     if (!response.success || !response.data) {
       throw new Error('無法取得單位資料')
@@ -149,18 +153,14 @@ const buildEditUnitPath = async (targetUnitId) => {
     const targetUnit = response.data
     console.log('目標單位資料:', targetUnit)
     
-    // 儲存編輯單位資料
     editUnitData.value = targetUnit
     originalUnitName.value = targetUnit.name
     
-    // 計算用戶數量
     unitUsersCount.value = targetUnit.users ? targetUnit.users.length : 0
     console.log('單位用戶數量:', unitUsersCount.value)
     
-    // 建構從根到目標單位的完整路徑
     const path = []
     
-    // 遞歸往上找父層
     const buildPath = async (unit) => {
       const levelNumber = parseInt(unit.layer.substring(1))
       
@@ -169,7 +169,8 @@ const buildEditUnitPath = async (targetUnitId) => {
         name: unit.name,
         layer: unit.layer,
         level: levelNumber,
-        isTarget: unit.id === targetUnitId // 標記目標單位
+        importance_level: unit.importance_level || '1', // 新增：從 API 取得重要程度
+        isTarget: unit.id === targetUnitId
       })
       
       if (unit.parent_id) {
@@ -195,49 +196,44 @@ const initializeEditForm = async (path) => {
   try {
     console.log('根據編輯路徑初始化表單:', path)
     
-    // 重置表單層級
     formData.unitLayers = []
     
-    // 為每一層建立表單層級
     for (let i = 0; i < path.length; i++) {
       const pathItem = path[i]
       
-      // 載入當前層級的選項
       let options = []
       if (i === 0) {
-        // 第一層
         options = await loadLayerOptions(1)
       } else {
-        // 其他層級，基於父 ID 載入
         const parentPathItem = path[i - 1]
         const response = await unitStore.fetchUnitById(parentPathItem.id)
         if (response.success && response.data && response.data.sub_units) {
           options = response.data.sub_units.map(subUnit => ({
             id: subUnit.sub_unit_id,
             name: subUnit.sub_unit_name,
-            layer: `L${i + 1}`
+            layer: `L${i + 1}`,
+            importance_level: subUnit.importance_level || '1' // 新增：子單位的重要程度
           }))
         }
       }
       
-      // 建立表單層級
       const formLayer = {
         level: pathItem.level,
         type: 'select',
         selectedId: pathItem.id,
-        inputValue: pathItem.isTarget ? pathItem.name : '', // 只有目標單位才有 inputValue
+        inputValue: pathItem.isTarget ? pathItem.name : '',
+        importance_level: pathItem.importance_level, // 新增：設定重要程度
         options: options,
         isLoading: false,
-        isLocked: !pathItem.isTarget, // 只有目標單位不鎖定
-        isTarget: pathItem.isTarget || false // 標記目標單位
+        isLocked: !pathItem.isTarget,
+        isTarget: pathItem.isTarget || false
       }
       
-      // 如果是目標單位，設為 input 模式讓用戶可以編輯名稱
       if (pathItem.isTarget) {
         formLayer.type = 'input'
         formLayer.inputValue = pathItem.name
         formLayer.selectedId = ''
-        formLayer.isLocked = true // 預設鎖定，需要點擊編輯按鈕才能解鎖
+        formLayer.isLocked = true
       }
       
       formData.unitLayers.push(formLayer)
@@ -245,7 +241,6 @@ const initializeEditForm = async (path) => {
     
     console.log('編輯模式表單初始化完成:', formData.unitLayers)
     
-    // 編輯模式初始化完成後，立即載入目標單位的用戶資料
     console.log('🚀 編輯模式：開始載入目標單位的用戶資料，單位ID:', editUnitData.value.id)
     await loadUsers(editUnitData.value.id)
     
@@ -254,11 +249,11 @@ const initializeEditForm = async (path) => {
     throw error
   }
 }
+
 const buildParentPath = async (targetParentId) => {
   try {
     console.log('建構父層路徑，目標 ID:', targetParentId)
     
-    // 查詢目標單位的詳細資料
     const response = await unitStore.fetchUnitById(targetParentId)
     if (!response.success || !response.data) {
       throw new Error('無法取得父單位資料')
@@ -267,19 +262,17 @@ const buildParentPath = async (targetParentId) => {
     const parentUnit = response.data
     console.log('父單位資料:', parentUnit)
     
-    // 建構從根到父單位的完整路徑
     const path = []
     
-    // 遞歸往上找父層
     const buildPath = async (unit) => {
-      // 從 layer 字串中提取數字 (例如 "L2" -> 2)
       const levelNumber = parseInt(unit.layer.substring(1))
       
       path.unshift({
         id: unit.id,
         name: unit.name,
         layer: unit.layer,
-        level: levelNumber
+        level: levelNumber,
+        importance_level: unit.importance_level || '1' // 新增：從 API 取得重要程度
       })
       
       if (unit.parent_id) {
@@ -305,58 +298,53 @@ const initializeFormFromPath = async (path) => {
   try {
     console.log('根據路徑初始化表單:', path)
     
-    // 重置表單層級
     formData.unitLayers = []
     
-    // 為每一層建立表單層級
     for (let i = 0; i < path.length; i++) {
       const pathItem = path[i]
-      const isLastParent = i === path.length - 1
       
-      // 載入當前層級的選項
       let options = []
       if (i === 0) {
-        // 第一層
         options = await loadLayerOptions(1)
       } else {
-        // 其他層級，基於父 ID 載入
         const parentPathItem = path[i - 1]
         const response = await unitStore.fetchUnitById(parentPathItem.id)
         if (response.success && response.data && response.data.sub_units) {
           options = response.data.sub_units.map(subUnit => ({
             id: subUnit.sub_unit_id,
             name: subUnit.sub_unit_name,
-            layer: `L${i + 1}`
+            layer: `L${i + 1}`,
+            importance_level: subUnit.importance_level || '1' // 新增
           }))
         }
       }
       
-      // 建立表單層級
       const formLayer = {
         level: pathItem.level,
         type: 'select',
         selectedId: pathItem.id,
         inputValue: '',
+        importance_level: pathItem.importance_level, // 新增
         options: options,
         isLoading: false,
-        isLocked: true // 父層都鎖定不可更改
+        isLocked: true
       }
       
       formData.unitLayers.push(formLayer)
     }
     
-    // 添加新的輸入層級（給用戶輸入新單位名稱）
     const nextLevel = path.length + 1
     if (nextLevel <= 5) {
       console.log(`插入模式：添加第 ${nextLevel} 層輸入欄位`)
       formData.unitLayers.push({
         level: nextLevel,
-        type: 'input', // 預設為輸入模式
+        type: 'input',
         selectedId: '',
         inputValue: '',
+        importance_level: '1', // 新增：預設為普通
         options: [],
         isLoading: false,
-        isLocked: false // 新增的層級不鎖定
+        isLocked: false
       })
     }
     
@@ -367,29 +355,21 @@ const initializeFormFromPath = async (path) => {
   }
 }
 
-// 修復後的 handleLayerChange 函數
 const handleLayerChange = async (layerIndex) => {
   const currentLayer = formData.unitLayers[layerIndex]
   
-  // 編輯模式下，如果是目標單位層級，只處理名稱變更，不清除後續層級
   if (isEditMode.value && currentLayer.isTarget) {
     console.log('編輯模式：目標單位名稱變更')
     return
   }
   
-  // 清除後續層級
   formData.unitLayers = formData.unitLayers.slice(0, layerIndex + 1)
   
-  // 只有當前層是 select 類型且有選擇時，才載入下一層選項
   if (currentLayer.type === 'select' && currentLayer.selectedId) {
     await loadNextLayerOptions(layerIndex + 1, currentLayer.selectedId)
   }
-  
-  // 移除自動添加 input 層級的邏輯
-  // 用戶需要手動點擊按鈕來添加 input 層級
 }
 
-// 載入指定層級的選項
 const loadLayerOptions = async (layerNumber) => {
   try {
     console.log(`載入第 ${layerNumber} 層選項`)
@@ -400,7 +380,8 @@ const loadLayerOptions = async (layerNumber) => {
       return unitsData.map(unit => ({
         id: unit.id,
         name: unit.name,
-        layer: unit.layer
+        layer: unit.layer,
+        importance_level: unit.importance_level || '1' // 新增
       }))
     }
     
@@ -411,30 +392,29 @@ const loadLayerOptions = async (layerNumber) => {
   }
 }
 
-// 修復後的 loadNextLayerOptions 函數
 const loadNextLayerOptions = async (nextLayerLevel, parentId) => {
   if (nextLayerLevel > 5) return
   
   try {
     console.log(`載入第 ${nextLayerLevel} 層選項，父級 ID:`, parentId)
     
-    // 使用 fetchUnitById 獲取子單位
     const response = await unitStore.fetchUnitById(parentId)
     
     if (response.success && response.data && response.data.sub_units) {
       const options = response.data.sub_units.map(subUnit => ({
         id: subUnit.sub_unit_id,
         name: subUnit.sub_unit_name,
-        layer: `L${nextLayerLevel}`
+        layer: `L${nextLayerLevel}`,
+        importance_level: subUnit.importance_level || '1' // 新增
       }))
       
-      // 關鍵修復：只有當有選項時才添加 select 層級
       if (options.length > 0) {
         const newLayer = {
           level: nextLayerLevel,
-          type: 'select', // 有選項時使用 select
+          type: 'select',
           selectedId: '',
           inputValue: '',
+          importance_level: '1', // 新增：預設為普通
           options: options,
           isLoading: false,
           isLocked: false
@@ -442,20 +422,15 @@ const loadNextLayerOptions = async (nextLayerLevel, parentId) => {
         
         formData.unitLayers.push(newLayer)
       }
-      // 如果沒有子單位，不添加任何層級
-      // 用戶需要手動點擊"添加層級"按鈕來添加 input 層級
     }
   } catch (error) {
     console.error(`載入第 ${nextLayerLevel} 層選項失敗:`, error)
-    // 載入失敗時也不自動添加 input 層級
   }
 }
 
-// 修復後的 addInputLayer 函數
 const addInputLayer = (level) => {
   if (level > 5) return
   
-  // 檢查是否已經有這個層級
   const existingLayer = formData.unitLayers.find(layer => layer.level === level)
   if (existingLayer) {
     console.log(`第 ${level} 層已存在，不重複添加`)
@@ -464,45 +439,40 @@ const addInputLayer = (level) => {
   
   console.log(`添加第 ${level} 層 input`)
   formData.unitLayers.push({
-    level: level, // 確保 level 正確
+    level: level,
     type: 'input',
     selectedId: '',
     inputValue: '',
+    importance_level: '1', // 新增：預設為普通
     options: [],
     isLoading: false,
     isLocked: false
   })
 }
 
-// 切換層級類型（select/input）
 const toggleLayerType = async (layerIndex) => {
   const layer = formData.unitLayers[layerIndex]
   
-  // 如果是鎖定的層級，不允許切換
   if (layer.isLocked) {
     console.log('此層級已鎖定，不允許切換類型')
     return
   }
   
   if (layer.type === 'select') {
-    // 切換到 input
     layer.type = 'input'
     layer.selectedId = ''
     layer.inputValue = ''
+    // 保留 importance_level
   } else {
-    // 切換到 select，需要載入選項
     layer.type = 'select'
     layer.inputValue = ''
     layer.selectedId = ''
     layer.isLoading = true
     
     try {
-      // 根據是否有父級決定載入方式
       if (layerIndex === 0) {
-        // 第一層直接載入
         layer.options = await loadLayerOptions(1)
       } else {
-        // 其他層基於父級載入
         const parentLayer = formData.unitLayers[layerIndex - 1]
         if (parentLayer.selectedId) {
           const response = await unitStore.fetchUnitById(parentLayer.selectedId)
@@ -510,7 +480,8 @@ const toggleLayerType = async (layerIndex) => {
             layer.options = response.data.sub_units.map(subUnit => ({
               id: subUnit.sub_unit_id,
               name: subUnit.sub_unit_name,
-              layer: `L${layer.level}`
+              layer: `L${layer.level}`,
+              importance_level: subUnit.importance_level || '1' // 新增
             }))
           }
         }
@@ -523,11 +494,9 @@ const toggleLayerType = async (layerIndex) => {
     }
   }
   
-  // 清除後續層級
   formData.unitLayers = formData.unitLayers.slice(0, layerIndex + 1)
 }
 
-// 載入用戶資料
 const loadUsers = async (unitId = null, forceReload = false) => {
   try {
     isLoadingUsers.value = true
@@ -543,7 +512,6 @@ const loadUsers = async (unitId = null, forceReload = false) => {
     let response
     
     if (unitId) {
-      // 有單位 ID，查詢特定單位的用戶
       console.log('🔄 載入單位用戶:', { 
         unitId, 
         forceReload,
@@ -555,15 +523,12 @@ const loadUsers = async (unitId = null, forceReload = false) => {
       
       console.log('📡 發送 fetchUnitUsers API 請求...')
       if(isInsertMode.value){
-        // 插入模式，查詢所有有資格的用戶
         response = await unitStore.fetchEmptyUnitUsers(searchParams)
       } else {
-        // 編輯模式或其他情況，查詢特定單位的用戶
         response = await unitStore.fetchUnitUsers(unitId, searchParams)
       }
       console.log('📡 fetchUnitUsers API 回應:', response)
     } else {
-      // 沒有單位 ID，查詢所有有資格的用戶
       console.log('🔄 載入所有有資格用戶:', { 
         forceReload,
         searchParams,
@@ -579,11 +544,9 @@ const loadUsers = async (unitId = null, forceReload = false) => {
       const usersData = response.data.data
       console.log('📊 原始用戶資料:', usersData)
       
-      // 處理用戶資料，加入 isSelected 狀態
       let processedUsers
       
       if (unitId) {
-        // 有單位 ID 的情況：根據 is_join 設定 isSelected
         processedUsers = usersData.data.map(user => ({
           id: user.id,
           account: user.credential,
@@ -592,10 +555,9 @@ const loadUsers = async (unitId = null, forceReload = false) => {
           repair_unit: user.repair_unit,
           status: user.is_join ? '已加入' : '未加入',
           is_join: user.is_join,
-          isSelected: user.is_join // 已加入的預設選中
+          isSelected: user.is_join
         }))
       } else {
-        // 沒有單位 ID 的情況：所有用戶預設未選中
         processedUsers = usersData.data.map(user => ({
           id: user.id,
           account: user.credential,
@@ -603,25 +565,21 @@ const loadUsers = async (unitId = null, forceReload = false) => {
           nick_name: user.nick_name,
           repair_unit: user.repair_unit,
           status: '未加入',
-          is_join: false, // 預設未加入任何特定單位
-          isSelected: false // 預設未選中
+          is_join: false,
+          isSelected: false
         }))
       }
       
-      // ✨ 新增：將已加入的用戶排序置頂
       if (unitId) {
-        // 將用戶分為兩組：已加入的和未加入的
         const joinedUsers = processedUsers.filter(user => user.is_join)
         const notJoinedUsers = processedUsers.filter(user => !user.is_join)
         
-        // 對兩組分別按照姓名排序（保持原有的排序邏輯）
         const sortUsers = (users) => {
           return users.sort((a, b) => {
             return a.name.localeCompare(b.name, 'zh-Hant', { numeric: true })
           })
         }
         
-        // 合併：已加入的用戶在前，未加入的用戶在後
         processedUsers = [
           ...sortUsers(joinedUsers),
           ...sortUsers(notJoinedUsers)
@@ -637,7 +595,6 @@ const loadUsers = async (unitId = null, forceReload = false) => {
       console.log('🔄 更新 availableUsers.value...')
       availableUsers.value = processedUsers
       
-      // 更新分頁資訊
       totalUsers.value = usersData.total || 0
       totalPages.value = usersData.totalPages || 0
       currentPage.value = usersData.page || 1
@@ -652,7 +609,6 @@ const loadUsers = async (unitId = null, forceReload = false) => {
           timestamp: new Date().toLocaleTimeString()
         })
         
-        // 如果是編輯模式，額外顯示加入狀態詳情
         if (isEditMode.value) {
           console.log('📊 編輯模式用戶狀態詳情（已按加入狀態排序）:')
           availableUsers.value.forEach((user, index) => {
@@ -687,14 +643,11 @@ const loadUsers = async (unitId = null, forceReload = false) => {
   }
 }
 
-
-// 用戶搜尋
 const searchUsers = async () => {
   currentPage.value = 1
   await loadUsers(currentUnitId.value)
 }
 
-// 重置搜尋
 const resetSearch = () => {
   searchKeyword.value = ''
   currentPage.value = 1
@@ -703,7 +656,6 @@ const resetSearch = () => {
   }
 }
 
-// 分頁變更
 const goToPage = async (page) => {
   if (page >= 1 && page <= totalPages.value) {
     currentPage.value = page
@@ -711,7 +663,6 @@ const goToPage = async (page) => {
   }
 }
 
-// 監聽頁面大小變更
 watch(pageSize, async () => {
   currentPage.value = 1
   if (currentUnitId.value) {
@@ -719,17 +670,14 @@ watch(pageSize, async () => {
   }
 })
 
-// 監聽單位變更
 watch(currentUnitId, async (newUnitId, oldUnitId) => {
   console.log('單位變更監聽器觸發:', { newUnitId, oldUnitId, isEditMode: isEditMode.value })
   
-  // 編輯模式下，如果是初始化載入，不重複觸發
   if (isEditMode.value && oldUnitId === null && newUnitId === editUnitData.value?.id) {
     console.log('編輯模式初始化，跳過重複載入用戶')
     return
   }
   
-  // 編輯模式下，如果是手動重新載入（reloadEditPageData 觸發），允許執行
   if (isEditMode.value && newUnitId === editUnitData.value?.id) {
     console.log('編輯模式：允許重新載入用戶資料')
     currentPage.value = 1
@@ -738,13 +686,11 @@ watch(currentUnitId, async (newUnitId, oldUnitId) => {
     return
   }
   
-  // 編輯模式下，單位ID不應該變更，如果變更了就有問題
   if (isEditMode.value && newUnitId !== editUnitData.value?.id) {
     console.warn('編輯模式下單位ID異常變更，保持原有單位ID')
     return
   }
   
-  // 非編輯模式的正常處理
   if (!isEditMode.value) {
     currentPage.value = 1
     searchKeyword.value = ''
@@ -759,7 +705,6 @@ const toggleUserSelection = (userId) => {
   }
 }
 
-// 全選/取消全選
 const toggleSelectAll = () => {
   const allSelected = availableUsers.value.every(user => user.isSelected)
   availableUsers.value.forEach(user => {
@@ -767,21 +712,19 @@ const toggleSelectAll = () => {
   })
 }
 
-// 建構要發送到 API 的資料結構
+// 建構要發送到 API 的資料結構（新增模式）
 const buildApiData = () => {
   let parentId = null
   let startBuildIndex = 0
   
-  // 找到最後一個 select 類型的層級作為 parentId
   for (let i = 0; i < formData.unitLayers.length; i++) {
     const layer = formData.unitLayers[i]
     if (layer.type === 'select' && layer.selectedId) {
       parentId = layer.selectedId
-      startBuildIndex = i + 1 // 從下一層開始建構新單位
+      startBuildIndex = i + 1
     }
   }
   
-  // 從 startBuildIndex 開始，建構嵌套的單位結構
   const buildNestedUnits = (startIndex) => {
     if (startIndex >= formData.unitLayers.length) {
       return []
@@ -789,15 +732,14 @@ const buildApiData = () => {
     
     const currentLayer = formData.unitLayers[startIndex]
     
-    // 只處理 input 類型的層級
     if (currentLayer.type === 'input' && currentLayer.inputValue) {
       const unit = {
         name: currentLayer.inputValue,
-        users: [], // 預設空陣列，最深層才會有用戶
-        sub_units: buildNestedUnits(startIndex + 1) // 遞歸建構子單位
+        importance_level: currentLayer.importance_level, // 新增：重要程度
+        users: [],
+        sub_units: buildNestedUnits(startIndex + 1)
       }
       
-      // 如果這是最後一層有值的單位，添加選中的用戶
       const hasMoreLayers = formData.unitLayers
         .slice(startIndex + 1)
         .some(layer => layer.type === 'input' && layer.inputValue)
@@ -809,7 +751,6 @@ const buildApiData = () => {
       return [unit]
     }
     
-    // 如果當前層沒有值，繼續下一層
     return buildNestedUnits(startIndex + 1)
   }
   
@@ -821,9 +762,7 @@ const buildApiData = () => {
   }
 }
 
-// 修復後的手動添加下一層
 const addManualLayer = () => {
-  // 編輯模式不允許添加新層級
   if (isEditMode.value) {
     alert('編輯模式不允許添加新的子單位層級')
     return
@@ -847,18 +786,19 @@ const previewApiData = computed(() => {
     return { parentId: null, units: [] }
   }
 })
+
 const cancel = () => {
   router.push('/settings/unit-management')
 }
-// 測試建構資料的方法
+
 const testBuildData = () => {
   console.log('=== 測試建構 API 資料 ===')
   
   if (isEditMode.value) {
-    // 編輯模式測試
     const targetLayer = formData.unitLayers.find(layer => layer.isTarget)
     const editData = {
       name: targetLayer?.inputValue,
+      importance_level: targetLayer?.importance_level, // 新增
       updateUnitUsers: availableUsers.value.map(user => ({
         user_id: user.id,
         is_in_unit: user.isSelected
@@ -866,17 +806,7 @@ const testBuildData = () => {
     }
     
     console.log('編輯模式 API 資料:', editData)
-    console.log('用戶選擇狀態詳細分析:')
-    availableUsers.value.forEach(user => {
-      console.log(`- ${user.name} (${user.account}):`, {
-        原本狀態: user.is_join ? '已加入' : '未加入',
-        目前勾選: user.isSelected ? '是' : '否',
-        將發送: `is_in_unit: ${user.isSelected}`,
-        變更: user.is_join !== user.isSelected ? '有變更' : '無變更'
-      })
-    })
   } else {
-    // 新增模式測試
     console.log('當前表單層級:', formData.unitLayers)
     console.log('選中的用戶:', selectedUsers.value)
     console.log('建構的 API 資料:', previewApiData.value)
@@ -890,41 +820,28 @@ const saveForm = async () => {
     isSaving.value = true
     
     if (isEditMode.value) {
-      // 編輯模式：只更新單位名稱和用戶
       const targetLayer = formData.unitLayers.find(layer => layer.isTarget)
       if (!targetLayer || !targetLayer.inputValue) {
         alert('請輸入單位名稱')
         return
       }
       
-      // 建構編輯 API 資料 - 包含所有用戶的狀態變更
       const editData = {
         name: targetLayer.inputValue,
+        importance_level: targetLayer.importance_level, // 新增：重要程度
         updateUnitUsers: availableUsers.value.map(user => ({
           user_id: user.id,
-          is_in_unit: user.isSelected // 關鍵：使用用戶當前的選擇狀態
+          is_in_unit: user.isSelected
         }))
       }
       
       console.log('準備發送的編輯 API 資料:', editData)
-      console.log('用戶狀態變更詳情:', availableUsers.value.map(user => ({
-        user_id: user.id,
-        name: user.name,
-        account: user.account,
-        originalStatus: user.is_join ? '原本已加入' : '原本未加入',
-        currentSelection: user.isSelected ? '目前勾選' : '目前未勾選',
-        willBeSent: user.isSelected ? 'is_in_unit: true' : 'is_in_unit: false',
-        action: user.is_join !== user.isSelected ? 
-          (user.isSelected ? '將加入單位' : '將移除單位') : '狀態無變更'
-      })))
       
-      // 呼叫編輯 API
       const response = await unitStore.updateUnit(editUnitData.value.id, editData)
       
       if (response.success) {
         console.log('✅ 編輯 API 成功，開始重新載入資料...')
         
-        // 重新載入編輯頁面資料
         try {
           await reloadEditPageData()
           console.log('✅ 編輯完成，資料已重新載入')
@@ -937,14 +854,11 @@ const saveForm = async () => {
         alert('編輯失敗：' + (response.message || '未知錯誤'))
       }
     } else {
-      // 新增模式：原有邏輯
-      // 驗證表單
       if (!unitPath.value) {
         alert('請至少選擇或輸入一層單位')
         return
       }
       
-      // 檢查是否有需要新增的單位（至少一個 input 類型）
       const hasNewUnits = formData.unitLayers.some(layer => 
         layer.type === 'input' && layer.inputValue
       )
@@ -954,12 +868,10 @@ const saveForm = async () => {
         return
       }
       
-      // 建構 API 資料
       const apiData = buildApiData()
       
       console.log('準備發送的 API 資料:', apiData)
       
-      // 呼叫新增 API
       const response = await unitStore.createUnit(apiData)
       
       if (response.success) {
@@ -978,8 +890,6 @@ const saveForm = async () => {
   }
 }
 
-// 編輯模式：切換單位名稱編輯狀態
-// 2. 修改 toggleEditUnitName 函數
 const toggleEditUnitName = () => {
   if(!hasWriteUnitPermission.value){
     alert('您沒有權限編輯單位名稱')
@@ -987,16 +897,14 @@ const toggleEditUnitName = () => {
   }
   
   if (!isEditingUnitName.value) {
-    // 進入編輯模式 - 備份當前資料
     console.log('進入編輯模式，備份當前資料')
     
-    // 備份單位名稱
     const targetLayer = formData.unitLayers.find(layer => layer.isTarget)
     if (targetLayer) {
       backupData.originalUnitName = targetLayer.inputValue
+      backupData.originalimportance_level = targetLayer.importance_level // 新增：備份重要程度
     }
     
-    // 備份用戶選擇狀態
     backupData.originalUserSelections = availableUsers.value.map(user => ({
       id: user.id,
       isSelected: user.isSelected
@@ -1004,28 +912,26 @@ const toggleEditUnitName = () => {
     
     console.log('備份資料:', {
       unitName: backupData.originalUnitName,
+      importance_level: backupData.originalimportance_level, // 新增
       userSelectionsCount: backupData.originalUserSelections.length
     })
     
-    // 設定編輯模式
     isEditingUnitName.value = true
     
-    // 找到目標單位層級並解鎖
     if (targetLayer) {
       targetLayer.isLocked = false
     }
   } else {
-    // 取消編輯模式 - 恢復備份資料
     console.log('取消編輯模式，恢復備份資料')
     
-    // 恢復單位名稱
     const targetLayer = formData.unitLayers.find(layer => layer.isTarget)
     if (targetLayer && backupData.originalUnitName !== '') {
       targetLayer.inputValue = backupData.originalUnitName
+      targetLayer.importance_level = backupData.originalimportance_level // 新增：恢復重要程度
       console.log('恢復單位名稱:', backupData.originalUnitName)
+      console.log('恢復重要程度:', backupData.originalimportance_level) // 新增
     }
     
-    // 恢復用戶選擇狀態
     if (backupData.originalUserSelections.length > 0) {
       backupData.originalUserSelections.forEach(backup => {
         const user = availableUsers.value.find(u => u.id === backup.id)
@@ -1036,24 +942,20 @@ const toggleEditUnitName = () => {
       console.log('恢復用戶選擇狀態完成')
     }
     
-    // 設定為非編輯模式
     isEditingUnitName.value = false
     
-    // 鎖定目標單位層級
     if (targetLayer) {
       targetLayer.isLocked = true
     }
     
-    // 清空備份資料
     backupData.originalUnitName = ''
+    backupData.originalimportance_level = '' // 新增
     backupData.originalUserSelections = []
   }
   
   console.log('編輯模式狀態:', isEditingUnitName.value)
 }
 
-
-// 重新載入編輯頁面資料
 const reloadEditPageData = async () => {
   try {
     console.log('🔄 開始重新載入編輯頁面資料，當前時間:', new Date().toLocaleTimeString())
@@ -1064,39 +966,37 @@ const reloadEditPageData = async () => {
     
     console.log('📡 重新獲取單位詳細資料，單位ID:', editUnitData.value.id)
     
-    // 重新獲取單位詳細資料
     const response = await unitStore.fetchUnitById(editUnitData.value.id)
     if (response.success && response.data) {
       console.log('✅ 單位詳細資料獲取成功:', response.data)
       
-      // 更新單位資料
       editUnitData.value = response.data
       originalUnitName.value = response.data.name
       unitUsersCount.value = response.data.users ? response.data.users.length : 0
       
       console.log('📊 單位資料已更新:', {
         name: editUnitData.value.name,
+        importance_level: editUnitData.value.importance_level, // 新增
         usersCount: unitUsersCount.value
       })
       
-      // 更新表單中的單位名稱
       const targetLayer = formData.unitLayers.find(layer => layer.isTarget)
       if (targetLayer) {
         targetLayer.inputValue = response.data.name
+        targetLayer.importance_level = response.data.importance_level || '1' // 新增：更新重要程度
         console.log('📝 表單中的單位名稱已更新:', targetLayer.inputValue)
+        console.log('📝 表單中的重要程度已更新:', targetLayer.importance_level) // 新增
       }
     } else {
       throw new Error('重新獲取單位資料失敗：' + (response.message || '未知錯誤'))
     }
     
-    // 直接重新載入用戶資料，不依賴監聽器
     console.log('🔄 直接重新載入用戶資料，單位ID:', editUnitData.value.id)
     currentPage.value = 1
     searchKeyword.value = ''
     
-    // 直接調用 loadUsers，加上額外的錯誤處理
     try {
-      await loadUsers(editUnitData.value.id, true) // 強制重新載入
+      await loadUsers(editUnitData.value.id, true)
       console.log('✅ 用戶資料重新載入成功')
     } catch (userLoadError) {
       console.error('❌ 載入用戶資料時發生錯誤:', userLoadError)
@@ -1107,9 +1007,10 @@ const reloadEditPageData = async () => {
   } catch (error) {
     console.error('❌ 重新載入資料失敗:', error)
     console.error('錯誤詳情:', error.stack)
-    throw error // 重新拋出錯誤，讓調用方處理
+    throw error
   }
 }
+
 const saveUnitNameChange = async () => {
   const targetLayer = formData.unitLayers.find(layer => layer.isTarget)
   if (!targetLayer || !targetLayer.inputValue) {
@@ -1120,12 +1021,12 @@ const saveUnitNameChange = async () => {
   try {
     isSaving.value = true
     
-    // 只更新單位名稱，不更改用戶狀態
     const editData = {
       name: targetLayer.inputValue,
+      importance_level: targetLayer.importance_level, // 新增：重要程度
       updateUnitUsers: availableUsers.value.map(user => ({
         user_id: user.id,
-        is_in_unit: user.isSelected // 使用當前選擇狀態
+        is_in_unit: user.isSelected
       }))
     }
     
@@ -1134,33 +1035,31 @@ const saveUnitNameChange = async () => {
     const response = await unitStore.updateUnit(editUnitData.value.id, editData)
     
     if (response.success) {
-      // 更新本地資料
       originalUnitName.value = targetLayer.inputValue
       editUnitData.value.name = targetLayer.inputValue
+      editUnitData.value.importance_level = targetLayer.importance_level // 新增
       
-      // 切換回唯讀模式
       isEditingUnitName.value = false
       targetLayer.isLocked = true
       
-      // 清空備份資料（因為已經成功儲存）
       backupData.originalUnitName = ''
+      backupData.originalimportance_level = '' // 新增
       backupData.originalUserSelections = []
       
       alert('單位更新成功！')
-      await reloadEditPageData();
+      await reloadEditPageData()
       
-      // 更新當前用戶的 repair_unit
-      const currentUser = availableUsers.value.find(user => user.id === authStore.user.id);
+      const currentUser = availableUsers.value.find(user => user.id === authStore.user.id)
       if (currentUser) {
         if (currentUser.isSelected) {
-          authStore.user.repair_unit = targetLayer.inputValue;
-          console.log('用户仍在单位中，更新 repair_unit 为:', targetLayer.inputValue);
+          authStore.user.repair_unit = targetLayer.inputValue
+          console.log('用户仍在单位中，更新 repair_unit 为:', targetLayer.inputValue)
         } else {
-          authStore.user.repair_unit = '';
-          console.log('用户已被移除单位，清空 repair_unit');
+          authStore.user.repair_unit = ''
+          console.log('用户已被移除单位，清空 repair_unit')
         }
       } else {
-        console.log('当前用户不在此单位的用户列表中');
+        console.log('当前用户不在此单位的用户列表中')
       }
       
     } else {
@@ -1174,8 +1073,6 @@ const saveUnitNameChange = async () => {
   }
 }
 
-
-// 刪除單位
 const deleteUnit = async () => {
   if (!hasWriteUnitPermission.value) {
     alert('您沒有權限刪除單位')
@@ -1189,9 +1086,7 @@ const deleteUnit = async () => {
   try {
     isSaving.value = true
     
-    // 這裡需要添加刪除 API 調用
     const response = await unitStore.deleteUnit(editUnitData.value.id)
-    // 暫時用 alert 提示
     
     if (response.success) {
       alert('刪除單位成功！')
@@ -1206,6 +1101,7 @@ const deleteUnit = async () => {
     isSaving.value = false
   }
 }
+
 const getInputPlaceholder = (layer) => {
   if (layer.isTarget && isEditMode.value) {
     return '請輸入新的單位名稱'
@@ -1213,7 +1109,6 @@ const getInputPlaceholder = (layer) => {
   return `請輸入新的單位名稱`
 }
 
-// 取得切換按鈕提示文字
 const getToggleButtonTitle = (layer) => {
   if (isEditMode.value) {
     return '編輯模式不允許切換類型'
@@ -1224,8 +1119,12 @@ const getToggleButtonTitle = (layer) => {
   return layer.type === 'select' ? '切換到輸入模式' : '切換到選擇模式'
 }
 
+// 獲取重要程度標籤文字
+const getimportance_levelLabel = (value) => {
+  const option = importance_levelOptions.find(opt => opt.value === value)
+  return option ? option.label : '普通'
+}
 
-// 初始化載入
 onMounted(async () => {
   isLoading.value = true
   try {
@@ -1239,17 +1138,14 @@ onMounted(async () => {
     })
     
     if (isEditMode.value && editUnitId.value) {
-      // 編輯模式：建構編輯單位路徑並初始化表單
       console.log('🚀 編輯模式，建構編輯單位路徑')
       const editPath = await buildEditUnitPath(editUnitId.value)
       await initializeEditForm(editPath)
     } else if (isInsertMode.value && parentId.value) {
-      // 插入模式：建構父層路徑並初始化表單
       console.log('🚀 插入模式，建構父層路徑')
       const parentPath = await buildParentPath(parentId.value)
       await initializeFormFromPath(parentPath)
     } else {
-      // 創建模式：載入第一層選項
       console.log('🚀 創建模式，載入第一層選項')
       const firstLayerOptions = await loadLayerOptions(1)
       formData.unitLayers[0].options = firstLayerOptions
@@ -1261,27 +1157,25 @@ onMounted(async () => {
         options: formData.unitLayers[0].options.length 
       })
       
-      // 創建模式：初始載入所有有資格的用戶
       console.log('🚀 創建模式：載入所有有資格的用戶')
-      await loadUsers(null) // 沒有單位 ID，載入所有用戶
+      await loadUsers(null)
     }
     
     console.log('🚀 初始化完成，最終層級狀態:', formData.unitLayers.map(l => ({ 
       level: l.level, 
       type: l.type, 
       isLocked: l.isLocked,
-      isTarget: l.isTarget 
+      isTarget: l.isTarget,
+      importance_level: l.importance_level // 新增
     })))
   } catch (error) {
     console.error('❌ 初始化失敗:', error)
     alert('初始化失敗：' + (error.message || '請稍後再試'))
     
-    // 初始化失敗時的fallback
     if (!isEditMode.value) {
       formData.unitLayers[0].type = 'input'
       formData.unitLayers[0].isLocked = false
       
-      // fallback 時也嘗試載入用戶
       try {
         await loadUsers(null)
       } catch (userError) {
@@ -1443,6 +1337,14 @@ onMounted(async () => {
                 <div class="info-value">{{ unitPath }}</div>
               </div>
               <div class="info-row">
+                <label class="info-label">重要程度</label>
+                <div class="info-value">
+                  <span :class="['importance-badge', `level-${editUnitData?.importance_level || '1'}`]">
+                    {{ getimportance_levelLabel(editUnitData?.importance_level || '1') }}
+                  </span>
+                </div>
+              </div>
+              <div class="info-row">
                 <label class="info-label">人數</label>
                 <div class="info-value">{{ unitUsersCount }}</div>
               </div>
@@ -1459,6 +1361,18 @@ onMounted(async () => {
                 <div class="info-card-content">
                   <div class="info-card-label">單位</div>
                   <div class="info-card-value">{{ unitPath }}</div>
+                </div>
+              </div>
+              
+              <div class="info-card">
+                <div class="info-card-icon">⚡</div>
+                <div class="info-card-content">
+                  <div class="info-card-label">重要程度</div>
+                  <div class="info-card-value">
+                    <span :class="['importance-badge', `level-${editUnitData?.importance_level || '1'}`]">
+                      {{ getimportance_levelLabel(editUnitData?.importance_level || '1') }}
+                    </span>
+                  </div>
                 </div>
               </div>
               
@@ -1553,9 +1467,45 @@ onMounted(async () => {
                 </div>
               </div>
             </div>
+
+            <!-- 新增：重要程度選擇 -->
+            <div class="form-row importance-row">
+              <label class="form-label">重要程度</label>
+              <div class="importance-layers">
+                <div 
+                  v-for="(layer, index) in formData.unitLayers" 
+                  :key="`importance-${index}`"
+                  class="importance-container"
+                >
+                  <select 
+                    v-model="layer.importance_level"
+                    :disabled="layer.isLocked && (!layer.isTarget || !isEditingUnitName)"
+                    :class="[
+                      'importance-select', 
+                      `level-${layer.importance_level}`,
+                      { 
+                        'locked': layer.isLocked && (!layer.isTarget || !isEditingUnitName),
+                        'target': layer.isTarget,
+                        'editable': layer.isTarget && isEditMode && isEditingUnitName
+                      }
+                    ]"
+                  >
+                    <option 
+                      v-for="option in importance_levelOptions" 
+                      :key="option.value" 
+                      :value="option.value"
+                    >
+                      {{ option.label }}
+                    </option>
+                  </select>
+                  
+                  <span v-if="index < formData.unitLayers.length - 1" class="importance-separator">></span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <!-- 手機版 - 卡片式佈局 -->
+          <!-- 手機版表單 -->
           <div class="mobile-form">
             <div class="mobile-form-header">
               <h4>單位層級設定</h4>
@@ -1625,6 +1575,31 @@ onMounted(async () => {
                       :disabled="layer.isLocked"
                       class="mobile-layer-input"
                     />
+                  </div>
+
+                  <!-- 新增：手機版重要程度選擇 -->
+                  <div class="mobile-importance-container">
+                    <label class="mobile-importance-label">重要程度</label>
+                    <select 
+                      v-model="layer.importance_level"
+                      :disabled="layer.isLocked && (!layer.isTarget || !isEditingUnitName)"
+                      :class="[
+                        'mobile-importance-select', 
+                        `level-${layer.importance_level}`,
+                        { 
+                          'locked': layer.isLocked && (!layer.isTarget || !isEditingUnitName),
+                          'editable': layer.isTarget && isEditMode && isEditingUnitName
+                        }
+                      ]"
+                    >
+                      <option 
+                        v-for="option in importance_levelOptions" 
+                        :key="option.value" 
+                        :value="option.value"
+                      >
+                        {{ option.label }}
+                      </option>
+                    </select>
                   </div>
                 </div>
 
@@ -1942,6 +1917,11 @@ $danger-hover: #c82333;
 $warning-color: #ffc107;
 $warning-bg: #fff3cd;
 $warning-text: #856404;
+
+// 重要程度顏色定義
+$importance-normal: #6c757d;      // 普通 - 灰色
+$importance-warranty: #ffc107;    // 保固級 - 黃色
+$importance-urgent: #dc3545;      // 急件 - 紅色
 
 // 基礎樣式
 .create-unit-page {
@@ -2284,7 +2264,7 @@ $warning-text: #856404;
           }
 
           .info-label {
-            min-width: 80px;
+            min-width: 100px;
             font-weight: 500;
             color: #495057;
             font-size: 14px;
@@ -2473,6 +2453,119 @@ $warning-text: #856404;
           margin: 0 5px;
         }
       }
+
+      // 重要程度選擇行
+      .importance-row {
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid #e9ecef;
+
+        @media (min-width: $breakpoint-tablet) {
+          margin-top: 25px;
+          padding-top: 25px;
+        }
+      }
+
+      .importance-layers {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+
+        .importance-container {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .importance-select {
+          padding: 8px 12px;
+          border: 2px solid #ddd;
+          border-radius: 6px;
+          font-size: 13px;
+          font-weight: 500;
+          min-width: 120px;
+          transition: all 0.3s;
+          cursor: pointer;
+
+          @media (min-width: $breakpoint-tablet) {
+            padding: 10px 14px;
+            font-size: 14px;
+            min-width: 140px;
+          }
+
+          &:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.1);
+          }
+
+          &:disabled {
+            background-color: #f8f9fa;
+            color: #999;
+            cursor: not-allowed;
+            opacity: 0.7;
+          }
+
+          // 根據選擇的重要程度改變邊框和背景色
+          &.level-1 {
+            border-color: $importance-normal;
+            background-color: lighten($importance-normal, 45%);
+            color: darken($importance-normal, 10%);
+
+            &:not(:disabled):hover {
+              border-color: darken($importance-normal, 10%);
+              background-color: lighten($importance-normal, 40%);
+            }
+          }
+
+          &.level-2 {
+            border-color: $importance-warranty;
+            background-color: lighten($importance-warranty, 45%);
+            color: darken($importance-warranty, 30%);
+
+            &:not(:disabled):hover {
+              border-color: darken($importance-warranty, 10%);
+              background-color: lighten($importance-warranty, 40%);
+            }
+          }
+
+          &.level-3 {
+            border-color: $importance-urgent;
+            background-color: lighten($importance-urgent, 45%);
+            color: darken($importance-urgent, 10%);
+
+            &:not(:disabled):hover {
+              border-color: darken($importance-urgent, 10%);
+              background-color: lighten($importance-urgent, 40%);
+            }
+          }
+
+          &.locked {
+            background-color: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+          }
+
+          &.target {
+            border-width: 2px;
+            box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.1);
+          }
+
+          &.editable {
+            border-color: #007bff;
+            background-color: #f0f8ff;
+            font-weight: 600;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+          }
+        }
+
+        .importance-separator {
+          color: #666;
+          font-weight: bold;
+          margin: 0 5px;
+          font-size: 14px;
+        }
+      }
     }
 
     // 手機版表單
@@ -2623,6 +2716,95 @@ $warning-text: #856404;
                   background-color: #f8f9fa;
                   color: #999;
                   cursor: not-allowed;
+                }
+              }
+            }
+
+            // 手機版重要程度選擇
+            .mobile-importance-container {
+              margin-top: 12px;
+              padding-top: 12px;
+              border-top: 1px dashed #dee2e6;
+
+              .mobile-importance-label {
+                display: block;
+                font-size: 12px;
+                color: #6c757d;
+                font-weight: 500;
+                margin-bottom: 6px;
+              }
+
+              .mobile-importance-select {
+                width: 100%;
+                padding: 10px 12px;
+                border: 2px solid #ddd;
+                border-radius: 6px;
+                font-size: 14px;
+                font-weight: 500;
+                transition: all 0.3s;
+                cursor: pointer;
+                appearance: none;
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+                background-repeat: no-repeat;
+                background-position: right 12px center;
+                background-size: 12px;
+                padding-right: 36px;
+
+                &:focus {
+                  outline: none;
+                  box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.1);
+                }
+
+                &:disabled {
+                  background-color: #f8f9fa;
+                  color: #999;
+                  cursor: not-allowed;
+                  opacity: 0.7;
+                }
+
+                // 根據選擇的重要程度改變樣式
+                &.level-1 {
+                  border-color: $importance-normal;
+                  background-color: lighten($importance-normal, 47%);
+                  color: darken($importance-normal, 10%);
+
+                  &:not(:disabled):active {
+                    background-color: lighten($importance-normal, 42%);
+                  }
+                }
+
+                &.level-2 {
+                  border-color: $importance-warranty;
+                  background-color: lighten($importance-warranty, 47%);
+                  color: darken($importance-warranty, 30%);
+
+                  &:not(:disabled):active {
+                    background-color: lighten($importance-warranty, 42%);
+                  }
+                }
+
+                &.level-3 {
+                  border-color: $importance-urgent;
+                  background-color: lighten($importance-urgent, 47%);
+                  color: darken($importance-urgent, 10%);
+
+                  &:not(:disabled):active {
+                    background-color: lighten($importance-urgent, 42%);
+                  }
+                }
+
+                &.locked {
+                  background-color: #fff3cd;
+                  border-color: #ffc107;
+                  color: #856404;
+                }
+
+                &.editable {
+                  border-color: #007bff;
+                  border-width: 2px;
+                  background-color: #e7f3ff;
+                  font-weight: 600;
+                  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
                 }
               }
             }
@@ -3295,6 +3477,50 @@ $warning-text: #856404;
   }
 }
 
+// 重要程度 Badge 樣式
+.importance-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+
+  @media (max-width: $breakpoint-mobile) {
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+
+  @media (min-width: $breakpoint-tablet) {
+    padding: 5px 14px;
+    font-size: 13px;
+  }
+
+  &:hover {
+    transform: scale(1.05);
+  }
+
+  &.level-1 {
+    background: lighten($importance-normal, 35%);
+    color: darken($importance-normal, 10%);
+    border: 1px solid lighten($importance-normal, 20%);
+  }
+
+  &.level-2 {
+    background: lighten($importance-warranty, 35%);
+    color: darken($importance-warranty, 30%);
+    border: 1px solid lighten($importance-warranty, 15%);
+  }
+
+  &.level-3 {
+    background: lighten($importance-urgent, 35%);
+    color: darken($importance-urgent, 10%);
+    border: 1px solid lighten($importance-urgent, 15%);
+  }
+}
+
 // 手機版專用底部間距（避免被浮動按鈕遮蓋）
 @media (max-width: calc($breakpoint-tablet - 1px)) {
   .form-container {
@@ -3346,6 +3572,31 @@ $warning-text: #856404;
   }
 }
 
+// 響應式調整 - 確保在小螢幕上重要程度選擇器不會太擠
+@media (max-width: $breakpoint-mobile) {
+  .desktop-tablet-form {
+    .importance-layers {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+
+      .importance-container {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+
+        .importance-select {
+          width: 100%;
+        }
+
+        .importance-separator {
+          display: none;
+        }
+      }
+    }
+  }
+}
+
 // 滾動條美化（僅桌面版）
 @media (min-width: $breakpoint-desktop) {
   .users-table-container {
@@ -3389,6 +3640,21 @@ $warning-text: #856404;
   .mobile-action-buttons button {
     border: 2px solid #000;
   }
+
+  .importance-badge {
+    border-width: 2px !important;
+    font-weight: 700 !important;
+  }
+
+  .importance-select,
+  .mobile-importance-select {
+    border-width: 2px !important;
+    
+    &:focus {
+      outline: 3px solid #000 !important;
+      outline-offset: 2px;
+    }
+  }
 }
 
 // 打印樣式
@@ -3410,6 +3676,46 @@ $warning-text: #856404;
   .users-section {
     box-shadow: none !important;
     border: 1px solid #000 !important;
+  }
+
+  .importance-badge {
+    border: 1px solid #000 !important;
+    background: white !important;
+    
+    &::before {
+      content: '【';
+    }
+    
+    &::after {
+      content: '】';
+    }
+  }
+
+  .importance-select,
+  .mobile-importance-select {
+    border: 1px solid #000 !important;
+    background: white !important;
+  }
+}
+
+// 動畫效果 - 重要程度變更時的過渡
+.importance-select,
+.mobile-importance-select {
+  transition: 
+    border-color 0.3s ease,
+    background-color 0.3s ease,
+    color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+// 表單驗證狀態 - 重要程度必填時的樣式
+.importance-select.is-invalid,
+.mobile-importance-select.is-invalid {
+  border-color: #dc3545 !important;
+  background-color: #fff5f5 !important;
+  
+  &:focus {
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.15) !important;
   }
 }
 </style>
