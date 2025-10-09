@@ -318,7 +318,7 @@ onMounted(async () => {
 
               <div class="info-group">
                 <label class="info-label">承辦人員</label>
-                <div class="info-value">{{ todoDetail.assign_user_nick_name || '-' }}</div>
+                <div class="info-value">{{ todoDetail.assign_user_name || '-' }}</div>
               </div>
             </div>
           </div>
