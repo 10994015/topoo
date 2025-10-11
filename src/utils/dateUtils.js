@@ -25,3 +25,24 @@ export const formatDateTime = (dateString) => {
   
   return `${year}-${month}-${day} ${hours}:${minutes}`
 }
+
+export const toUTCString = (date) => {
+  if (!date) return null;
+  
+  try {
+    // 如果是字串，直接創建 Date 物件（會被視為本地時間）
+    const localDate = new Date(date);
+    
+    // 檢查日期是否有效
+    if (isNaN(localDate.getTime())) {
+      console.warn('無效的日期格式:', date);
+      return null;
+    }
+    
+    // 轉換為 UTC ISO 字串
+    return localDate.toISOString();
+  } catch (error) {
+    console.error('UTC 轉換錯誤:', error);
+    return null;
+  }
+};

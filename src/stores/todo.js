@@ -119,7 +119,7 @@ export const useTodoStore = defineStore('todo', () => {
     const assignWork = async (assignData) => {
         try {
             console.log('指派案件數據:', assignData);
-            
+            assignData.estimatedCompletionTime = new Date(assignData.estimatedCompletionTime).toISOString()
             const response = await axiosClient.post('/backend/todo', assignData, {
                 headers: {
                     'Content-Type': 'application/json'
@@ -151,7 +151,7 @@ export const useTodoStore = defineStore('todo', () => {
             console.log('編輯案件數據:',updateData);
 
             const todoId = updateData.todoId
-
+            updateData.estimatedCompletionTime = new Date(updateData.estimatedCompletionTime).toISOString()
             const params = {
                 assignUserId: updateData.assignUserId,
                 importanceLevel: updateData.importanceLevel,

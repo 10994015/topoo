@@ -261,7 +261,7 @@ const getPriorityLabel = (level) => {
   const levelMap = {
     1: '普級',
     2: '中級',
-    3: '緊急'
+    3: '高級'
   }
   return levelMap[level] || '-'
 }
