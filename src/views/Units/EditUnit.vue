@@ -16,7 +16,7 @@ const hasWriteUnitPermission = computed(() => authStore.canModify(PERMISSIONS.UN
 
 // 重要程度選項
 const importance_levelOptions = [
-  { value: '1', label: '普通' },
+  { value: '1', label: '普級' },
   { value: '2', label: '保固級' },
   { value: '3', label: '急件' }
 ]
@@ -36,7 +36,7 @@ const formData = reactive({
       type: 'select', 
       selectedId: '', 
       inputValue: '', 
-      importance_level: '1', // 新增：預設為普通
+      importance_level: '1', // 新增：預設為普級
       options: [], 
       isLoading: false, 
       isLocked: false 
@@ -341,7 +341,7 @@ const initializeFormFromPath = async (path) => {
         type: 'input',
         selectedId: '',
         inputValue: '',
-        importance_level: '1', // 新增：預設為普通
+        importance_level: '1', // 新增：預設為普級
         options: [],
         isLoading: false,
         isLocked: false
@@ -414,7 +414,7 @@ const loadNextLayerOptions = async (nextLayerLevel, parentId) => {
           type: 'select',
           selectedId: '',
           inputValue: '',
-          importance_level: '1', // 新增：預設為普通
+          importance_level: '1', // 新增：預設為普級
           options: options,
           isLoading: false,
           isLocked: false
@@ -443,7 +443,7 @@ const addInputLayer = (level) => {
     type: 'input',
     selectedId: '',
     inputValue: '',
-    importance_level: '1', // 新增：預設為普通
+    importance_level: '1', // 新增：預設為普級
     options: [],
     isLoading: false,
     isLocked: false
@@ -1122,7 +1122,7 @@ const getToggleButtonTitle = (layer) => {
 // 獲取重要程度標籤文字
 const getimportance_levelLabel = (value) => {
   const option = importance_levelOptions.find(opt => opt.value === value)
-  return option ? option.label : '普通'
+  return option ? option.label : '普級'
 }
 
 onMounted(async () => {
@@ -1902,6 +1902,7 @@ onMounted(async () => {
   </div>
 </template>
 <style lang="scss" scoped>
+@use 'sass:color';
 // 響應式斷點
 $breakpoint-mobile: 480px;
 $breakpoint-tablet: 768px;
@@ -1919,7 +1920,7 @@ $warning-bg: #fff3cd;
 $warning-text: #856404;
 
 // 重要程度顏色定義
-$importance-normal: #6c757d;      // 普通 - 灰色
+$importance-normal: #6c757d;      // 普級 - 灰色
 $importance-warranty: #ffc107;    // 保固級 - 黃色
 $importance-urgent: #dc3545;      // 急件 - 紅色
 
@@ -2509,34 +2510,35 @@ $importance-urgent: #dc3545;      // 急件 - 紅色
           // 根據選擇的重要程度改變邊框和背景色
           &.level-1 {
             border-color: $importance-normal;
-            background-color: lighten($importance-normal, 45%);
-            color: darken($importance-normal, 10%);
+            background-color: color.adjust($importance-normal, $lightness: 45%)s;
+            color: color.adjust($importance-normal, $lightness: -10%);
+
 
             &:not(:disabled):hover {
-              border-color: darken($importance-normal, 10%);
-              background-color: lighten($importance-normal, 40%);
+              border-color: color.adjust($importance-normal, $lightness: -10%);
+              background-color: color.adjust($importance-normal, $lightness: 40%);
             }
           }
 
           &.level-2 {
             border-color: $importance-warranty;
-            background-color: lighten($importance-warranty, 45%);
-            color: darken($importance-warranty, 30%);
+            background-color: color.adjust($importance-warranty, $lightness: 45%);
+            color: color.adjust($importance-warranty, $lightness: -30%);
 
             &:not(:disabled):hover {
-              border-color: darken($importance-warranty, 10%);
-              background-color: lighten($importance-warranty, 40%);
+              border-color: color.adjust($importance-warranty, $lightness: -10%);
+              background-color: color.adjust($importance-warranty, $lightness: 40%);
             }
           }
 
           &.level-3 {
             border-color: $importance-urgent;
-            background-color: lighten($importance-urgent, 45%);
-            color: darken($importance-urgent, 10%);
+            background-color: color.adjust($importance-urgent, $lightness: 45%);
+            color: color.adjust($importance-urgent, $lightness: -10%);
 
             &:not(:disabled):hover {
-              border-color: darken($importance-urgent, 10%);
-              background-color: lighten($importance-urgent, 40%);
+              border-color: color.adjust($importance-urgent, $lightness: -10%);
+              background-color: color.adjust($importance-urgent, $lightness: 40%);
             }
           }
 
@@ -2765,31 +2767,31 @@ $importance-urgent: #dc3545;      // 急件 - 紅色
                 // 根據選擇的重要程度改變樣式
                 &.level-1 {
                   border-color: $importance-normal;
-                  background-color: lighten($importance-normal, 47%);
-                  color: darken($importance-normal, 10%);
+                  background-color: color.adjust($importance-normal, $lightness: 47%);
+                  color: color.adjust($importance-normal, $lightness: -10%);
 
                   &:not(:disabled):active {
-                    background-color: lighten($importance-normal, 42%);
+                    background-color: color.adjust($importance-normal, $lightness: 42%);
                   }
                 }
 
                 &.level-2 {
                   border-color: $importance-warranty;
-                  background-color: lighten($importance-warranty, 47%);
-                  color: darken($importance-warranty, 30%);
+                  background-color: color.adjust($importance-warranty, $lightness: 47%);
+                  color: color.adjust($importance-warranty, $lightness: -30%);
 
                   &:not(:disabled):active {
-                    background-color: lighten($importance-warranty, 42%);
+                    background-color: color.adjust($importance-warranty, $lightness: 42%);
                   }
                 }
 
                 &.level-3 {
                   border-color: $importance-urgent;
-                  background-color: lighten($importance-urgent, 47%);
-                  color: darken($importance-urgent, 10%);
+                  background-color: color.adjust($importance-urgent, $lightness: 47%);
+                  color: color.adjust($importance-urgent, $lightness: -10%);
 
                   &:not(:disabled):active {
-                    background-color: lighten($importance-urgent, 42%);
+                    background-color: color.adjust($importance-urgent, $lightness: 42%);
                   }
                 }
 
@@ -3503,21 +3505,21 @@ $importance-urgent: #dc3545;      // 急件 - 紅色
   }
 
   &.level-1 {
-    background: lighten($importance-normal, 35%);
-    color: darken($importance-normal, 10%);
-    border: 1px solid lighten($importance-normal, 20%);
+    background: color.adjust($importance-normal, $lightness: 35%);
+    color: color.adjust($importance-normal, $lightness: -10%);
+    border: 1px solid color.adjust($importance-normal, $lightness: 15%);
   }
 
   &.level-2 {
-    background: lighten($importance-warranty, 35%);
-    color: darken($importance-warranty, 30%);
-    border: 1px solid lighten($importance-warranty, 15%);
+    background: color.adjust($importance-warranty, $lightness: 35%);
+    color: color.adjust($importance-warranty, $lightness: -30%);
+    border: 1px solid color.adjust($importance-warranty, $lightness: 15%);
   }
 
   &.level-3 {
-    background: lighten($importance-urgent, 35%);
-    color: darken($importance-urgent, 10%);
-    border: 1px solid lighten($importance-urgent, 15%);
+    background: color.adjust($importance-urgent, $lightness: 35%);
+    color: color.adjust($importance-urgent, $lightness: -10%);
+    border: 1px solid color.adjust($importance-urgent, $lightness: 15%);
   }
 }
 

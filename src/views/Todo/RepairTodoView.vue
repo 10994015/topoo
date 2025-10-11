@@ -167,7 +167,7 @@ const restartTodo = async () => {
 const levels = {
     1: '普級',
     2: '中級',
-    3: '緊急',
+    3: '高級',
 }
 const levelsMap = {
   1: 'priority-normal',

@@ -766,31 +766,13 @@ watch(() => formData.estimatedCompletionTime, (newTime) => {
               <!-- 重要程度 -->
               <div class="form-group">
                 <label class="form-label required">重要程度</label>
-                <select v-model="formData.importanceLevel" disabled class="form-select">
-                  <option value="">選擇案件重要程度</option>
-                  <option 
-                    v-for="level in importanceLevels" 
-                    :key="level.value" 
-                    :value="level.value"
-                  >
-                    {{ level.label }}
-                  </option>
-                </select>
+                <input type="text" :value="importanceLevels.find(level => level.value === formData.importanceLevel)?.label || '選擇案件重要程度'" class="form-input" disabled />
               </div>
 
               <!-- 緊急程度 -->
               <div class="form-group">
                 <label class="form-label required">緊急程度</label>
-                <select v-model="formData.emergencyLevel" disabled class="form-select">
-                  <option value="">選擇案件緊急程度</option>
-                  <option 
-                    v-for="level in emergencyLevels" 
-                    :key="level.value" 
-                    :value="level.value"
-                  >
-                    {{ level.label }}
-                  </option>
-                </select>
+                <input type="text" :value="emergencyLevels.find(level => level.value === formData.emergencyLevel)?.label || '選擇案件緊急程度'" class="form-input" disabled />
               </div>
 
               <!-- 承辦人員 -->
@@ -1306,8 +1288,7 @@ watch(() => formData.estimatedCompletionTime, (newTime) => {
       }
     }
 
-    .form-select {
-      background: white;
+    .form-input {
       color:#000 !important;
     }
   }
