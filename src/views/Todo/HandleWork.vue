@@ -416,7 +416,7 @@ onMounted(async () => {
           <div class="header-content">
             <div class="header-left">
               <h2 class="page-title">案件處理</h2>
-              <span class="case-number">{{ caseDetail.id }}</span>
+              <span class="case-number">{{ caseDetail.case_no }}</span>
             </div>
             <div class="header-actions">
               <div class="header-status">
