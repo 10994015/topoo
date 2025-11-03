@@ -53,9 +53,9 @@ const loadLogData = async () => {
   try {
     const response = await logStore.fetchLogById(route.params.id)
     logData.value = response
-    console.log('日誌詳情載入成功:', response)
+    //console.log('日誌詳情載入成功:', response)
   } catch (error) {
-    console.error('載入日誌資料失敗:', error)
+    //console.error('載入日誌資料失敗:', error)
     alert('載入日誌資料失敗')
   } finally {
     isLoading.value = false

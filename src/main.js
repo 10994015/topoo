@@ -7,7 +7,7 @@ import GoogleSignInPlugin from 'vue3-google-signin'
 import { setUnauthorizedHandler } from './axios'
 import { useAuthStore } from '@/stores/auth'
 
-console.log('Google Client ID:', import.meta.env.VITE_GOOGLE_CLIENT_ID)
+//console.log('Google Client ID:', import.meta.env.VITE_GOOGLE_CLIENT_ID)
 
 const app = createApp(App)
 

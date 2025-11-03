@@ -102,7 +102,7 @@ const loadUserInfo = async () => {
       email: user.email || 'user@example.com'
     })
   } catch (error) {
-    console.error('載入用戶資料失敗:', error)
+    //console.error('載入用戶資料失敗:', error)
     // 設定預設值
     Object.assign(userInfo, {
       name: '黃曉明',
@@ -182,17 +182,13 @@ const changePassword = async () => {
   isLoading.value = true
   
   try {
-    console.log('修改密碼請求:', {
-      currentPassword: passwordForm.currentPassword,
-      newPassword: passwordForm.newPassword,
-      confirmPassword: passwordForm.confirmPassword
-    })
+    
     
     // 模擬 API 調用
     const result = await authStore.updatePassword({
       ...passwordForm
     })
-    console.log(result);
+    //console.log(result);
     
     // 清空表單
     Object.assign(passwordForm, {
@@ -205,9 +201,9 @@ const changePassword = async () => {
     
     if(result.response.status === 200) {
       alert('密碼修改成功！')
-      console.log('密碼修改成功');
+      //console.log('密碼修改成功');
     } else {
-      console.log(result);
+      //console.log(result);
       
       const errorMessage = result.error.message || '密碼修改失敗'
       throw new Error(errorMessage)
@@ -218,7 +214,7 @@ const changePassword = async () => {
     // router.push('/login')
     
   } catch (error) {
-    console.error('密碼修改失敗:', error)
+    //console.error('密碼修改失敗:', error)
     if (error.response?.status === 400) {
       errors.currentPassword = '目前密碼不正確'
     } else {

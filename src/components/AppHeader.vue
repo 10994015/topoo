@@ -73,13 +73,13 @@ const closeUserMenu = (event) => {
 }
 
 const preferences = () => {
-  console.log('偏好設定')
+  //console.log('偏好設定')
   isUserMenuOpen.value = false
   router.push('/settings')
 }
 
 const logout = async () => {
-  console.log('登出')
+  //console.log('登出')
   isUserMenuOpen.value = false
   
   try {
@@ -89,7 +89,7 @@ const logout = async () => {
     await authStore.logout()
     router.push('/login')
   } catch (error) {
-    console.error('登出失敗:', error)
+    //console.error('登出失敗:', error)
     alert('登出失敗，請重試')
   }
 }
@@ -103,7 +103,7 @@ const goToSurveys = () => {
 onMounted( async () => {
   document.addEventListener('click', closeUserMenu)
   const user = authStore.user
-  console.log(user);
+  //console.log(user);
 
   if(user){
     currentUser.value = {
@@ -116,9 +116,9 @@ onMounted( async () => {
   // 載入問卷總數量 - 使用新的方法
   try {
     await surveyStore.fetchTotalSurveyCount()
-    console.log('問卷總數量:', surveyStore.totalSurveyCount)
+    //console.log('問卷總數量:', surveyStore.totalSurveyCount)
   } catch (error) {
-    console.error('載入問卷資料失敗:', error)
+    //console.error('載入問卷資料失敗:', error)
   }
 })
 

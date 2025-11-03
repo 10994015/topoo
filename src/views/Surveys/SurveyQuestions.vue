@@ -117,7 +117,7 @@ const showEllipsis = computed(() => {
 const handleSearch = async () => {
   currentPage.value = 1
   isSearching.value = true
-  console.log('執行搜尋:', searchForm)
+  //console.log('執行搜尋:', searchForm)
   await loadData()
   isSearching.value = false
 }
@@ -130,7 +130,7 @@ const handleReset = async () => {
 }
 
 const loadData = async () => {
-  console.log(currentPage.value)
+  //console.log(currentPage.value)
   
   isLoading.value = true
   const params = {
@@ -141,17 +141,17 @@ const loadData = async () => {
     page: currentPage.value,
     pageSize: pageSize.value
   }
-  console.log(params)
+  //console.log(params)
   
   try {
     const response = await surveyStore.fetchSurveyQuestions(params)
-    console.log(response.data);
+    //console.log(response.data);
     
     questionData.value = response.data || []
     totalItems.value = response.total || 0
     totalPages.value = response.totalPages || 0
   } catch (error) {
-    console.error('載入問卷資料失敗:', error)
+    //console.error('載入問卷資料失敗:', error)
     questionData.value = []
     totalItems.value = 0
     totalPages.value = 0
@@ -187,7 +187,7 @@ const getSortClass = (field) => {
 }
 
 const goToPage = async (page) => {
-  console.log(page)
+  //console.log(page)
   if (page >= 1 && page <= totalPages.value) {
     currentPage.value = page
     await loadData()
@@ -195,12 +195,12 @@ const goToPage = async (page) => {
 }
 
 const viewQuestion = (question) => {
-  console.log('查看問卷詳情:', question)
+  //console.log('查看問卷詳情:', question)
   router.push(`/settings/survey-question/edit/${question.id}`)
 }
 
 const downloadTemplate = async () => {
-  console.log('開始下載問卷題目匯入模板')
+  //console.log('開始下載問卷題目匯入模板')
   
   try {
     // 顯示載入狀態
@@ -208,18 +208,18 @@ const downloadTemplate = async () => {
     
     // 呼叫 store 方法下載模板
     const result = await surveyStore.downloadSurveyQuestionTemplate()
-    console.log(result);
+    //console.log(result);
     
     if (result.success) {
-      console.log('模板下載成功')
+      //console.log('模板下載成功')
       // 可以在這裡顯示成功訊息，例如使用 toast 通知
     } else {
-      console.error('模板下載失敗:', result.message)
+      //console.error('模板下載失敗:', result.message)
       // 可以在這裡顯示錯誤訊息
       alert(result.message)
     }
   } catch (error) {
-    console.error('下載模板時發生錯誤:', error)
+    //console.error('下載模板時發生錯誤:', error)
     alert('下載失敗，請稍後再試')
   } finally {
     isDownloadingTemplate.value = false
@@ -232,7 +232,7 @@ const importQuestions = async () => {
 }
 
 const createNewQuestion = () => {
-  console.log('新增問卷題目')
+  //console.log('新增問卷題目')
   router.push('/settings/survey-question/create')
 }
 
@@ -320,7 +320,7 @@ const confirmImport = async () => {
     
     const result = await surveyStore.importSurveyQuestions(formData)
 
-    console.log(result)
+    //console.log(result)
 
     let message = ''
     let resultData = {}
@@ -360,7 +360,7 @@ const confirmImport = async () => {
     }, 500)
     
   } catch (error) {
-    console.error('批次匯入失敗:', error)
+    //console.error('批次匯入失敗:', error)
     let resultData = {}
     resultData = {
       message: error.response?.data?.message || '匯入失敗，請檢查檔案資料格式',
@@ -372,7 +372,7 @@ const confirmImport = async () => {
       data: resultData,
     }
 
-    console.log(importResult.value)
+    //console.log(importResult.value)
     
     isImporting.value = false
   }
@@ -427,7 +427,7 @@ const triggerFileInput = () => {
 
 // watch pageSize
 watch(pageSize, async (newSize) => {
-  console.log('分頁大小變更:', newSize)
+  //console.log('分頁大小變更:', newSize)
   pageSize.value = newSize
   currentPage.value = 1
   await loadData()

@@ -61,13 +61,13 @@ export const useAuthStore = defineStore('auth', () => {
 
 
     const login = async (credentials) => {
-        console.log("sha256後:", hashSHA256(credentials.password));
+        //console.log("sha256後:", hashSHA256(credentials.password));
         credentials.password = await hashSHA256(credentials.password);
-        console.log(credentials);
+        //console.log(credentials);
         
         try {
             const response = await axiosClient.post(`/login`, credentials)
-            console.log(response);
+            //console.log(response);
 
             //首次登入改密碼
             if(response.status === 202){
@@ -83,22 +83,22 @@ export const useAuthStore = defineStore('auth', () => {
                     await fetchUser()
                     // 登入成功後獲取權限
                     await getPermissions ()
-                    console.log('用戶資料獲取成功:', user.value)
+                    //console.log('用戶資料獲取成功:', user.value)
                 } catch (fetchError) {
-                    console.warn('獲取用戶資料失敗:', fetchError)
+                    //console.warn('獲取用戶資料失敗:', fetchError)
                     user.value = { username: credentials.username }
                 }
                 return { success: true, statusCode: response.status }
             }
         } catch (error) {
-            console.log('錯誤詳情:', error.response);
+            //console.log('錯誤詳情:', error.response);
             // 檢查是否有 response（後端有回應）
             if (error.response) {
                 const statusCode = error.response.status;
                 const responseData = error.response.data;
                 
-                console.log('HTTP 狀態碼:', statusCode);
-                console.log('回應資料:', responseData);
+                //console.log('HTTP 狀態碼:', statusCode);
+                //console.log('回應資料:', responseData);
                 
                 // 根據後端回應的格式取得資料
                 const backendStatusCode = responseData?.statusCode; // 後端回應中的 statusCode
@@ -165,14 +165,14 @@ export const useAuthStore = defineStore('auth', () => {
     }
     const googleLogin = async (credential) => {
         try {
-            console.log(credential);
+            //console.log(credential);
             
             // 根據後端API規格發送請求
             const response = await axiosClient.post('/login/google', {
                 token: credential
             })
             
-            console.log('Google登入API回應:', response);
+            //console.log('Google登入API回應:', response);
 
             // 處理首次登入（狀態碼202）
             if(response.status === 202){
@@ -189,23 +189,23 @@ export const useAuthStore = defineStore('auth', () => {
                 await fetchUser()
                 // 登入成功後獲取權限
                 await getPermissions()
-                console.log('Google登入用戶資料獲取成功:', user.value)
+                //console.log('Google登入用戶資料獲取成功:', user.value)
             } catch (fetchError) {
-                console.warn('獲取用戶資料失敗:', fetchError)
+                //console.warn('獲取用戶資料失敗:', fetchError)
                 user.value = { username: 'Google用戶' } // 設定預設值
             }
             return { success: true, statusCode: response.status }
             }
         } catch (error) {
-            console.log('Google登入錯誤詳情:', error.response);
+            //console.log('Google登入錯誤詳情:', error.response);
             
             // 檢查是否有 response（後端有回應）
             if (error.response) {
             const statusCode = error.response.status;
             const responseData = error.response.data;
             
-            console.log('HTTP 狀態碼:', statusCode);
-            console.log('回應資料:', responseData);
+            //console.log('HTTP 狀態碼:', statusCode);
+            //console.log('回應資料:', responseData);
             
             const backendStatusCode = responseData?.statusCode;
             const message = responseData?.message;
@@ -256,7 +256,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     // 檢查登入狀態
     const checkAuth = async () => {
-        console.log(isInitialized.value);
+        //console.log(isInitialized.value);
         
         if (isInitialized.value) return isAuthenticated.value
         
@@ -269,7 +269,7 @@ export const useAuthStore = defineStore('auth', () => {
             await getPermissions()
             return true
         } catch (error) {
-            console.log('認證檢查失敗:', error)
+            //console.log('認證檢查失敗:', error)
             
             // 重要：將錯誤拋出，讓路由守衛可以捕獲
             user.value = null
@@ -308,7 +308,7 @@ export const useAuthStore = defineStore('auth', () => {
     const fetchUser = async () => {
         try {
             const response = await axiosClient.get('/user')
-            console.log(response);
+            //console.log(response);
             
             user.value = response.data.data
             return user.value
@@ -323,7 +323,7 @@ export const useAuthStore = defineStore('auth', () => {
         try {
             await axiosClient.post('/logout')
         } catch (error) {
-            console.error('登出請求失敗:', error)
+            //console.error('登出請求失敗:', error)
         } finally {
             // 無論後端是否成功，都清除前端狀態
             user.value = null
@@ -334,7 +334,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     const changePassword = async ({certificationId, password, confirmPassword}) => {
         try {
-            console.log(certificationId, password, confirmPassword);
+            //console.log(certificationId, password, confirmPassword);
             
             const hashedNewPassword = await hashSHA256(password);
             const hashedConfirmPassword = await hashSHA256(confirmPassword);
@@ -343,7 +343,7 @@ export const useAuthStore = defineStore('auth', () => {
                 password: hashedNewPassword,
                 confirmPassword: hashedConfirmPassword
             });
-            console.log(response);
+            //console.log(response);
             
             if (response.status === 200) {
                 return { success: true }
@@ -351,7 +351,7 @@ export const useAuthStore = defineStore('auth', () => {
                 return { success: false, error: response.data.message }
             }
         } catch (error) {
-            console.log(error.response);
+            //console.log(error.response);
             
             return { success: false, error: error.response.data.message }
         }
@@ -367,7 +367,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     async function updateUser(user){
-        console.log(user);
+        //console.log(user);
         
         try {
             const response = await axiosClient.patch('/user', {
@@ -405,7 +405,7 @@ export const useAuthStore = defineStore('auth', () => {
                 password: hashedPassword,
                 confirmPassword: hashedConfirmPassword
             })
-            console.log(response);
+            //console.log(response);
 
             return { success: response.status===200 , response: response }
             if (response.status === 200) {
@@ -432,25 +432,25 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     async function getPermissions (){
-        console.log('抓權限!!');
+        //console.log('抓權限!!');
         
         try {
             const response = await axiosClient.get(`/user/permission`)
-            console.log('權限數據:', response.data);
+            //console.log('權限數據:', response.data);
             permissions.value = response.data.data || []
             return permissions.value
         } catch (error) {
-            console.error('獲取權限群組失敗:', error)
+            //console.error('獲取權限群組失敗:', error)
             permissions.value = []
             throw error
         }
     }
     async function emailVerification(token){
         try {
-            console.log(token);
+            //console.log(token);
             
             const response = await axiosClient.post('/register/verify', { certificationId: token })
-            console.log(response);
+            //console.log(response);
             
             if (response.status === 200) {
                 return { success: true, message: 'Email 驗證成功' }

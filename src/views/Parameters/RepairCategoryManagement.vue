@@ -127,7 +127,7 @@ const loadCategoryReasons = async (categoryId) => {
       reasonPage.currentPage
     )
   } catch (error) {
-    console.error('載入原因失敗:', error)
+    //console.error('載入原因失敗:', error)
   }
 }
 
@@ -204,7 +204,7 @@ const getCategoryData = async () => {
     totalPages.value = categoryStore.categories.data.totalPages || 0
     totalItems.value = categoryStore.categories.data.total || 0
   } catch (error) {
-    console.error('載入類別資料失敗:', error)
+    //console.error('載入類別資料失敗:', error)
   } finally {
     isSearching.value = false
   }
@@ -244,7 +244,7 @@ onMounted(async () => {
   try {
     await getCategoryData()
   } catch (error) {
-    console.error('初始化失敗:', error)
+    //console.error('初始化失敗:', error)
   } finally {
     isLoading.value = false
   }

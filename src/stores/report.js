@@ -34,7 +34,7 @@ export const useReportStore = defineStore('report', () => {
             if (params.repairUnit) queryParams.repairUnit = params.repairUnit
             if (params.assignUserName) queryParams.assignUserName = params.assignUserName
 
-            console.log('下載報修進度綜合表參數:', queryParams)
+            //console.log('下載報修進度綜合表參數:', queryParams)
 
             const response = await axiosClient.get('/backend/report/repair-progress-summary', {
                 params: queryParams,
@@ -84,7 +84,7 @@ export const useReportStore = defineStore('report', () => {
                     filename = decodeURIComponent(filename)
                 } catch (e) {
                     // 如果解碼失敗，使用原始檔案名
-                    console.warn('檔案名解碼失敗:', e)
+                    //console.warn('檔案名解碼失敗:', e)
                 }
             }
             
@@ -102,7 +102,7 @@ export const useReportStore = defineStore('report', () => {
             }
 
         } catch (error) {
-            console.error('下載報修進度綜合表失敗:', error)
+            //console.error('下載報修進度綜合表失敗:', error)
             
             // 提取後端錯誤訊息
             let errorMessage = '下載報修進度綜合表失敗，請稍後再試'
@@ -115,7 +115,7 @@ export const useReportStore = defineStore('report', () => {
                         const errorData = JSON.parse(errorText)
                         errorMessage = errorData.message || errorMessage
                     } catch (parseError) {
-                        console.error('解析錯誤訊息失敗:', parseError)
+                        //console.error('解析錯誤訊息失敗:', parseError)
                     }
                 } else if (error.response.data.message) {
                     errorMessage = error.response.data.message
@@ -148,7 +148,7 @@ export const useReportStore = defineStore('report', () => {
                 queryParams.endAt = endDate.toISOString();
             }
 
-            console.log('下載帳號管理報表參數:', queryParams)
+            //console.log('下載帳號管理報表參數:', queryParams)
 
             const response = await axiosClient.get('/backend/report/account-management', {
                 params: queryParams,
@@ -198,7 +198,7 @@ export const useReportStore = defineStore('report', () => {
                     filename = decodeURIComponent(filename)
                 } catch (e) {
                     // 如果解碼失敗，使用原始檔案名
-                    console.warn('檔案名解碼失敗:', e)
+                    //console.warn('檔案名解碼失敗:', e)
                 }
             }
             
@@ -216,7 +216,7 @@ export const useReportStore = defineStore('report', () => {
             }
 
         } catch (error) {
-            console.error('下載帳號管理報表失敗:', error)
+            //console.error('下載帳號管理報表失敗:', error)
             
             // 提取後端錯誤訊息
             let errorMessage = '下載帳號管理報表失敗，請稍後再試'
@@ -229,7 +229,7 @@ export const useReportStore = defineStore('report', () => {
                         const errorData = JSON.parse(errorText)
                         errorMessage = errorData.message || errorMessage
                     } catch (parseError) {
-                        console.error('解析錯誤訊息失敗:', parseError)
+                        //console.error('解析錯誤訊息失敗:', parseError)
                     }
                 } else if (error.response.data.message) {
                     errorMessage = error.response.data.message
@@ -263,7 +263,7 @@ export const useReportStore = defineStore('report', () => {
                 queryParams.endAt = endDate.toISOString();
             }
 
-            console.log('下載完修記錄報表參數:', queryParams)
+            //console.log('下載完修記錄報表參數:', queryParams)
 
             const response = await axiosClient.get('/backend/report/complete-repair-record', {
                 params: queryParams,
@@ -313,7 +313,7 @@ export const useReportStore = defineStore('report', () => {
                     filename = decodeURIComponent(filename)
                 } catch (e) {
                     // 如果解碼失敗，使用原始檔案名
-                    console.warn('檔案名解碼失敗:', e)
+                    //console.warn('檔案名解碼失敗:', e)
                 }
             }
             
@@ -331,7 +331,7 @@ export const useReportStore = defineStore('report', () => {
             }
 
         } catch (error) {
-            console.error('下載完修記錄報表失敗:', error)
+            //console.error('下載完修記錄報表失敗:', error)
             
             // 提取後端錯誤訊息
             let errorMessage = '下載完修記錄報表失敗，請稍後再試'
@@ -344,7 +344,7 @@ export const useReportStore = defineStore('report', () => {
                         const errorData = JSON.parse(errorText)
                         errorMessage = errorData.message || errorMessage
                     } catch (parseError) {
-                        console.error('解析錯誤訊息失敗:', parseError)
+                        //console.error('解析錯誤訊息失敗:', parseError)
                     }
                 } else if (error.response.data.message) {
                     errorMessage = error.response.data.message
@@ -380,7 +380,7 @@ export const useReportStore = defineStore('report', () => {
                 queryParams.endAt = endDate.toISOString();
             }
 
-            console.log('下載問卷滿意度報表參數:', queryParams)
+            //console.log('下載問卷滿意度報表參數:', queryParams)
 
             const response = await axiosClient.get('/backend/report/satisfaction-survey', {
                 params: queryParams,
@@ -430,7 +430,7 @@ export const useReportStore = defineStore('report', () => {
                     filename = decodeURIComponent(filename)
                 } catch (e) {
                     // 如果解碼失敗，使用原始檔案名
-                    console.warn('檔案名解碼失敗:', e)
+                    //console.warn('檔案名解碼失敗:', e)
                 }
             }
             
@@ -448,7 +448,7 @@ export const useReportStore = defineStore('report', () => {
             }
 
         } catch (error) {
-            console.error('下載問卷滿意度報表失敗:', error)
+            //console.error('下載問卷滿意度報表失敗:', error)
             
             // 提取後端錯誤訊息
             let errorMessage = '下載問卷滿意度報表失敗，請稍後再試'
@@ -461,7 +461,7 @@ export const useReportStore = defineStore('report', () => {
                         const errorData = JSON.parse(errorText)
                         errorMessage = errorData.message || errorMessage
                     } catch (parseError) {
-                        console.error('解析錯誤訊息失敗:', parseError)
+                        //console.error('解析錯誤訊息失敗:', parseError)
                     }
                 } else if (error.response.data.message) {
                     errorMessage = error.response.data.message

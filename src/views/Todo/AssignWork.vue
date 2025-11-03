@@ -159,11 +159,11 @@ const fetchTodoDetail = async () => {
   try {
     isLoading.value = true
     await todoStore.fetchTodoDetail(todoId.value)
-    console.log(todoStore.todoDetail);
+    //console.log(todoStore.todoDetail);
     
     todoDetail.value = todoStore.todoDetail
     isEdit.value = !!todoDetail.value.todo_id
-    console.log(isEdit.value);
+    //console.log(isEdit.value);
     
     // 初始化表單數據
     if (todoDetail.value) {
@@ -181,11 +181,11 @@ const fetchTodoDetail = async () => {
           
           // 加上已上傳的檔案 ID
           const response = await todoStore.fetchTodo(todoDetail.value.todo_id)
-          console.log(response);
+          //console.log(response);
           formData.fileIds = response.data.files.map(file => file.file_id)
           formData.todoId = response.data.id // 使用 todo_id 作為表單提交的 ID
           existingFiles.value = response.data.files
-          console.log(existingFiles.value);
+          //console.log(existingFiles.value);
       }
       // 設置已存在的檔案（原本就有的檔案）
       if (todoDetail.value.files && todoDetail.value.files.length > 0) {
@@ -210,7 +210,7 @@ const fetchTodoDetail = async () => {
     }
     
   } catch (error) {
-    console.error('獲取報修詳細資料失敗:', error)
+    //console.error('獲取報修詳細資料失敗:', error)
     alert('載入失敗，請稍後重試')
   } finally {
     isLoading.value = false
@@ -236,7 +236,7 @@ const fetchUsers = async (page = 1, keyword = '') => {
     // 調用 API - 需要修改 store 中的方法來接受參數
     const response = await todoStore.fetchAssignableUsers(params)
     
-    console.log('用戶 API 回應:', response)
+    //console.log('用戶 API 回應:', response)
     
     if (response && response.data) {
       users.value = response.data.data || []
@@ -249,7 +249,7 @@ const fetchUsers = async (page = 1, keyword = '') => {
       userTotalItems.value = 0
     }
   } catch (error) {
-    console.error('獲取用戶列表失敗:', error)
+    //console.error('獲取用戶列表失敗:', error)
     users.value = []
     userTotalPages.value = 0
     userTotalItems.value = 0
@@ -268,14 +268,14 @@ const goToUserPage = async (page) => {
 // 用戶搜尋（防抖處理）
 let searchTimeout = null
 const handleUserSearch = () => {
-  console.log(formData.assignUserId);
+  //console.log(formData.assignUserId);
   
   clearTimeout(searchTimeout)
   searchTimeout = setTimeout(async () => {
     userCurrentPage.value = 1
     await fetchUsers(1, userSearchKeyword.value)
   }, 500) // 500ms 防抖
-  console.log(formData.assignUserId);
+  //console.log(formData.assignUserId);
   
 }
 
@@ -382,14 +382,14 @@ const uploadFile = async (fileObj) => {
         fileFormData.append('todoId', todoDetail.value.todo_id)
     }
 
-    console.log('開始上傳檔案:', fileObj.name)
+    //console.log('開始上傳檔案:', fileObj.name)
     const result = await todoStore.saveTodoFiles(fileFormData)
-    console.log('上傳結果:', result)
+    //console.log('上傳結果:', result)
     
     if (result.success && result.data) {
       const uploadedFile = result.data[0]
 
-      console.log(uploadedFile);
+      //console.log(uploadedFile);
       
       fileObj.uploaded = true
       fileObj.fileId = uploadedFile.id
@@ -411,10 +411,10 @@ const uploadFile = async (fileObj) => {
         selectedFiles.value.splice(index, 1)
       }
       
-      console.log('檔案上傳成功:', uploadedFile)
+      //console.log('檔案上傳成功:', uploadedFile)
     }
   } catch (error) {
-    console.error('檔案上傳失敗:', error)
+    //console.error('檔案上傳失敗:', error)
     
     // 上傳失敗，從選擇列表中移除該檔案
     const index = selectedFiles.value.findIndex(f => f.id === fileObj.id)
@@ -432,7 +432,7 @@ const removeFile = async (fileObj, isUploaded = false) => {
   try {
     if (isUploaded && fileObj.id && fileObj.isNew) {
       // 只有新上傳的檔案才能刪除
-      console.log(fileObj.id);
+      //console.log(fileObj.id);
       
       await todoStore.removeTodoFile(fileObj.id)
       
@@ -455,7 +455,7 @@ const removeFile = async (fileObj, isUploaded = false) => {
       }
     }
   } catch (error) {
-    console.error('檔案刪除失敗:', error)
+    //console.error('檔案刪除失敗:', error)
     alert('檔案刪除失敗')
   }
 }
@@ -512,10 +512,10 @@ const validateForm = () => {
 
 // 儲存表單
 const saveForm = async () => {
-  console.log(todoDetail.value);
+  //console.log(todoDetail.value);
   
   if (!validateForm()) return
-  console.log(formData);
+  //console.log(formData);
 
   try {
     isSaving.value = true
@@ -529,12 +529,12 @@ const saveForm = async () => {
       fileIds: formData.fileIds
     }
     
-    console.log('提交數據:', submitData)
+    //console.log('提交數據:', submitData)
     let response = null;
     // 呼叫API進行案件指派
     if(isEdit.value){
         submitData.todoId = formData.todoId // 使用 repair_id 作為 todoId
-        console.log(submitData);
+        //console.log(submitData);
         
         response = await todoStore.editTodo(submitData)
 
@@ -550,7 +550,7 @@ const saveForm = async () => {
     }
     
   } catch (error) {
-    console.error('儲存失敗:', error)
+    //console.error('儲存失敗:', error)
     alert(`儲存失敗：${error.message || '請稍後重試'}`)
   } finally {
     isSaving.value = false
@@ -599,7 +599,7 @@ const selectedFile = ref(null)
 
 // 打開檔案預覽
 const openFilePreview = (file) => {
-  console.log('原始檔案對象:', file)
+  //console.log('原始檔案對象:', file)
   
   // 統一檔案對象格式
   const normalizedFile = {
@@ -609,11 +609,11 @@ const openFilePreview = (file) => {
     ...file // 保留其他屬性
   }
   
-  console.log('標準化後的檔案對象:', normalizedFile)
+  //console.log('標準化後的檔案對象:', normalizedFile)
   
   // 檢查是否有有效的檔案 ID
   if (!normalizedFile.file_id) {
-    console.error('檔案缺少有效的 file_id:', normalizedFile)
+    //console.error('檔案缺少有效的 file_id:', normalizedFile)
     alert('檔案資訊不完整，無法預覽')
     return
   }
@@ -629,13 +629,13 @@ const closeFilePreview = () => {
 
 // 獲取檔案內容的方法（傳給子組件）
 const fetchFileContent = async (fileId) => {
-  console.log(fileId);
+  //console.log(fileId);
   
   try {
     const response = await todoStore.viewFile(fileId)
     return response
   } catch (error) {
-    console.error('獲取檔案內容失敗:', error)
+    //console.error('獲取檔案內容失敗:', error)
     throw error
   }
 }
@@ -648,7 +648,7 @@ const removeExistingFile = async (file) => {
       return;
     }
 
-    console.log('刪除原有檔案:', file);
+    //console.log('刪除原有檔案:', file);
     
     // 使用 pinia store 的 removeTodoFile 方法
     await todoStore.removeTodoFile(file.file_id);
@@ -659,28 +659,28 @@ const removeExistingFile = async (file) => {
       existingFiles.value.splice(index, 1);
     }
     
-    console.log('原有檔案刪除成功');
+    //console.log('原有檔案刪除成功');
     // 可選：顯示成功訊息
     alert('檔案刪除成功');
     
   } catch (error) {
-    console.error('原有檔案刪除失敗:', error);
+    //console.error('原有檔案刪除失敗:', error);
     alert(`檔案刪除失敗：${error.message || '未知錯誤'}`);
   }
 }
 // 檔案預覽事件處理
 const onFileDownloaded = (file) => {
-  console.log(file);
+  //console.log(file);
   
-  console.log('檔案已下載:', file.file_name)
+  //console.log('檔案已下載:', file.file_name)
 }
 
 const onPreviewLoadSuccess = (blob) => {
-  console.log('預覽載入成功')
+  //console.log('預覽載入成功')
 }
 
 const onPreviewLoadError = (error) => {
-  console.error('預覽載入失敗:', error)
+  //console.error('預覽載入失敗:', error)
   alert('預覽失敗，請稍後重試')
 }
 onMounted(async () => {
@@ -725,7 +725,7 @@ watch(() => formData.estimatedCompletionTime, (newTime) => {
     formData.emergencyLevel = '1'
   }
   
-  console.log(`時間差: ${diffInDays.toFixed(2)} 天，緊急程度: ${formData.emergencyLevel}`)
+  //console.log(`時間差: ${diffInDays.toFixed(2)} 天，緊急程度: ${formData.emergencyLevel}`)
 })
 </script>
 

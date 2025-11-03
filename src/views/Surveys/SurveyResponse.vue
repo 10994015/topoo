@@ -97,29 +97,29 @@ const loadResponseDetail = async () => {
     loadError.value = null
     
     const responseId = route.params.id
-    console.log('載入問卷回覆詳情，ID:', responseId)
+    //console.log('載入問卷回覆詳情，ID:', responseId)
     
     const result = await surveyStore.fetchSurveyResponseDetail(responseId)
     
     if (result.success) {
       responseDetail.value = result.data
-      console.log('問卷回覆詳情載入成功:', responseDetail.value)
-      console.log('surveyQuestion 數據:', responseDetail.value?.surveyQuestion)
-      console.log('問題數量:', responseDetail.value?.surveyQuestion?.length)
+      //console.log('問卷回覆詳情載入成功:', responseDetail.value)
+      //console.log('surveyQuestion 數據:', responseDetail.value?.surveyQuestion)
+      //console.log('問題數量:', responseDetail.value?.surveyQuestion?.length)
       
       // 檢查每個問題的結構
       if (responseDetail.value?.surveyQuestion) {
         responseDetail.value.surveyQuestion.forEach((question, index) => {
-          console.log(`問題 ${index + 1}:`, question)
-          console.log(`問題 ${index + 1} 選項:`, question.options)
+          //console.log(`問題 ${index + 1}:`, question)
+          //console.log(`問題 ${index + 1} 選項:`, question.options)
         })
       }
     } else {
       loadError.value = result.message || '載入失敗'
-      console.error('載入問卷回覆詳情失敗:', result.message)
+      //console.error('載入問卷回覆詳情失敗:', result.message)
     }
   } catch (error) {
-    console.error('載入問卷回覆詳情時發生錯誤:', error)
+    //console.error('載入問卷回覆詳情時發生錯誤:', error)
     loadError.value = '載入過程中發生錯誤，請稍後重試'
   } finally {
     isLoading.value = false

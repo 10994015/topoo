@@ -23,7 +23,7 @@ export const useSurveyStore = defineStore('survey', () => {
     const searchSurveyUnits = async (name) => {
         try {
             isSearchingUnits.value = true
-            console.log('查詢報修單位，關鍵字:', name)
+            //console.log('查詢報修單位，關鍵字:', name)
             
             // 如果關鍵字為空，清空單位列表
             if (!name || name.trim() === '') {
@@ -32,7 +32,7 @@ export const useSurveyStore = defineStore('survey', () => {
             }
             
             const response = await axiosClient.get(`/backend/survey/unit/${name.trim()}`)
-            console.log('報修單位查詢 API 回應:', response.data)
+            //console.log('報修單位查詢 API 回應:', response.data)
             
             surveyUnits.value = response.data.data || []
             
@@ -41,7 +41,7 @@ export const useSurveyStore = defineStore('survey', () => {
                 data: surveyUnits.value
             }
         } catch (error) {
-            console.error('查詢報修單位失敗:', error)
+            //console.error('查詢報修單位失敗:', error)
             surveyUnits.value = []
             
             return {
@@ -63,7 +63,7 @@ export const useSurveyStore = defineStore('survey', () => {
     const fetchSurveys = async (title = '') => {
         try {
             isLoading.value = true
-            console.log('獲取問卷列表，標題篩選:', title)
+            //console.log('獲取問卷列表，標題篩選:', title)
             
             const params = {}
             if (title && title.trim()) {
@@ -71,14 +71,14 @@ export const useSurveyStore = defineStore('survey', () => {
             }
             
             const response = await axiosClient.get('/survey/', { params })
-            console.log('問卷列表 API 回應:', response.data)
+            //console.log('問卷列表 API 回應:', response.data)
             
             const responseData = response.data?.data || []
             
             // 如果沒有搜尋關鍵字，更新總數量
             if (!title || title.trim() === '') {
                 totalSurveyCount.value = responseData.length
-                console.log('更新總問卷數量:', totalSurveyCount.value)
+                //console.log('更新總問卷數量:', totalSurveyCount.value)
             }
             
             // 更新當前顯示的數量
@@ -87,13 +87,13 @@ export const useSurveyStore = defineStore('survey', () => {
             surveys.value = response.data
             
             // 添加調試信息
-            console.log('設置後的 surveys.value:', surveys.value)
-            console.log('總問卷數量:', totalSurveyCount.value)
-            console.log('當前問卷數量:', currentSurveyCount.value)
+            //console.log('設置後的 surveys.value:', surveys.value)
+            //console.log('總問卷數量:', totalSurveyCount.value)
+            //console.log('當前問卷數量:', currentSurveyCount.value)
             
             return response.data
         } catch (error) {
-            console.error('獲取問卷列表失敗:', error)
+            //console.error('獲取問卷列表失敗:', error)
             throw error
         } finally {
             isLoading.value = false
@@ -105,10 +105,10 @@ export const useSurveyStore = defineStore('survey', () => {
             const response = await axiosClient.get('/survey/')
             const responseData = response.data?.data || []
             totalSurveyCount.value = responseData.length
-            console.log('獲取總問卷數量:', totalSurveyCount.value)
+            //console.log('獲取總問卷數量:', totalSurveyCount.value)
             return totalSurveyCount.value
         } catch (error) {
-            console.error('獲取總問卷數量失敗:', error)
+            //console.error('獲取總問卷數量失敗:', error)
             return totalSurveyCount.value
         }
     }
@@ -117,16 +117,16 @@ export const useSurveyStore = defineStore('survey', () => {
     const fetchSurveyQuestionsList = async () => {
         try {
             isLoading.value = true
-            console.log('獲取前台問卷題目列表')
+            //console.log('獲取前台問卷題目列表')
             
             const response = await axiosClient.get('/survey/questions')
-            console.log('前台問卷題目列表 API 回應:', response.data)
+            //console.log('前台問卷題目列表 API 回應:', response.data)
 
             surveyQuestionsList.value = response.data.data
             
             return response.data
         } catch (error) {
-            console.error('獲取前台問卷題目列表失敗:', error)
+            //console.error('獲取前台問卷題目列表失敗:', error)
             throw error
         } finally {
             isLoading.value = false
@@ -136,10 +136,10 @@ export const useSurveyStore = defineStore('survey', () => {
     const submitSurveyResponse = async (data) => {
         try {
             isSubmitting.value = true
-            console.log('提交問卷回覆，資料:', data)
+            //console.log('提交問卷回覆，資料:', data)
             
             const response = await axiosClient.post(`/survey/response`, data)
-            console.log('問卷回覆提交 API 回應:', response.data)
+            //console.log('問卷回覆提交 API 回應:', response.data)
             
             // 提交成功後，重新獲取總問卷數量
             await fetchTotalSurveyCount()
@@ -150,7 +150,7 @@ export const useSurveyStore = defineStore('survey', () => {
                 data: response.data
             }
         } catch (error) {
-            console.error('提交問卷回覆失敗:', error)
+            //console.error('提交問卷回覆失敗:', error)
             
             // 返回統一的錯誤格式
             return {
@@ -166,17 +166,17 @@ export const useSurveyStore = defineStore('survey', () => {
     const fetchSurveyResponseDetail = async (id) => {
         try {
             isLoading.value = true
-            console.log('獲取問卷回覆詳情:', id)
+            //console.log('獲取問卷回覆詳情:', id)
             
             const response = await axiosClient.get(`/backend/survey/response/${id}`)
-            console.log('問卷回覆詳情 API 回應:', response.data)
+            //console.log('問卷回覆詳情 API 回應:', response.data)
             
             return {
                 success: true,
                 data: response.data.data
             }
         } catch (error) {
-            console.error('獲取問卷回覆詳情失敗:', error)
+            //console.error('獲取問卷回覆詳情失敗:', error)
             return {
                 success: false,
                 message: error.response?.data?.message || '獲取詳情失敗'
@@ -199,7 +199,7 @@ export const useSurveyStore = defineStore('survey', () => {
     }) => {
         try {
             isLoading.value = true
-            console.log('獲取問卷回覆列表:', searchForm)
+            //console.log('獲取問卷回覆列表:', searchForm)
             
             const params = {}
             if (searchForm.credential) params.credential = searchForm.credential
@@ -220,15 +220,15 @@ export const useSurveyStore = defineStore('survey', () => {
             params.sortOrder = searchForm.sortOrder.toUpperCase()
             
             const response = await axiosClient.get('/backend/survey/response', { params })
-            console.log('問卷回覆列表 API 回應:', response.data)
+            //console.log('問卷回覆列表 API 回應:', response.data)
             
             surveyResponses.value = response.data.data
             return response.data
         } catch (error) {
-            console.error('獲取問卷回覆列表失敗:', error)
+            //console.error('獲取問卷回覆列表失敗:', error)
             if (error.response) {
-                console.error('錯誤狀態:', error.response.status)
-                console.error('錯誤資料:', error.response.data)
+                //console.error('錯誤狀態:', error.response.status)
+                //console.error('錯誤資料:', error.response.data)
             }
             throw error
         } finally {
@@ -259,11 +259,11 @@ export const useSurveyStore = defineStore('survey', () => {
             const response = await axiosClient.get('/backend/survey/question', { 
                 params: queryParams 
             })
-            console.log(response.data);
+            //console.log(response.data);
             
             return response.data.data
         } catch (error) {
-            console.error('獲取問卷題目列表失敗:', error)
+            //console.error('獲取問卷題目列表失敗:', error)
             throw error
         } finally {
             isLoading.value = false
@@ -274,7 +274,7 @@ export const useSurveyStore = defineStore('survey', () => {
     const fetchSurveyQuestionDetail = async (id) => {
         try {
             const response = await axiosClient.get(`/backend/survey/question/${id}`)
-            console.log(response);
+            //console.log(response);
             
             return { success: true, data: response.data.data }
         } catch (error) {
@@ -284,7 +284,7 @@ export const useSurveyStore = defineStore('survey', () => {
 
     // 新增問卷題目
     const createSurveyQuestion = async (data) => {
-        console.log(data);
+        //console.log(data);
         
         try {
             const response = await axiosClient.post('/backend/survey/question', data)
@@ -319,7 +319,7 @@ export const useSurveyStore = defineStore('survey', () => {
             const response = await axiosClient.get('/backend/survey/question/import-template', {
                 responseType: 'blob' // 設定響應類型為 blob
             });
-            console.log(response.data);
+            //console.log(response.data);
             
             // 創建一個 URL 來下載檔案
             const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -332,7 +332,7 @@ export const useSurveyStore = defineStore('survey', () => {
 
             return { success: true, message: '問卷題目匯入範本下載成功' };
         } catch (error) {
-            console.error('下載問卷題目匯入範本失敗:', error);
+            //console.error('下載問卷題目匯入範本失敗:', error);
             return { success: false, message: '問卷題目匯入範本下載失敗' };
         }
     }
@@ -348,12 +348,12 @@ export const useSurveyStore = defineStore('survey', () => {
                 timeout: 60000, // 60秒超時，因為檔案處理可能需要較長時間
                 onUploadProgress: (progressEvent) => {
                     const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-                    console.log(`上傳進度: ${percentCompleted}%`);
+                    //console.log(`上傳進度: ${percentCompleted}%`);
                     // 可以通過事件發送進度更新
                 }
             });
             
-            console.log('問卷題目匯入回應:', response.data);
+            //console.log('問卷題目匯入回應:', response.data);
             
             isLoading.value = false;
             
@@ -366,7 +366,7 @@ export const useSurveyStore = defineStore('survey', () => {
             
         } catch (error) {
             isLoading.value = false;
-            console.error('問卷題目匯入失敗:', error);
+            //console.error('問卷題目匯入失敗:', error);
             
             let errorMessage = '匯入失敗';
             let errorDetails = [];
@@ -425,7 +425,7 @@ export const useSurveyStore = defineStore('survey', () => {
     }
 
     const updateSurveyQuestionSequence = async (id, sequence) => {
-        console.log(id, ':', sequence);
+        //console.log(id, ':', sequence);
         
         try {
             const response = await axiosClient.patch(`/backend/survey/question/${id}/sequence`, {
@@ -433,7 +433,7 @@ export const useSurveyStore = defineStore('survey', () => {
             })
             return { success: true, data: response.data }
         } catch (error) {
-            console.error('更新題目順序失敗:', error)
+            //console.error('更新題目順序失敗:', error)
             return { 
                 success: false, 
                 message: error.response?.data?.message || '更新題目順序失敗' 

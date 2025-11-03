@@ -118,7 +118,7 @@ const loadFaqDetail = async (faqId) => {
       faqStore.updateFaqSubFqas(faqId, result.data.sub_fqas)
     }
   } catch (error) {
-    console.error('載入FAQ詳細資料失敗:', error)
+    //console.error('載入FAQ詳細資料失敗:', error)
   }
 }
 
@@ -169,7 +169,7 @@ const getFaqData = async () => {
       currentPage.value
     )
   } catch (error) {
-    console.error('載入FAQ資料失敗:', error)
+    //console.error('載入FAQ資料失敗:', error)
   }
 }
 
@@ -216,7 +216,7 @@ onMounted(async () => {
   try {
     await getFaqData()
   } catch (error) {
-    console.error('初始化失敗:', error)
+    //console.error('初始化失敗:', error)
   }
 })
 

@@ -22,9 +22,9 @@ export const useBackendRepairStore = defineStore('backend-repair', () => {
         endAt: ''
     }, column, sortDirection, limit = 10, page = 1) => {
         try {
-            console.log('搜尋參數:', searchForm);
-            console.log('時間範圍:', searchForm.startAt, searchForm.endAt);
-            console.log(column, sortDirection, limit, page);
+            //console.log('搜尋參數:', searchForm);
+            //console.log('時間範圍:', searchForm.startAt, searchForm.endAt);
+            //console.log(column, sortDirection, limit, page);
             
             
             const params = {};
@@ -54,39 +54,39 @@ export const useBackendRepairStore = defineStore('backend-repair', () => {
             params.pageSize = limit; // 每頁數量
             params.page = page; // 頁數
             
-            console.log('API 參數:', params);
+            //console.log('API 參數:', params);
             
             const response = await axiosClient.get('/backend/repair/', { params });
-            console.log('API 回應:', response.data);
+            //console.log('API 回應:', response.data);
             repairs.value = response.data;
             
             return response.data;
         } catch (error) {
-            console.error('獲取待辦列表失敗:', error);
+            //console.error('獲取待辦列表失敗:', error);
             throw error;
         }
     }
     // 獲取單一報修詳細資料GET
     const fetchRepairDetail = async (repairId) => {
         try {
-            console.log(repairId);
+            //console.log(repairId);
             
             const response = await axiosClient.get(`/backend/repair/${repairId}`)
-            console.log(response);
+            //console.log(response);
             repairDetail.value = response.data.data
             return response.data.statusCode
         } catch (error) {
-            console.error('獲取報修詳細資料失敗:', error)
+            //console.error('獲取報修詳細資料失敗:', error)
             throw error
         }
     }
     // 檢視報修案件進度/api/backend/repair/{id}/record
     const fetchRepairProgress = async (todoId) => {
         try {
-            console.log('檢視待辦案件進度:', todoId);
+            //console.log('檢視待辦案件進度:', todoId);
             
             const response = await axiosClient.get(`/backend/repair/${todoId}/record`);
-            console.log('案件進度回應:', response.data);
+            //console.log('案件進度回應:', response.data);
             repairProgress.value = response.data.data || [];
             return {
                 success: true,
@@ -94,11 +94,11 @@ export const useBackendRepairStore = defineStore('backend-repair', () => {
                 message: response.data.message
             };
         } catch (error) {
-            console.error('案件進度查詢失敗:', error);
+            //console.error('案件進度查詢失敗:', error);
             
             if (error.response) {
-                console.error('錯誤狀態:', error.response.status);
-                console.error('錯誤資料:', error.response.data);
+                //console.error('錯誤狀態:', error.response.status);
+                //console.error('錯誤資料:', error.response.data);
                 throw new Error(error.response.data.message || '案件進度查詢失敗');
             }
             throw error;
@@ -107,19 +107,19 @@ export const useBackendRepairStore = defineStore('backend-repair', () => {
     // 重新啟動案件 /api/backend/repair/{id}/restart
     const restartTodo = async (todoId) => {
         try {
-            console.log('重新啟動案件:', todoId);
+            //console.log('重新啟動案件:', todoId);
             
             const response = await axiosClient.patch(`/backend/repair/${todoId}/restart`);
-            console.log('案件重新啟動回應:', response.data);
+            //console.log('案件重新啟動回應:', response.data);
             return {
                 success: true,
                 message: response.data.message
             };
         } catch (error) {
-            console.error('案件重新啟動失敗:', error);
+            //console.error('案件重新啟動失敗:', error);
             if (error.response) {
-                console.error('錯誤狀態:', error.response.status);
-                console.error('錯誤資料:', error.response.data);
+                //console.error('錯誤狀態:', error.response.status);
+                //console.error('錯誤資料:', error.response.data);
                 throw new Error(error.response.data.message || '案件重新啟動失敗');
             }
             throw error;
@@ -128,7 +128,7 @@ export const useBackendRepairStore = defineStore('backend-repair', () => {
     // 新增案件 - 對應 POST /backend/repair/record
     const createRepairWork = async (workData) => {
         try {
-            console.log('承辦案件資料:', workData);
+            //console.log('承辦案件資料:', workData);
             
             const response = await axiosClient.post('/backend/repair/record', workData, {
                 headers: {
@@ -136,7 +136,7 @@ export const useBackendRepairStore = defineStore('backend-repair', () => {
                 }
             });
             
-            console.log('承辦案件回應:', response.data);
+            //console.log('承辦案件回應:', response.data);
             
             return {
                 success: true,
@@ -144,12 +144,12 @@ export const useBackendRepairStore = defineStore('backend-repair', () => {
                 message: response.data.message
             };
         } catch (error) {
-            console.error('指派案件失敗:', error);
+            //console.error('指派案件失敗:', error);
             
             // 更詳細的錯誤資訊
             if (error.response) {
-                console.error('錯誤狀態:', error.response.status);
-                console.error('錯誤資料:', error.response.data);
+                //console.error('錯誤狀態:', error.response.status);
+                //console.error('錯誤資料:', error.response.data);
                 throw new Error(error.response.data.message || '指派失敗');
             }
             throw error;
@@ -158,11 +158,11 @@ export const useBackendRepairStore = defineStore('backend-repair', () => {
     // 承辦案件 PATCH /backend/repair/{id}/process
     const handleWork = async (repairId) => {
         try {
-            console.log('承辦案件ID:', repairId);
+            //console.log('承辦案件ID:', repairId);
             
             const response = await axiosClient.patch(`/backend/repair/${repairId}/process`);
             
-            console.log('承辦案件回應:', response.data);
+            //console.log('承辦案件回應:', response.data);
             
             return {
                 success: true,
@@ -170,12 +170,12 @@ export const useBackendRepairStore = defineStore('backend-repair', () => {
                 message: response.data.message
             };
         } catch (error) {
-            console.error('承辦案件失敗:', error);
+            //console.error('承辦案件失敗:', error);
             
             // 更詳細的錯誤資訊
             if (error.response) {
-                console.error('錯誤狀態:', error.response.status);
-                console.error('錯誤資料:', error.response.data);
+                //console.error('錯誤狀態:', error.response.status);
+                //console.error('錯誤資料:', error.response.data);
                 // throw new Error(error.response.data.message || '承辦失敗');
             }
             return {
@@ -188,7 +188,7 @@ export const useBackendRepairStore = defineStore('backend-repair', () => {
     // 上傳待辦案件檔案 - 對應 POST /api/backend/todo/file
     const saveTodoFiles = async (formData) => {
         try {
-            console.log('上傳待辦案件檔案:', formData);
+            //console.log('上傳待辦案件檔案:', formData);
             
             const response = await axiosClient.post('/backend/repair/record/file', formData, {
                 headers: {
@@ -196,7 +196,7 @@ export const useBackendRepairStore = defineStore('backend-repair', () => {
                 }
             });
             
-            console.log('檔案上傳回應:', response.data);
+            //console.log('檔案上傳回應:', response.data);
             
             return {
                 success: true,
@@ -204,11 +204,11 @@ export const useBackendRepairStore = defineStore('backend-repair', () => {
                 message: response.data.message
             };
         } catch (error) {
-            console.error('檔案上傳失敗:', error);
+            //console.error('檔案上傳失敗:', error);
             
             if (error.response) {
-                console.error('錯誤狀態:', error.response.status);
-                console.error('錯誤資料:', error.response.data);
+                //console.error('錯誤狀態:', error.response.status);
+                //console.error('錯誤資料:', error.response.data);
                 throw new Error(error.response.data.message || '檔案上傳失敗');
             }
             throw error;
@@ -220,21 +220,21 @@ export const useBackendRepairStore = defineStore('backend-repair', () => {
     // 刪除待辦案件檔案 - 對應 DELETE /api/backend/todo/file/{id}
     const removeTodoFile = async (fileId) => {
         try {
-            console.log('刪除待辦案件檔案:', fileId);
+            //console.log('刪除待辦案件檔案:', fileId);
             
             const response = await axiosClient.delete(`/backend/repair/record/file/${fileId}`);
-            console.log('檔案刪除回應:', response.data);
+            //console.log('檔案刪除回應:', response.data);
             
             return {
                 success: true,
                 message: response.data.message
             };
         } catch (error) {
-            console.error('檔案刪除失敗:', error);
+            //console.error('檔案刪除失敗:', error);
             
             if (error.response) {
-                console.error('錯誤狀態:', error.response.status);
-                console.error('錯誤資料:', error.response.data);
+                //console.error('錯誤狀態:', error.response.status);
+                //console.error('錯誤資料:', error.response.data);
                 throw new Error(error.response.data.message || '檔案刪除失敗');
             }
             throw error;
@@ -245,10 +245,10 @@ export const useBackendRepairStore = defineStore('backend-repair', () => {
     const fetchStatuses = async (id) => {
         try {
             const response = await axiosClient.get(`/backend/repair/${id}/record/repair-status`)
-            console.log(response.data);
+            //console.log(response.data);
             statuses.value = response.data;
         } catch (error) {
-            console.error('獲取類別失敗:', error);
+            //console.error('獲取類別失敗:', error);
         }
     }
     // 下載檔案/api/repair/file/{id}/download
@@ -286,14 +286,14 @@ export const useBackendRepairStore = defineStore('backend-repair', () => {
             window.URL.revokeObjectURL(url);
             
         } catch (error) {
-            console.error('下載失敗:', error);
+            //console.error('下載失敗:', error);
             return error;
         }
     }
 
     // 檢視檔案 /api/repair/file/{id}
     const viewFile = async (fileId) => {
-        console.log(fileId);
+        //console.log(fileId);
         try {
             const response = await axiosClient.get(`/backend/repair/file/${fileId}` ,{
                 responseType: 'blob', // 重要：設置響應類型為 blob
@@ -301,11 +301,11 @@ export const useBackendRepairStore = defineStore('backend-repair', () => {
                     'Accept': 'application/octet-stream'
                 }
             })
-            console.log('檔案詳細資料:', response);
+            //console.log('檔案詳細資料:', response);
             
             return response.data
         } catch (error) {
-            console.error('獲取檔案詳細資料失敗:', error);
+            //console.error('獲取檔案詳細資料失敗:', error);
         }
     }
     return {

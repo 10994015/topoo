@@ -68,7 +68,7 @@ const fetchCaseDetail = async () => {
     caseDetail.value = backendRepairStore.repairDetail
     formData.repairId = caseDetail.value.id
 
-    console.log(caseDetail.value);
+    //console.log(caseDetail.value);
     
     // 設置已存在的檔案
     if (caseDetail.value.files && caseDetail.value.files.length > 0) {
@@ -80,10 +80,10 @@ const fetchCaseDetail = async () => {
       }))
     }
 
-    console.log(existingFiles.value);
+    //console.log(existingFiles.value);
     
   } catch (error) {
-    console.error('獲取案件詳細資料失敗:', error)
+    //console.error('獲取案件詳細資料失敗:', error)
     alert('載入失敗，請稍後重試')
   } finally {
     isLoading.value = false
@@ -202,7 +202,7 @@ const uploadFile = async (fileObj) => {
       }
     }
   } catch (error) {
-    console.error('檔案上傳失敗:', error)
+    //console.error('檔案上傳失敗:', error)
     alert(`檔案 "${fileObj.name}" 上傳失敗`)
     fileObj.uploading = false
   }
@@ -224,7 +224,7 @@ const removeFile = async (fileObj) => {
       }
     }
   } catch (error) {
-    console.error('檔案刪除失敗:', error)
+    //console.error('檔案刪除失敗:', error)
     alert('檔案刪除失敗')
   }
 }
@@ -268,7 +268,7 @@ const getPriorityLabel = (level) => {
 
 // 狀態變更處理
 const onStatusChange = () => {
-  console.log('狀態變更:', formData.repairStatusId)
+  //console.log('狀態變更:', formData.repairStatusId)
 }
 
 // 儲存處理記錄
@@ -280,7 +280,7 @@ const saveRecord = async () => {
   
   try {
     isSaving.value = true
-    console.log(formData);
+    //console.log(formData);
     
     const submitData = {
       repairId: formData.repairId,
@@ -288,12 +288,12 @@ const saveRecord = async () => {
       content: formData.content,
       fileIds: formData.fileIds
     }
-    console.log('提交處理記錄:', submitData)
+    //console.log('提交處理記錄:', submitData)
     surveyStore.fetchSurveys();
     const result = await backendRepairStore.createRepairWork(submitData)
     
     if(result.success) {
-      console.log('處理記錄儲存成功:', result.data)
+      //console.log('處理記錄儲存成功:', result.data)
       alert('處理記錄儲存成功！')
       router.go(-1) // 返回上一頁
     } else {
@@ -301,7 +301,7 @@ const saveRecord = async () => {
     }
     
   } catch (error) {
-    console.error('儲存失敗:', error)
+    //console.error('儲存失敗:', error)
     alert(`儲存失敗：${error.message || '請稍後重試'}`)
   } finally {
     isSaving.value = false
@@ -314,7 +314,7 @@ const cancel = () => {
 
 // 下載檔案
 const downloadFile = async (file) => {
-  console.log(file);
+  //console.log(file);
   
   try {
     if(!file.file_id){
@@ -338,7 +338,7 @@ const selectedFile = ref(null)
 
 // 打開檔案預覽
 const openFilePreview = (file) => {
-  console.log('原始檔案對象:', file)
+  //console.log('原始檔案對象:', file)
   
   // 統一檔案對象格式
   const normalizedFile = {
@@ -348,11 +348,11 @@ const openFilePreview = (file) => {
     ...file // 保留其他屬性
   }
   
-  console.log('標準化後的檔案對象:', normalizedFile)
+  //console.log('標準化後的檔案對象:', normalizedFile)
   
   // 檢查是否有有效的檔案 ID
   if (!normalizedFile.file_id) {
-    console.error('檔案缺少有效的 file_id:', normalizedFile)
+    //console.error('檔案缺少有效的 file_id:', normalizedFile)
     alert('檔案資訊不完整，無法預覽')
     return
   }
@@ -373,22 +373,22 @@ const fetchFileContent = async (fileId) => {
     const response = await backendRepairStore.viewFile(fileId)
     return response
   } catch (error) {
-    console.error('獲取檔案內容失敗:', error)
+    //console.error('獲取檔案內容失敗:', error)
     throw error
   }
 }
 
 // 檔案預覽事件處理
 const onFileDownloaded = (file) => {
-  console.log('檔案已下載:', file.file_name)
+  //console.log('檔案已下載:', file.file_name)
 }
 
 const onPreviewLoadSuccess = (blob) => {
-  console.log('預覽載入成功')
+  //console.log('預覽載入成功')
 }
 
 const onPreviewLoadError = (error) => {
-  console.error('預覽載入失敗:', error)
+  //console.error('預覽載入失敗:', error)
   alert('預覽失敗，請稍後重試')
 }
 
@@ -396,7 +396,7 @@ onMounted(async () => {
   await fetchCaseDetail()
   await backendRepairStore.fetchStatuses(caseId.value);
   statusOptions.value = backendRepairStore.statuses.data
-  console.log(statusOptions.value);
+  //console.log(statusOptions.value);
 })
 </script>
 

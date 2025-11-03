@@ -30,26 +30,26 @@ export default defineConfig({
         secure: true,
         configure: (proxy, options) => {
           proxy.on('proxyReq', (proxyReq, req, res) => {
-            console.log('🔄 代理請求:', req.method, req.url)
+            //console.log('🔄 代理請求:', req.method, req.url)
             
             // 轉發所有 cookies
             if (req.headers.cookie) {
-              console.log('📤 轉發 cookies:', req.headers.cookie)
+              //console.log('📤 轉發 cookies:', req.headers.cookie)
               proxyReq.setHeader('cookie', req.headers.cookie)
             }
           })
           
           proxy.on('proxyRes', (proxyRes, req, res) => {
-            console.log(proxyRes.statusCode, req.url)
+            //console.log(proxyRes.statusCode, req.url)
             
             // 轉發 Set-Cookie headers
             if (proxyRes.headers['set-cookie']) {
-              console.log('cookies:', proxyRes.headers['set-cookie'])
+              //console.log('cookies:', proxyRes.headers['set-cookie'])
             }
           })
           
           proxy.on('error', (err, req, res) => {
-            console.error(err.message)
+            //console.error(err.message)
           })
         }
       }

@@ -128,7 +128,7 @@ const handleUnitSearch = (event) => {
   
   // 設定新的計時器（500ms 防抖）
   unitSearchTimer = setTimeout(async () => {
-    console.log('執行單位搜尋:', keyword)
+    //console.log('執行單位搜尋:', keyword)
     showUnitDropdown.value = true // 顯示下拉選單（可能顯示載入中或無資料）
     await surveyStore.searchSurveyUnits(keyword)
     selectedUnitIndex.value = -1
@@ -142,7 +142,7 @@ const selectUnit = (unit) => {
   unitSearchKeyword.value = unit.name
   showUnitDropdown.value = false
   selectedUnitIndex.value = -1
-  console.log('選擇單位:', unit)
+  //console.log('選擇單位:', unit)
 }
 
 // 新增：鍵盤導航處理
@@ -211,7 +211,7 @@ const handleUnitFocus = () => {
 const handleSearch = async () => {
   currentPage.value = 1
   isSearching.value = true
-  console.log('執行搜尋:', searchForm)
+  //console.log('執行搜尋:', searchForm)
   await loadData()
   isSearching.value = false
 }
@@ -230,7 +230,7 @@ const handleReset = async () => {
 }
 
 const loadData = async () => {
-  console.log(currentPage.value)
+  //console.log(currentPage.value)
   
   isLoading.value = true
   const params = {
@@ -243,13 +243,13 @@ const loadData = async () => {
     page: currentPage.value,
     pageSize: pageSize.value
   }
-  console.log(params)
+  //console.log(params)
   
   const response = await surveyStore.fetchSurveyResponses(params)
-  console.log(surveyStore.surveyResponses.data);
+  //console.log(surveyStore.surveyResponses.data);
   
   responseData.value = surveyStore.surveyResponses.data || []
-  console.log(surveyStore.surveyResponses.total)
+  //console.log(surveyStore.surveyResponses.total)
   
   totalItems.value = surveyStore.surveyResponses.total || 0
   totalPages.value = surveyStore.surveyResponses.totalPages || 0
@@ -290,7 +290,7 @@ const getSortClass = (field) => {
 }
 
 const goToPage = async (page) => {
-  console.log(page)
+  //console.log(page)
   if (page >= 1 && page <= totalPages.value) {
     currentPage.value = page
     await loadData()
@@ -298,13 +298,13 @@ const goToPage = async (page) => {
 }
 
 const viewResponse = (response) => {
-  console.log('查看問卷回覆詳情:', response)
+  //console.log('查看問卷回覆詳情:', response)
   router.push(`/settings/survey-response/${response.survey_id}`)
 }
 
 // watch pageSize
 watch(pageSize, async (newSize) => {
-  console.log('分頁大小變更:', newSize)
+  //console.log('分頁大小變更:', newSize)
   pageSize.value = newSize
   currentPage.value = 1
   await loadData()

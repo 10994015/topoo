@@ -18,7 +18,7 @@ export const useMailStore = defineStore('mail', () => {
     }) => {
         try {
             isLoading.value = true;
-            console.log(searchForm);
+            //console.log(searchForm);
             
             const params = {};
             if (searchForm.email) params.email = searchForm.email;
@@ -26,16 +26,16 @@ export const useMailStore = defineStore('mail', () => {
             params.page = searchForm.page;
             params.sortBy = searchForm.sortBy; // 排序欄位
             params.sortOrder = searchForm.sortOrder.toUpperCase(); // 排序方向
-            console.log(params);
+            //console.log(params);
             
             const response = await axiosClient.get('/backend/mail/', { params });
-            console.log(response.data);
+            //console.log(response.data);
             mails.value = response.data.data;
             isLoading.value = false;
             return response.data;
         } catch (error) {
             isLoading.value = false;
-            console.error('獲取信箱列表失敗:', error);
+            //console.error('獲取信箱列表失敗:', error);
             throw error;
         }
     }
@@ -46,13 +46,13 @@ export const useMailStore = defineStore('mail', () => {
             const response = await axiosClient.get(`/backend/mail`, {
                 params: { mailId: id },
             });
-            console.log(response.data.data.data[0]);
+            //console.log(response.data.data.data[0]);
             mail.value = response.data.data
             isLoading.value = false;
             return response.data.data;
         } catch (error) {
             isLoading.value = false;
-            console.error('獲取信箱失敗:', error);
+            //console.error('獲取信箱失敗:', error);
             throw error;
         }
     }
@@ -70,9 +70,9 @@ export const useMailStore = defineStore('mail', () => {
                 smtpPort: data.smtpPort
             };
             
-            console.log('創建信箱參數:', payload);
+            //console.log('創建信箱參數:', payload);
             const response = await axiosClient.post('/backend/mail/', payload);
-            console.log(response.data);
+            //console.log(response.data);
             
             // 創建成功後，更新單個信箱狀態
             mail.value = response.data.data;
@@ -80,7 +80,7 @@ export const useMailStore = defineStore('mail', () => {
             return response.data;
         } catch (error) {
             isLoading.value = false;
-            console.error('創建信箱失敗:', error.response?.data || error);
+            //console.error('創建信箱失敗:', error.response?.data || error);
             throw error;
         }
     }
@@ -98,9 +98,9 @@ export const useMailStore = defineStore('mail', () => {
                 smtpPort: data.smtpPort
             };
             
-            console.log('更新信箱參數:', payload);
+            //console.log('更新信箱參數:', payload);
             const response = await axiosClient.patch(`/backend/mail/${id}`, payload);
-            console.log(response.data);
+            //console.log(response.data);
             
             // 更新成功後，更新信箱狀態
             mail.value = response.data.data;
@@ -108,7 +108,7 @@ export const useMailStore = defineStore('mail', () => {
             return response.data;
         } catch (error) {
             isLoading.value = false;
-            console.error('更新信箱失敗:', error);
+            //console.error('更新信箱失敗:', error);
             throw error;
         }
     }
@@ -117,12 +117,12 @@ export const useMailStore = defineStore('mail', () => {
         try {
             isLoading.value = true;
             const response = await axiosClient.delete(`/backend/mail/${id}`);
-            console.log(response.data);
+            //console.log(response.data);
             isLoading.value = false;
             return response.data;
         } catch (error) {
             isLoading.value = false;
-            console.error('刪除信箱失敗:', error);
+            //console.error('刪除信箱失敗:', error);
             throw error;
         }
     }
@@ -132,12 +132,12 @@ export const useMailStore = defineStore('mail', () => {
         try {
             isLoading.value = true;
             const response = await axiosClient.post(`/backend/mail/${id}/test`);
-            console.log('測試連接結果:', response.data);
+            //console.log('測試連接結果:', response.data);
             isLoading.value = false;
             return response.data;
         } catch (error) {
             isLoading.value = false;
-            console.error('測試信箱連接失敗:', error);
+            //console.error('測試信箱連接失敗:', error);
             throw error;
         }
     }
@@ -149,12 +149,12 @@ export const useMailStore = defineStore('mail', () => {
             const response = await axiosClient.delete('/backend/mail/batch', {
                 data: { ids }
             });
-            console.log(response.data);
+            //console.log(response.data);
             isLoading.value = false;
             return response.data;
         } catch (error) {
             isLoading.value = false;
-            console.error('批量刪除信箱失敗:', error);
+            //console.error('批量刪除信箱失敗:', error);
             throw error;
         }
     }
@@ -163,10 +163,10 @@ export const useMailStore = defineStore('mail', () => {
     const validateMailAddress = async (email) => {
         try {
             const response = await axiosClient.post('/backend/mail/validate', { email });
-            console.log(response.data);
+            //console.log(response.data);
             return response.data;
         } catch (error) {
-            console.error('驗證信箱失敗:', error);
+            //console.error('驗證信箱失敗:', error);
             throw error;
         }
     }

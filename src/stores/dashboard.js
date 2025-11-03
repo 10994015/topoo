@@ -63,7 +63,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     // 格式化 API 數據為圖表所需格式（更新變數名稱）
     const formatChartData = (apiData) => {
         if (!apiData || !Array.isArray(apiData)) {
-            console.warn('API 數據格式不正確:', apiData)
+            //console.warn('API 數據格式不正確:', apiData)
             return []
         }
         
@@ -78,7 +78,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     // 格式化系統報修案件數據
     const formatRepairCaseData = (apiData) => {
         if (!apiData || !Array.isArray(apiData)) {
-            console.warn('系統報修 API 數據格式不正確:', apiData)
+            //console.warn('系統報修 API 數據格式不正確:', apiData)
             return []
         }
         
@@ -128,12 +128,12 @@ export const useDashboardStore = defineStore('dashboard', () => {
                     }
                 } else {
                     // 無法解析時直接返回原字符串
-                    console.warn('無法解析的時間格式:', timeStr)
+                    //console.warn('無法解析的時間格式:', timeStr)
                     return timeStr
                 }
             }
         } catch (error) {
-            console.error('時間格式化錯誤:', error, timeStr)
+            //console.error('時間格式化錯誤:', error, timeStr)
             return timeStr
         }
     }
@@ -154,7 +154,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
             
             return `${year}/${month}/${day} ${hours}:${minutes}`
         } catch (error) {
-            console.error('日期時間格式化錯誤:', error, timeStr)
+            //console.error('日期時間格式化錯誤:', error, timeStr)
             return timeStr
         }
     }
@@ -166,7 +166,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
         isLoading.value = true
         try {
             const response = await axiosClient.get('/dashboard/carbon-saving')
-            console.log('ESG API 響應:', response.data)
+            //console.log('ESG API 響應:', response.data)
             
             if (response.data.statusCode === 200) {
                 esgStats.value = response.data.data
@@ -174,9 +174,9 @@ export const useDashboardStore = defineStore('dashboard', () => {
                 // esgStats.value.systemTressSavingNumber = 150
             }
             
-            console.log('ESG 統計數據已載入')
+            //console.log('ESG 統計數據已載入')
         } catch (error) {
-            console.error('獲取 ESG 統計數據失敗:', error)
+            //console.error('獲取 ESG 統計數據失敗:', error)
         } finally {
             isLoading.value = false
         }
@@ -191,9 +191,9 @@ export const useDashboardStore = defineStore('dashboard', () => {
             // monthlyStats.value = response.data.data
             
             await new Promise(resolve => setTimeout(resolve, 500))
-            console.log('月度統計數據已載入')
+            //console.log('月度統計數據已載入')
         } catch (error) {
-            console.error('獲取月度統計數據失敗:', error)
+            //console.error('獲取月度統計數據失敗:', error)
         } finally {
             isLoading.value = false
         }
@@ -204,7 +204,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
         isLoading.value = true
         try {
             const timeRangeParam = getTimeRangeParam(timeRange)
-            console.log('獲取報修趨勢數據:', timeRange, '->', timeRangeParam)
+            //console.log('獲取報修趨勢數據:', timeRange, '->', timeRangeParam)
             
             const response = await axiosClient.get('/dashboard/repair-chart', {
                 params: { 
@@ -213,22 +213,22 @@ export const useDashboardStore = defineStore('dashboard', () => {
                 }
             })
             
-            console.log('報修趨勢 API 響應:', response.data)
+            //console.log('報修趨勢 API 響應:', response.data)
             
             if (response.data.statusCode === 200 && response.data.data) {
                 const formattedData = formatChartData(response.data.data.chartData)
                 repairTrendData.value = formattedData
-                console.log('報修趨勢數據已格式化:', formattedData)
+                //console.log('報修趨勢數據已格式化:', formattedData)
             } else {
-                console.warn('報修趨勢 API 響應狀態異常:', response.data)
+                //console.warn('報修趨勢 API 響應狀態異常:', response.data)
                 // 如果 API 失敗，保持當前數據不變
             }
             
         } catch (error) {
-            console.error('獲取報修趨勢數據失敗:', error)
+            //console.error('獲取報修趨勢數據失敗:', error)
             
             // API 失敗時使用模擬數據作為後備（更新變數名稱）
-            console.log('使用模擬數據作為後備')
+            //console.log('使用模擬數據作為後備')
             if (timeRange === '近1週') {
                 repairTrendData.value = [
                     { month: '07/26', all: 8, completing: 3, remaining: 5 },
@@ -266,7 +266,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
         isLoading.value = true
         try {
             const timeRangeParam = getTimeRangeParam(timeRange)
-            console.log('獲取案件處理量數據:', timeRange, '->', timeRangeParam)
+            //console.log('獲取案件處理量數據:', timeRange, '->', timeRangeParam)
             
             const response = await axiosClient.get('/dashboard/repair-chart', {
                 params: { 
@@ -275,21 +275,21 @@ export const useDashboardStore = defineStore('dashboard', () => {
                 }
             })
             
-            console.log('案件處理量 API 響應:', response.data)
+            //console.log('案件處理量 API 響應:', response.data)
             
             if (response.data.statusCode === 200 && response.data.data) {
                 const formattedData = formatChartData(response.data.data.chartData)
                 caseProcessingData.value = formattedData
-                console.log('案件處理量數據已格式化:', formattedData)
+                //console.log('案件處理量數據已格式化:', formattedData)
             } else {
-                console.warn('案件處理量 API 響應狀態異常:', response.data)
+                //console.warn('案件處理量 API 響應狀態異常:', response.data)
             }
             
         } catch (error) {
-            console.error('獲取案件處理量數據失敗:', error)
+            //console.error('獲取案件處理量數據失敗:', error)
             
             // API 失敗時使用模擬數據作為後備（更新變數名稱）
-            console.log('使用模擬數據作為後備')
+            //console.log('使用模擬數據作為後備')
             if (timeRange === '近1週') {
                 caseProcessingData.value = [
                     { month: '07/26', all: 6, completing: 2, remaining: 3 },
@@ -327,12 +327,12 @@ export const useDashboardStore = defineStore('dashboard', () => {
         isLoading.value = true
         try {
             if(searchTypeParam === 'All' && !hasTodoPermission.value && !hasRepairTodoPermission.value) {
-                console.warn('無權限查看所有系統報修案件')
+                //console.warn('無權限查看所有系統報修案件')
                 urgentCases.value = []
                 isLoading.value = false
                 return
             }
-            console.log('獲取系統報修案件:', searchTypeParam)
+            //console.log('獲取系統報修案件:', searchTypeParam)
             let url = '/dashboard/unit-repair';
             if(hasTodoPermission.value){
                 url = '/dashboard/system-repair';
@@ -345,7 +345,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
                 }
             })
             
-            console.log('系統報修 API 響應:', response.data)
+            //console.log('系統報修 API 響應:', response.data)
             
             if (response.data.statusCode === 200 && response.data.data) {
                 // 更新搜尋類型
@@ -355,8 +355,8 @@ export const useDashboardStore = defineStore('dashboard', () => {
                 const formattedCases = formatRepairCaseData(response.data.data.repairs || [])
                 urgentCases.value = formattedCases
                 
-                console.log('系統報修案件已格式化:', formattedCases)
-                console.log('當前搜尋類型:', searchType.value)
+                //console.log('系統報修案件已格式化:', formattedCases)
+                //console.log('當前搜尋類型:', searchType.value)
 
                 monthlyStats.value.completedCases = response.data.data.completing_repair || 0
                 monthlyStats.value.newReports = response.data.data.remaining_repair || 0
@@ -364,12 +364,12 @@ export const useDashboardStore = defineStore('dashboard', () => {
                 monthlyStats.value.completionRate = Math.round((response.data.data.rate * 100) * 100) / 100 || 0
 
             } else {
-                console.warn('系統報修 API 響應狀態異常:', response.data)
+                //console.warn('系統報修 API 響應狀態異常:', response.data)
                 urgentCases.value = []
             }
             
         } catch (error) {
-            console.error('獲取系統報修案件失敗:', error)
+            //console.error('獲取系統報修案件失敗:', error)
             
             // API 失敗時使用空數組
             urgentCases.value = []
@@ -382,7 +382,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     const switchRepairSearchType = async (newSearchType) => {
         if (newSearchType === searchType.value) return
         
-        console.log('切換系統報修搜尋類型:', searchType.value, '->', newSearchType)
+        //console.log('切換系統報修搜尋類型:', searchType.value, '->', newSearchType)
         await fetchSystemRepairCases(newSearchType)
     }
     
@@ -401,9 +401,9 @@ export const useDashboardStore = defineStore('dashboard', () => {
                 fetchCaseProcessingData(),
                 fetchSystemRepairCases('Remaining') // 預設載入所有案件
             ])
-            console.log('儀表板數據初始化完成')
+            //console.log('儀表板數據初始化完成')
         } catch (error) {
-            console.error('儀表板數據初始化失敗:', error)
+            //console.error('儀表板數據初始化失敗:', error)
         }
     }
     

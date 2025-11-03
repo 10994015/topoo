@@ -69,7 +69,7 @@ const endItem = computed(() => {
 })
 
 const viewLog = (id) => {
-  console.log('查看日誌詳情:', id)
+  //console.log('查看日誌詳情:', id)
   router.push(`/settings/view-log/${id}`)
 }
 
@@ -102,7 +102,7 @@ const visiblePages = computed(() => {
 })
 
 const viewDetail = (item) => {
-    console.log('查看詳情:', item.id)
+    //console.log('查看詳情:', item.id)
     router.push(`/settings/log/${item.id}`)
 }
 const showEllipsis = computed(() => {
@@ -113,20 +113,20 @@ const showEllipsis = computed(() => {
 watch(() => searchForm.log_category, (newCategory, oldCategory) => {
   if (newCategory !== oldCategory) {
     searchForm.log_action = ''
-    console.log('模組變更:', newCategory, '清空操作選擇')
+    //console.log('模組變更:', newCategory, '清空操作選擇')
   }
 })
 
 // 方法
 const handleSearch = async () => {
   currentPage.value = 1
-  console.log('執行搜尋:', searchForm)
+  //console.log('執行搜尋:', searchForm)
   await getLogData(searchForm, sortColumn.value, sortDirection.value, pageSize.value, currentPage.value)
 }
 
 // watch pageSize
 watch(pageSize, async (newSize) => {
-  console.log('分頁大小變更:', newSize)
+  //console.log('分頁大小變更:', newSize)
   currentPage.value = 1
   await getLogData(searchForm, sortColumn.value, sortDirection.value, newSize, currentPage.value)
 })
@@ -154,11 +154,11 @@ const sortBy = async (column) => {
     sortDirection.value = 'asc'
   }
   await getLogData(searchForm, sortColumn.value, sortDirection.value, pageSize.value, currentPage.value)
-  console.log('排序:', column, sortDirection.value)
+  //console.log('排序:', column, sortDirection.value)
 }
 
 const goToPage = async (page) => {
-  console.log('前往頁數:', page)
+  //console.log('前往頁數:', page)
   await getLogData(searchForm, sortColumn.value, sortDirection.value, pageSize.value, page)
   if (page >= 1 && page <= totalPages.value) {
     currentPage.value = page
@@ -166,12 +166,12 @@ const goToPage = async (page) => {
 }
 
 const getLogData = async(searchForm, column = "created_at", sortDirection = "desc", limit = 10, page = 1) => {
-  console.log('獲取日誌資料:', searchForm, column, sortDirection)
+  //console.log('獲取日誌資料:', searchForm, column, sortDirection)
   isSearching.value = true
   
   try {
     await logStore.fetchLogs(searchForm, column, sortDirection, limit, page)
-    console.log('日誌資料:', logStore.logs)
+    //console.log('日誌資料:', logStore.logs)
     
     if (logStore.logs && logStore.logs.data) {
       logData.value = logStore.logs.data
@@ -183,9 +183,9 @@ const getLogData = async(searchForm, column = "created_at", sortDirection = "des
       totalItems.value = 0
     }
 
-    console.log('分頁資訊:', totalItems.value, totalPages.value)
+    //console.log('分頁資訊:', totalItems.value, totalPages.value)
   } catch (error) {
-    console.error('獲取日誌資料失敗:', error)
+    //console.error('獲取日誌資料失敗:', error)
     logData.value = []
     totalPages.value = 0
     totalItems.value = 0
@@ -198,17 +198,17 @@ onMounted(async () => {
   // 添加視窗尺寸監聽器
   window.addEventListener('resize', handleResize)
   
-  console.log('onMounted: LogManagement')
+  //console.log('onMounted: LogManagement')
   try {
     // 先載入日誌操作類型選項
     await logStore.fetchLogActions()
-    console.log('日誌操作類型載入完成')
+    //console.log('日誌操作類型載入完成')
     
     // 載入日誌資料
     await getLogData(searchForm, "created_at", "desc", pageSize.value, currentPage.value)
     
   } catch (error) {
-    console.error('載入資料失敗:', error)
+    //console.error('載入資料失敗:', error)
   } finally {
     isLoading.value = false
   }

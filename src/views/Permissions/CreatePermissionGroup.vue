@@ -13,10 +13,10 @@ const router = useRouter()
 
 const permissionStore = usePermissionStore()
 const hasFullPermission = computed(() => authStore.canModify(PERMISSIONS.PERMISSION_ROLE_MANAGEMENT));
-console.log(PERMISSIONS.PERMISSION_ROLE_MEMBER_MANAGEMENT);
+//console.log(PERMISSIONS.PERMISSION_ROLE_MEMBER_MANAGEMENT);
 
 const hasFullMemberPermission = computed(() => authStore.canAccessPage(PERMISSIONS.PERMISSION_ROLE_MEMBER_MANAGEMENT));
-console.log(hasFullMemberPermission.value);
+//console.log(hasFullMemberPermission.value);
 
 // 響應式視窗寬度監聽
 const windowWidth = ref(window.innerWidth)
@@ -115,12 +115,12 @@ const showEllipsis = computed(() => {
 
 // 方法
 const handleSave = async () => {
-  console.log('儲存設定:', formData)
+  //console.log('儲存設定:', formData)
   loading.save = true
   try {
     if (isCreateMode.value) {
       const response = await permissionStore.createPermissionGroup(formData)
-      console.log(response)
+      //console.log(response)
       if(response.status === 400){
         alert(response.data.message)
         return
@@ -129,12 +129,12 @@ const handleSave = async () => {
       router.push('/settings/permission-management') // 返回列表頁
     } else {
       const response = await permissionStore.updatePermissionGroup(permissionId.value, formData)
-      console.log(response)
+      //console.log(response)
       alert('更新成功！')
       currentMode.value = 'view'
     }
   } catch (error) {
-    console.log('儲存失敗:', error)
+    //console.log('儲存失敗:', error)
     alert(error.response?.data?.message || '儲存失敗，請稍後重試')
   } finally {
     loading.save = false
@@ -177,7 +177,7 @@ const handleDelete = async () => {
     loading.delete = true
     try {
       const response = await permissionStore.deletePermissionGroup(permissionId.value)
-      console.log(response)
+      //console.log(response)
       if(response.status === 400){
         alert(response.data.message)
         return
@@ -187,7 +187,7 @@ const handleDelete = async () => {
       }
       // router.push('/settings/permission-management') // 返回列表頁
     } catch (error) {
-      console.error('刪除失敗:', error)
+      //console.error('刪除失敗:', error)
     } finally {
       loading.delete = false
     }
@@ -214,7 +214,7 @@ const loadPermissionGroup = async () => {
     if(permissionId.value) {
         
         await permissionStore.getPermissionById(permissionId.value);
-        console.log(permissionStore.permission);
+        //console.log(permissionStore.permission);
 
         formData.groupName = permissionStore.permission.role_name;
         formData.groupStatus = permissionStore.permission.role_status;
@@ -227,7 +227,7 @@ const loadPermissionGroup = async () => {
         formData.createdTime = permissionStore.permission.created_at;
         formData.groupMembers = permissionStore.permission.users.length ?? 0;
 
-        console.log(formData.permissions, permissions.value );
+        //console.log(formData.permissions, permissions.value );
         permissions.value.forEach(permission => {
             const matchedPermission = formData.permissions.find(p => p.id === permission.id);
             if (!matchedPermission) {
@@ -267,11 +267,11 @@ onMounted(async() => {
     try {
       await permissionStore.getPermissionCategories();
       permissions.value = permissionStore.permissionCategories;
-      console.log(permissions.value);
+      //console.log(permissions.value);
       await loadPermissionGroup();
-      console.log(formData);
+      //console.log(formData);
     } catch (error) {
-      console.error('初始化失敗:', error)
+      //console.error('初始化失敗:', error)
     } finally {
       loading.initial = false
     }
@@ -282,8 +282,8 @@ onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
 })
 
-console.log(formData);
-console.log(permissions);
+//console.log(formData);
+//console.log(permissions);
 
 </script>
 

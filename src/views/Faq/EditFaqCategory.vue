@@ -210,17 +210,17 @@ const handleDrop = async (e, targetIndex) => {
       await loadFaqList()
       
       // 顯示成功訊息 - 可以改成 toast 通知
-      console.log('FAQ 順序更新成功')
+      //console.log('FAQ 順序更新成功')
       
       // 可選：顯示成功提示
       // 如果你有 toast 組件，可以這樣使用：
       // showToast('FAQ 順序更新成功', 'success')
     } else {
-      console.error('更新順序失敗:', result.message)
+      //console.error('更新順序失敗:', result.message)
       alert(`更新順序失敗: ${result.message}`)
     }
   } catch (error) {
-    console.error('更新順序異常:', error)
+    //console.error('更新順序異常:', error)
     alert('更新順序時發生錯誤，請稍後再試')
   } finally {
     // 重置所有狀態
@@ -273,7 +273,7 @@ const loadFaqList = async () => {
     totalItems.value = faqStore.totalItems || 0
     totalPages.value = faqStore.totalPages || 0
   } catch (error) {
-    console.error('載入FAQ列表失敗:', error)
+    //console.error('載入FAQ列表失敗:', error)
   }
 }
 
@@ -285,7 +285,7 @@ const loadFaqDetail = async () => {
     isLoadingDetail.value = true
     
     const result = await faqStore.fetchFaqDetail(route.params.id, true)
-    console.log(result)
+    //console.log(result)
     
     if (result.success) {
       // 填入表單資料
@@ -296,11 +296,11 @@ const loadFaqDetail = async () => {
       // 最後更新時間
       formData.updatedAt = result.data.updated_at
     } else {
-      console.error('載入FAQ詳細資料失敗:', result.message)
+      //console.error('載入FAQ詳細資料失敗:', result.message)
       alert(`載入失敗: ${result.message}`)
     }
   } catch (error) {
-    console.error('載入FAQ詳細資料異常:', error)
+    //console.error('載入FAQ詳細資料異常:', error)
     alert('載入資料時發生錯誤，請稍後再試')
   } finally {
     isLoadingDetail.value = false
@@ -397,7 +397,7 @@ const handleSubmit = async () => {
         handleReset()
       }
     } else {
-      console.error('操作失敗:', result.message)
+      //console.error('操作失敗:', result.message)
       alert(`操作失敗: ${result.message}`)
       
       // 如果是驗證錯誤，嘗試解析錯誤訊息
@@ -410,7 +410,7 @@ const handleSubmit = async () => {
       }
     }
   } catch (error) {
-    console.error('提交表單異常:', error)
+    //console.error('提交表單異常:', error)
     alert('操作時發生錯誤，請稍後再試')
   } finally {
     isSaving.value = false
@@ -453,11 +453,11 @@ const handleDelete = async () => {
       faqStore.clearAllCache()
       router.push('/settings/faq-management')
     } else {
-      console.error('刪除失敗:', result.message)
+      //console.error('刪除失敗:', result.message)
       alert(`刪除失敗: ${result.message}`)
     }
   } catch (error) {
-    console.error('刪除異常:', error)
+    //console.error('刪除異常:', error)
     alert('刪除時發生錯誤，請稍後再試')
   } finally {
     isLoading.value = false
@@ -485,11 +485,11 @@ const deleteFaq = async (item) => {
         router.push('/settings/faq-management')
       }
     } else {
-      console.error('刪除失敗:', result.message)
+      //console.error('刪除失敗:', result.message)
       alert(`刪除失敗: ${result.message}`)
     }
   } catch (error) {
-    console.error('刪除異常:', error)
+    //console.error('刪除異常:', error)
     alert('刪除時發生錯誤，請稍後再試')
   }
 }

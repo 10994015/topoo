@@ -39,15 +39,15 @@ export const useRepairStatusStore = defineStore('repairStatus', () => {
             params.pageSize = limit
             params.page = page
             
-            console.log('獲取維修狀態列表參數:', params)
+            //console.log('獲取維修狀態列表參數:', params)
             
             const response = await axiosClient.get('/backend/enum/repair-status', { params })
-            console.log('維修狀態列表回應:', response.data)
+            //console.log('維修狀態列表回應:', response.data)
             
             statuses.value = response.data
             
         } catch (error) {
-            console.error('獲取維修狀態列表失敗:', error)
+            //console.error('獲取維修狀態列表失敗:', error)
             // 提供預設的空資料結構
             statuses.value = {
                 data: [],
@@ -67,10 +67,10 @@ export const useRepairStatusStore = defineStore('repairStatus', () => {
      */
     const createStatus = async (statusData) => {
         try {
-            console.log('新增維修狀態資料:', statusData)
+            //console.log('新增維修狀態資料:', statusData)
             
             const response = await axiosClient.post('/backend/enum/repair-status', statusData)
-            console.log('新增維修狀態回應:', response.data)
+            //console.log('新增維修狀態回應:', response.data)
             
             return {
                 success: true,
@@ -78,7 +78,7 @@ export const useRepairStatusStore = defineStore('repairStatus', () => {
                 message: response.data.message || '新增成功'
             }
         } catch (error) {
-            console.error('新增維修狀態失敗:', error)
+            //console.error('新增維修狀態失敗:', error)
             
             // 處理錯誤回應
             let errorMessage = '新增失敗'
@@ -103,10 +103,10 @@ export const useRepairStatusStore = defineStore('repairStatus', () => {
      */
     const updateStatus = async (statusId, statusData) => {
         try {
-            console.log(`更新維修狀態 ${statusId} 資料:`, statusData)
+            //console.log(`更新維修狀態 ${statusId} 資料:`, statusData)
             
             const response = await axiosClient.patch(`/backend/enum/repair-status/${statusId}`, statusData)
-            console.log('更新維修狀態回應:', response.data)
+            //console.log('更新維修狀態回應:', response.data)
             
             return {
                 success: true,
@@ -114,7 +114,7 @@ export const useRepairStatusStore = defineStore('repairStatus', () => {
                 message: response.data.message || '更新成功'
             }
         } catch (error) {
-            console.error(`更新維修狀態 ${statusId} 失敗:`, error)
+            //console.error(`更新維修狀態 ${statusId} 失敗:`, error)
             
             let errorMessage = '更新失敗'
             if (error.response?.data?.message) {
@@ -137,17 +137,17 @@ export const useRepairStatusStore = defineStore('repairStatus', () => {
      */
     const deleteStatus = async (statusId) => {
         try {
-            console.log(`刪除維修狀態 ${statusId}`)
+            //console.log(`刪除維修狀態 ${statusId}`)
             
             const response = await axiosClient.delete(`/backend/enum/repair-status/${statusId}`)
-            console.log('刪除維修狀態回應:', response.data)
+            //console.log('刪除維修狀態回應:', response.data)
             
             return {
                 success: true,
                 message: response.data.message || '刪除成功'
             }
         } catch (error) {
-            console.error(`刪除維修狀態 ${statusId} 失敗:`, error)
+            //console.error(`刪除維修狀態 ${statusId} 失敗:`, error)
             
             let errorMessage = '刪除失敗'
             if (error.response?.data?.message) {
@@ -170,18 +170,18 @@ export const useRepairStatusStore = defineStore('repairStatus', () => {
      */
     const fetchStatusDetail = async (statusId) => {
         try {
-            console.log(`獲取維修狀態 ${statusId} 詳細資料`)
+            //console.log(`獲取維修狀態 ${statusId} 詳細資料`)
             
             const params = {
                 enumId: statusId
             }
             
             const response = await axiosClient.get('/backend/enum/repair-status', { params })
-            console.log('維修狀態詳細資料回應:', response.data)
+            //console.log('維修狀態詳細資料回應:', response.data)
             
             // 從列表中找到對應的維修狀態
             const status = response.data.data.data[0] || null
-            console.log('找到的維修狀態:', status);
+            //console.log('找到的維修狀態:', status);
             
             if (status) {
                 return {
@@ -195,7 +195,7 @@ export const useRepairStatusStore = defineStore('repairStatus', () => {
                 }
             }
         } catch (error) {
-            console.error(`獲取維修狀態 ${statusId} 詳細資料失敗:`, error)
+            //console.error(`獲取維修狀態 ${statusId} 詳細資料失敗:`, error)
             
             return {
                 success: false,
@@ -210,20 +210,20 @@ export const useRepairStatusStore = defineStore('repairStatus', () => {
      * @param {string} statusId - 維修狀態ID
      */
     const handleMoveToTop = async (statusId) => {
-        console.log(`將維修狀態 ${statusId} 置頂`)
+        //console.log(`將維修狀態 ${statusId} 置頂`)
         try {
             const response = await axiosClient.patch(`/backend/enum/repair-status/${statusId}/sequence`)
 
-            console.log('置頂回應:', response.data);
+            //console.log('置頂回應:', response.data);
 
             if (response.data.statusCode === 200) {
-                console.log(`維修狀態 ${statusId} 已成功置頂`)
+                //console.log(`維修狀態 ${statusId} 已成功置頂`)
                 return {
                     success: true,
                     message: response.data.message || '置頂成功'
                 }
             } else {
-                console.error(`維修狀態 ${statusId} 置頂失敗:`, response.data.message)
+                //console.error(`維修狀態 ${statusId} 置頂失敗:`, response.data.message)
                 return {
                     success: false,
                     message: response.data.message || '置頂失敗',
@@ -231,7 +231,7 @@ export const useRepairStatusStore = defineStore('repairStatus', () => {
                 }
             }
         } catch (error) {
-            console.error(`維修狀態 ${statusId} 置頂失敗:`, error)
+            //console.error(`維修狀態 ${statusId} 置頂失敗:`, error)
             
             let errorMessage = '置頂失敗'
             if (error.response?.data?.message) {
@@ -254,7 +254,7 @@ export const useRepairStatusStore = defineStore('repairStatus', () => {
     const clearAllCache = () => {
         statuses.value = null
         isInitialized.value = false
-        console.log('已清除所有維修狀態快取')
+        //console.log('已清除所有維修狀態快取')
     }
 
     // 返回 store 的狀態和方法

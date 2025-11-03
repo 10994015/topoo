@@ -30,7 +30,7 @@ const fetchRepairDetail = async () => {
     isLoading.value = true
     // 呼叫 API 獲取資料
     const response = await backendRepairStore.fetchRepairDetail(repairId.value)
-    console.log(response);
+    //console.log(response);
     
     // 從 store 中取得更新後的資料，而不是直接使用 response
     repairDetail.value = backendRepairStore.repairDetail
@@ -40,10 +40,10 @@ const fetchRepairDetail = async () => {
       todoId.value = repairDetail.value.todo_id
     }
     
-    console.log(repairDetail.value);
+    //console.log(repairDetail.value);
     
   } catch (error) {
-    console.error('獲取報修詳細資料失敗:', error)
+    //console.error('獲取報修詳細資料失敗:', error)
     alert('載入失敗，請稍後重試')
   } finally {
     isLoading.value = false
@@ -55,10 +55,10 @@ const fetchProgressRecords = async () => {
   try {
     await backendRepairStore.fetchRepairProgress(repairId.value)
     mockProgressData.value = backendRepairStore.repairProgress || []
-    console.log(mockProgressData.value);
+    //console.log(mockProgressData.value);
     
   } catch (error) {
-    console.error('獲取進度記錄失敗:', error)
+    //console.error('獲取進度記錄失敗:', error)
   }
 }
 
@@ -127,7 +127,7 @@ const handAssign = async () => {
   // 實作承辦案件邏輯
   if(repairDetail.value.repair_status === '尚未承辦'){
     const response = await backendRepairStore.handleWork(repairId.value)
-    console.log(response);
+    //console.log(response);
     
     if (response.success) {
       alert(response.message)
@@ -151,7 +151,7 @@ const restartTodo = async () => {
     return
   }
   // 實作刪除案件邏輯
-  console.log('重啟案件')
+  //console.log('重啟案件')
   const response = await backendRepairStore.restartTodo(repairId.value)
 
   if (response.success) {
@@ -199,7 +199,7 @@ const selectedFile = ref(null)
 
 // 打開檔案預覽
 const openFilePreview = (file) => {
-  console.log('原始檔案對象:', file)
+  //console.log('原始檔案對象:', file)
   
   // 統一檔案對象格式
   const normalizedFile = {
@@ -209,11 +209,11 @@ const openFilePreview = (file) => {
     ...file // 保留其他屬性
   }
   
-  console.log('標準化後的檔案對象:', normalizedFile)
+  //console.log('標準化後的檔案對象:', normalizedFile)
   
   // 檢查是否有有效的檔案 ID
   if (!normalizedFile.file_id) {
-    console.error('檔案缺少有效的 file_id:', normalizedFile)
+    //console.error('檔案缺少有效的 file_id:', normalizedFile)
     alert('檔案資訊不完整，無法預覽')
     return
   }
@@ -234,33 +234,33 @@ const fetchFileContent = async (fileId) => {
     const response = await backendRepairStore.viewFile(fileId)
     return response
   } catch (error) {
-    console.error('獲取檔案內容失敗:', error)
+    //console.error('獲取檔案內容失敗:', error)
     throw error
   }
 }
 
 // 檔案預覽事件處理
 const onFileDownloaded = (file) => {
-  console.log('檔案已下載:', file.file_name)
+  //console.log('檔案已下載:', file.file_name)
 }
 
 const onPreviewLoadSuccess = (blob) => {
-  console.log('預覽載入成功')
+  //console.log('預覽載入成功')
 }
 
 const onPreviewLoadError = (error) => {
-  console.error('預覽載入失敗:', error)
+  //console.error('預覽載入失敗:', error)
   alert('預覽失敗，請稍後重試')
 }
 onMounted(async () => {
   const response = await backendRepairStore.fetchRepairDetail(repairId.value)
-  console.log(response);
+  //console.log(response);
   
   repairDetail.value = backendRepairStore.repairDetail
   if(repairDetail.value.todo_id){
     todoId.value = repairDetail.value.todo_id
   }
-  console.log(repairDetail.value);
+  //console.log(repairDetail.value);
   
   isLoading.value = false
 })

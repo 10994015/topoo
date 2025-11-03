@@ -11,19 +11,19 @@ export const useUnitStore = defineStore('unit', () => {
     // 深度搜尋單位 - 對應 GET /api/backend/unit/deep
     const fetchUnitsDeep = async (searchName) => {
         try {
-            console.log('深度搜尋單位:', searchName);
+            //console.log('深度搜尋單位:', searchName);
             
             const params = {
                 name: searchName
             };
             
-            console.log('深度搜尋 API 參數:', params);
+            //console.log('深度搜尋 API 參數:', params);
             
             const response = await axiosClient.get('/backend/unit/deep', { 
                 params: params
             });
             
-            console.log('深度搜尋回應:', response.data);
+            //console.log('深度搜尋回應:', response.data);
             
             return {
                 success: true,
@@ -31,11 +31,11 @@ export const useUnitStore = defineStore('unit', () => {
                 message: response.data.message
             };
         } catch (error) {
-            console.error('深度搜尋單位失敗:', error);
+            //console.error('深度搜尋單位失敗:', error);
             
             if (error.response) {
-                console.error('錯誤狀態:', error.response.status);
-                console.error('錯誤資料:', error.response.data);
+                //console.error('錯誤狀態:', error.response.status);
+                //console.error('錯誤資料:', error.response.data);
                 throw new Error(error.response.data.message || '深度搜尋單位失敗');
             }
             throw error;
@@ -44,7 +44,7 @@ export const useUnitStore = defineStore('unit', () => {
 
     const fetchUnitsByLayer = async (layerNumber = 1, searchParams = {}) => {
         try {
-            console.log(`查詢第 ${layerNumber} 層單位:`, searchParams);
+            //console.log(`查詢第 ${layerNumber} 層單位:`, searchParams);
             
             const params = {
                 // 必要參數
@@ -58,7 +58,7 @@ export const useUnitStore = defineStore('unit', () => {
             if (searchParams.page) params.page = searchParams.page;
             if (searchParams.pageSize) params.pageSize = searchParams.pageSize;
             
-            console.log('API 參數:', params);
+            //console.log('API 參數:', params);
             
             const response = await axiosClient.get(`/backend/unit/layer/${layerNumber}`, { 
                 params: {
@@ -70,7 +70,7 @@ export const useUnitStore = defineStore('unit', () => {
                 }
             });
             
-            console.log(`第 ${layerNumber} 層單位查詢回應:`, response.data);
+            //console.log(`第 ${layerNumber} 層單位查詢回應:`, response.data);
             
             return {
                 success: true,
@@ -78,11 +78,11 @@ export const useUnitStore = defineStore('unit', () => {
                 message: response.data.message
             };
         } catch (error) {
-            console.error(`查詢第 ${layerNumber} 層單位失敗:`, error);
+            //console.error(`查詢第 ${layerNumber} 層單位失敗:`, error);
             
             if (error.response) {
-                console.error('錯誤狀態:', error.response.status);
-                console.error('錯誤資料:', error.response.data);
+                //console.error('錯誤狀態:', error.response.status);
+                //console.error('錯誤資料:', error.response.data);
                 throw new Error(error.response.data.message || `查詢第 ${layerNumber} 層單位失敗`);
             }
             throw error;
@@ -92,10 +92,10 @@ export const useUnitStore = defineStore('unit', () => {
     // 查詢單一單位 - 對應 GET /api/backend/unit/{id}  
     const fetchUnitById = async (unitId) => {
         try {
-            console.log('查詢單位詳細資料:', unitId);
+            //console.log('查詢單位詳細資料:', unitId);
             
             const response = await axiosClient.get(`/backend/unit/${unitId}`);
-            console.log('單位詳細資料回應:', response.data);
+            //console.log('單位詳細資料回應:', response.data);
             
             unitDetail.value = response.data.data;
             
@@ -105,11 +105,11 @@ export const useUnitStore = defineStore('unit', () => {
                 message: response.data.message
             };
         } catch (error) {
-            console.error('查詢單位詳細資料失敗:', error);
+            //console.error('查詢單位詳細資料失敗:', error);
             
             if (error.response) {
-                console.error('錯誤狀態:', error.response.status);
-                console.error('錯誤資料:', error.response.data);
+                //console.error('錯誤狀態:', error.response.status);
+                //console.error('錯誤資料:', error.response.data);
                 throw new Error(error.response.data.message || '查詢單位詳細資料失敗');
             }
             throw error;
@@ -186,7 +186,7 @@ export const useUnitStore = defineStore('unit', () => {
     // 載入子單位資料
     const loadChildUnits = async (parentUnitId, parentIndex = null) => {
         try {
-            console.log('載入子單位:', parentUnitId);
+            //console.log('載入子單位:', parentUnitId);
             
             // 設定載入狀態
             if (parentIndex !== null && units.value[parentIndex]) {
@@ -243,7 +243,7 @@ export const useUnitStore = defineStore('unit', () => {
             
             return []
         } catch (error) {
-            console.error('載入子單位失敗:', error);
+            //console.error('載入子單位失敗:', error);
             
             // API 失敗時，設定為沒有子單位，避免重複嘗試
             if (parentIndex !== null && units.value[parentIndex]) {
@@ -260,7 +260,7 @@ export const useUnitStore = defineStore('unit', () => {
     const initializeUnits = async (searchParams = {}) => {
         try {
             isLoading.value = true
-            console.log('初始化載入第一層單位');
+            //console.log('初始化載入第一層單位');
             
             const defaultParams = {
                 sortBy: 'name',
@@ -276,14 +276,14 @@ export const useUnitStore = defineStore('unit', () => {
                 const unitsData = response.data.data.data || response.data.data
                 units.value = await buildUnitTree(unitsData)
                 
-                console.log('第一層單位載入完成:', units.value);
+                //console.log('第一層單位載入完成:', units.value);
                 return response.data
             }
             
             units.value = []
             return null
         } catch (error) {
-            console.error('初始化單位失敗:', error);
+            //console.error('初始化單位失敗:', error);
             units.value = []
             throw error
         } finally {
@@ -295,17 +295,17 @@ export const useUnitStore = defineStore('unit', () => {
     // 搜尋單位（支援深度搜尋和第一層搜尋）
     const searchUnits = async (searchParams = {}) => {
         try {
-            console.log('搜尋單位:', searchParams);
+            //console.log('搜尋單位:', searchParams);
             
             // 如果有 name 參數且不為空，使用深度搜尋
             if (searchParams.name && searchParams.name.trim()) {
-                console.log('使用深度搜尋 API');
+                //console.log('使用深度搜尋 API');
                 const response = await fetchUnitsDeep(searchParams.name.trim())
                 
                 if (response.success && response.data && response.data.data) {
                     const searchResults = response.data.data
                     units.value = buildSearchResultTree(searchResults)
-                    console.log('深度搜尋結果處理完成:', units.value);
+                    //console.log('深度搜尋結果處理完成:', units.value);
                     return response.data
                 }
                 
@@ -313,7 +313,7 @@ export const useUnitStore = defineStore('unit', () => {
                 return null
             } else {
                 // 沒有搜尋關鍵字，使用原本的第一層查詢
-                console.log('使用第一層查詢 API');
+                //console.log('使用第一層查詢 API');
                 const params = {
                     sortBy: 'name',
                     sortOrder: 'ASC',
@@ -333,7 +333,7 @@ export const useUnitStore = defineStore('unit', () => {
                 return null
             }
         } catch (error) {
-            console.error('搜尋單位失敗:', error);
+            //console.error('搜尋單位失敗:', error);
             throw error
         }
     }
@@ -356,22 +356,22 @@ export const useUnitStore = defineStore('unit', () => {
                 
                 if (unit.hasChildren === false) {
                     // 已經確定沒有子單位，不做任何動作
-                    console.log('此單位沒有子單位，不執行 API')
+                    //console.log('此單位沒有子單位，不執行 API')
                     return
                 }
                 
                 if (unit.children && unit.children.length > 0) {
                     // 已經載入過子單位，直接展開
-                    console.log('使用已載入的子單位資料')
+                    //console.log('使用已載入的子單位資料')
                     unit.isExpanded = true
                 } else {
                     // 載入子單位
-                    console.log('載入子單位資料')
+                    //console.log('載入子單位資料')
                     await loadChildUnits(unitId, unitIndex)
                 }
             }
         } catch (error) {
-            console.error('切換展開狀態失敗:', error);
+            //console.error('切換展開狀態失敗:', error);
             throw error
         }
     }
@@ -387,7 +387,7 @@ export const useUnitStore = defineStore('unit', () => {
     // 查詢單位底下的有資格用戶 - 對應 GET /api/backend/unit/{id}/user
     const fetchUnitUsers = async (unitId, searchParams = {}) => {
         try {
-            console.log(`查詢單位 ${unitId} 的有資格用戶:`, searchParams);
+            //console.log(`查詢單位 ${unitId} 的有資格用戶:`, searchParams);
             
             const params = {
                 // 可選參數
@@ -405,13 +405,13 @@ export const useUnitStore = defineStore('unit', () => {
                 }
             });
             
-            console.log('查詢用戶 API 參數:', params);
+            //console.log('查詢用戶 API 參數:', params);
             
             const response = await axiosClient.get(`/backend/unit/${unitId}/user`, { 
                 params: params
             });
             
-            console.log(`單位 ${unitId} 用戶查詢回應:`, response.data);
+            //console.log(`單位 ${unitId} 用戶查詢回應:`, response.data);
             
             return {
                 success: true,
@@ -419,11 +419,11 @@ export const useUnitStore = defineStore('unit', () => {
                 message: response.data.message
             };
         } catch (error) {
-            console.error(`查詢單位 ${unitId} 用戶失敗:`, error);
+            //console.error(`查詢單位 ${unitId} 用戶失敗:`, error);
             
             if (error.response) {
-                console.error('錯誤狀態:', error.response.status);
-                console.error('錯誤資料:', error.response.data);
+                //console.error('錯誤狀態:', error.response.status);
+                //console.error('錯誤資料:', error.response.data);
                 throw new Error(error.response.data.message || `查詢單位用戶失敗`);
             }
             throw error;
@@ -433,7 +433,7 @@ export const useUnitStore = defineStore('unit', () => {
     // 如果沒有單位ID 則用該function 查用戶
     const fetchEmptyUnitUsers = async (searchParams = {}) => {
         try {
-            console.log('查詢所有有資格用戶:', searchParams);
+            //console.log('查詢所有有資格用戶:', searchParams);
             
             const params = {
                 // 可選參數
@@ -451,13 +451,13 @@ export const useUnitStore = defineStore('unit', () => {
                 }
             });
             
-            console.log('查詢用戶 API 參數:', params);
+            //console.log('查詢用戶 API 參數:', params);
             
             const response = await axiosClient.get('/backend/unit/user', { 
                 params: params
             });
             
-            console.log('所有有資格用戶查詢回應:', response.data);
+            //console.log('所有有資格用戶查詢回應:', response.data);
             
             return {
                 success: true,
@@ -465,11 +465,11 @@ export const useUnitStore = defineStore('unit', () => {
                 message: response.data.message
             };
         } catch (error) {
-            console.error('查詢所有有資格用戶失敗:', error);
+            //console.error('查詢所有有資格用戶失敗:', error);
             
             if (error.response) {
-                console.error('錯誤狀態:', error.response.status);
-                console.error('錯誤資料:', error.response.data);
+                //console.error('錯誤狀態:', error.response.status);
+                //console.error('錯誤資料:', error.response.data);
                 throw new Error(error.response.data.message || '查詢所有有資格用戶失敗');
             }
             throw error;
@@ -479,7 +479,7 @@ export const useUnitStore = defineStore('unit', () => {
     // 新增單位 - 對應 POST /api/backend/unit/
     const createUnit = async (unitData) => {
         try {
-            console.log('新增單位資料:', unitData);
+            //console.log('新增單位資料:', unitData);
             
             const response = await axiosClient.post('/backend/unit/', unitData, {
                 headers: {
@@ -487,7 +487,7 @@ export const useUnitStore = defineStore('unit', () => {
                 }
             });
             
-            console.log('新增單位回應:', response.data);
+            //console.log('新增單位回應:', response.data);
             
             return {
                 success: true,
@@ -495,11 +495,11 @@ export const useUnitStore = defineStore('unit', () => {
                 message: response.data.message
             };
         } catch (error) {
-            console.error('新增單位失敗:', error);
+            //console.error('新增單位失敗:', error);
             
             if (error.response) {
-                console.error('錯誤狀態:', error.response.status);
-                console.error('錯誤資料:', error.response.data);
+                //console.error('錯誤狀態:', error.response.status);
+                //console.error('錯誤資料:', error.response.data);
                 throw new Error(error.response.data.message || '新增單位失敗');
             }
             throw error;
@@ -509,7 +509,7 @@ export const useUnitStore = defineStore('unit', () => {
     // 編輯單位 - 對應 PATCH /api/backend/unit/{id}
     const updateUnit = async (unitId, unitData) => {
         try {
-            console.log('編輯單位資料:', { unitId, unitData });
+            //console.log('編輯單位資料:', { unitId, unitData });
             
             const response = await axiosClient.patch(`/backend/unit/${unitId}`, unitData, {
                 headers: {
@@ -517,7 +517,7 @@ export const useUnitStore = defineStore('unit', () => {
                 }
             });
             
-            console.log('編輯單位回應:', response.data);
+            //console.log('編輯單位回應:', response.data);
             
             return {
                 success: true,
@@ -525,11 +525,11 @@ export const useUnitStore = defineStore('unit', () => {
                 message: response.data.message
             };
         } catch (error) {
-            console.error('編輯單位失敗:', error);
+            //console.error('編輯單位失敗:', error);
             
             if (error.response) {
-                console.error('錯誤狀態:', error.response.status);
-                console.error('錯誤資料:', error.response.data);
+                //console.error('錯誤狀態:', error.response.status);
+                //console.error('錯誤資料:', error.response.data);
                 throw new Error(error.response.data.message || '編輯單位失敗');
             }
             throw error;
@@ -539,21 +539,21 @@ export const useUnitStore = defineStore('unit', () => {
     // 刪除單位 - 對應 DELETE /api/backend/unit/{id}
     const deleteUnit = async (unitId) => {
         try {
-            console.log('刪除單位:', unitId);
+            //console.log('刪除單位:', unitId);
             
             const response = await axiosClient.delete(`/backend/unit/${unitId}`);
-            console.log('刪除單位回應:', response.data);
+            //console.log('刪除單位回應:', response.data);
             
             return {
                 success: true,
                 message: response.data.message
             };
         } catch (error) {
-            console.error('刪除單位失敗:', error);
+            //console.error('刪除單位失敗:', error);
             
             if (error.response) {
-                console.error('錯誤狀態:', error.response.status);
-                console.error('錯誤資料:', error.response.data);
+                //console.error('錯誤狀態:', error.response.status);
+                //console.error('錯誤資料:', error.response.data);
                 throw new Error(error.response.data.message || '刪除單位失敗');
             }
             throw error;
@@ -575,7 +575,7 @@ export const useUnitStore = defineStore('unit', () => {
             link.click();
             document.body.removeChild(link); // 下載後移除連結
         } catch (error) {
-            console.error('下載單位匯入範本失敗:', error);
+            //console.error('下載單位匯入範本失敗:', error);
             throw error;
         }
     }
@@ -592,11 +592,11 @@ export const useUnitStore = defineStore('unit', () => {
                 timeout: 60000, // 60秒超時，因為檔案處理可能需要較長時間
                 onUploadProgress: (progressEvent) => {
                     const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-                    console.log(`上傳進度: ${percentCompleted}%`);
+                    //console.log(`上傳進度: ${percentCompleted}%`);
                 }
             });
             
-            console.log('單位匯入回應:', response.data);
+            //console.log('單位匯入回應:', response.data);
             
             // 匯入成功後，重新獲取單位列表
             await initializeUnits();
@@ -612,7 +612,7 @@ export const useUnitStore = defineStore('unit', () => {
             
         } catch (error) {
             isLoading.value = false;
-            console.error('單位匯入失敗:', error);
+            //console.error('單位匯入失敗:', error);
             
             let errorMessage = '匯入失敗';
             let errorDetails = [];

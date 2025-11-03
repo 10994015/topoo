@@ -33,7 +33,7 @@ const surveyQuestions = computed(() => {
 
 // 計算屬性
 const filteredTickets = computed(() => {
-  console.log(surveyStore.surveys);
+  //console.log(surveyStore.surveys);
   
   const allSurveys = surveyStore.surveys?.data || []
   
@@ -64,9 +64,9 @@ const isSubmitting = computed(() => surveyStore.isSubmitting)
 
 // 方法
 const selectTicket = async (ticket) => {
-  console.log('選擇的問卷:', ticket)
-  console.log('當前 surveys 數據:', surveyStore.surveys)
-  console.log('filteredTickets:', filteredTickets.value)
+  //console.log('選擇的問卷:', ticket)
+  //console.log('當前 surveys 數據:', surveyStore.surveys)
+  //console.log('filteredTickets:', filteredTickets.value)
 
   
   const ticketId = ticket.repairId || ticket.id
@@ -78,9 +78,9 @@ const selectTicket = async (ticket) => {
   
   try {
     // 選擇案件後載入對應的問卷題目
-    console.log('載入問卷題目列表...')
+    //console.log('載入問卷題目列表...')
     await surveyStore.fetchSurveyQuestionsList()
-    console.log('問卷題目載入完成:', surveyStore.surveyQuestionsList)
+    //console.log('問卷題目載入完成:', surveyStore.surveyQuestionsList)
     
     // 初始化表單數據 - 確保 surveyQuestions 是數組
     if (Array.isArray(surveyQuestions.value) && surveyQuestions.value.length > 0) {
@@ -97,7 +97,7 @@ const selectTicket = async (ticket) => {
       })
     }
   } catch (error) {
-    console.error('載入問卷題目失敗:', error)
+    //console.error('載入問卷題目失敗:', error)
     alert('載入問卷題目失敗，請重試')
   }
 }
@@ -107,7 +107,7 @@ const handleSearch = async () => {
     isSearching.value = true
     await surveyStore.fetchSurveys(searchKeyword.value)
   } catch (error) {
-    console.error('搜尋失敗:', error)
+    //console.error('搜尋失敗:', error)
     alert('搜尋失敗，請稍後重試')
   } finally {
     isSearching.value = false
@@ -345,8 +345,8 @@ const handleSubmit = async () => {
       questionsResponse: questionsResponse
     }
 
-    console.log('提交問卷資料:', submitData)
-    console.log('詳細的問卷回答:', JSON.stringify(submitData, null, 2))
+    //console.log('提交問卷資料:', submitData)
+    //console.log('詳細的問卷回答:', JSON.stringify(submitData, null, 2))
 
     // 呼叫 store 的提交方法
     const result = await surveyStore.submitSurveyResponse(submitData)
@@ -377,7 +377,7 @@ const handleSubmit = async () => {
     }
 
   } catch (error) {
-    console.error('提交失敗:', error)
+    //console.error('提交失敗:', error)
     
     // 更詳細的錯誤處理
     let errorMessage = '提交失敗，請稍後重試'
@@ -423,42 +423,42 @@ const handleSubmit = async () => {
 // 生命週期
 onMounted(async () => {
   try {
-    console.log('開始載入資料...')
+    //console.log('開始載入資料...')
     
     // 初始載入問卷列表
-    console.log('載入問卷列表...')
+    //console.log('載入問卷列表...')
     await surveyStore.fetchSurveys()
-    console.log('問卷列表載入完成:', surveyStore.surveys)
+    //console.log('問卷列表載入完成:', surveyStore.surveys)
     
     // 檢查是否有 repairId 路由參數
     const routeRepairId = route.params.repairId
     
     if (routeRepairId && filteredTickets.value.length > 0) {
       // 如果有路由參數，尋找對應的問卷
-      console.log('從路由參數取得 repairId:', routeRepairId)
+      //console.log('從路由參數取得 repairId:', routeRepairId)
       const targetTicket = filteredTickets.value.find(ticket => {
         const ticketId = ticket.repairId || ticket.id
         return String(ticketId) === String(routeRepairId)
       })
       
       if (targetTicket) {
-        console.log('找到對應的問卷，自動選擇')
+        //console.log('找到對應的問卷，自動選擇')
         await selectTicket(targetTicket)
       } else {
-        console.log('找不到對應的問卷 ID，選擇第一個問卷')
+        //console.log('找不到對應的問卷 ID，選擇第一個問卷')
         await selectTicket(filteredTickets.value[0])
       }
     } else if (filteredTickets.value.length > 0) {
       // 沒有路由參數時，自動選擇第一個需要填寫問卷的案件
-      console.log('自動選擇第一個案件')
+      //console.log('自動選擇第一個案件')
       await selectTicket(filteredTickets.value[0])
     }
     
     // 完成初始載入
     isInitialLoading.value = false
   } catch (error) {
-    console.error('載入資料失敗:', error)
-    console.error('錯誤詳情:', error.response?.data || error.message)
+    //console.error('載入資料失敗:', error)
+    //console.error('錯誤詳情:', error.response?.data || error.message)
     isInitialLoading.value = false
     alert('載入資料失敗，請重新整理頁面')
   }

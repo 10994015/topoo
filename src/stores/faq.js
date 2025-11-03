@@ -44,7 +44,7 @@ export const useFaqStore = defineStore('faq', () => {
         try {
             isLoadingCategories.value = true
             
-            console.log('開始獲取分類選項...')
+            //console.log('開始獲取分類選項...')
             
             // 先取得所有第一層FAQ列表
             const response = await axiosClient.get('/fqa/layer/1', { 
@@ -53,7 +53,7 @@ export const useFaqStore = defineStore('faq', () => {
                 } 
             })
             
-            console.log('第一層FAQ列表回應:', response.data)
+            //console.log('第一層FAQ列表回應:', response.data)
             
             const firstLayerFaqs = response.data.data || []
             
@@ -63,7 +63,7 @@ export const useFaqStore = defineStore('faq', () => {
                     const detailResponse = await axiosClient.get(`/fqa/${faq.id}`)
                     return detailResponse.data.data.data // 根據API文檔的嵌套結構
                 } catch (error) {
-                    console.error(`獲取分類 ${faq.id} 詳細資料失敗:`, error)
+                    //console.error(`獲取分類 ${faq.id} 詳細資料失敗:`, error)
                     return null
                 }
             })
@@ -84,7 +84,7 @@ export const useFaqStore = defineStore('faq', () => {
                     updated_at: detail.updated_at
                 }))
             
-            console.log('載入的分類選項:', categoryOptions.value)
+            //console.log('載入的分類選項:', categoryOptions.value)
             
             return {
                 success: true,
@@ -92,7 +92,7 @@ export const useFaqStore = defineStore('faq', () => {
             }
             
         } catch (error) {
-            console.error('載入分類選項失敗:', error)
+            //console.error('載入分類選項失敗:', error)
             categoryOptions.value = []
             
             return {
@@ -111,10 +111,10 @@ export const useFaqStore = defineStore('faq', () => {
      */
     const fetchCategoryDetail = async (categoryId) => {
         try {
-            console.log(`獲取分類 ${categoryId} 詳細資料`)
+            //console.log(`獲取分類 ${categoryId} 詳細資料`)
             
             const response = await axiosClient.get(`/fqa/${categoryId}`)
-            console.log(`分類 ${categoryId} 詳細資料回應:`, response.data)
+            //console.log(`分類 ${categoryId} 詳細資料回應:`, response.data)
             
             return {
                 success: true,
@@ -122,7 +122,7 @@ export const useFaqStore = defineStore('faq', () => {
             }
             
         } catch (error) {
-            console.error(`獲取分類 ${categoryId} 詳細資料失敗:`, error)
+            //console.error(`獲取分類 ${categoryId} 詳細資料失敗:`, error)
             
             return {
                 success: false,
@@ -156,11 +156,11 @@ export const useFaqStore = defineStore('faq', () => {
                 params.question = question.trim()
             }
             
-            console.log('獲取 FAQ 列表參數:', params)
+            //console.log('獲取 FAQ 列表參數:', params)
             
             // 固定使用 layer 1
             const response = await axiosClient.get('/fqa/layer/1', { params })
-            console.log('FAQ 列表回應:', response.data)
+            //console.log('FAQ 列表回應:', response.data)
             
             // 根據 API 文檔，資料在 response.data.data 中
             faqList.value = response.data.data || []
@@ -171,7 +171,7 @@ export const useFaqStore = defineStore('faq', () => {
             }
             
         } catch (error) {
-            console.error('獲取 FAQ 列表失敗:', error)
+            //console.error('獲取 FAQ 列表失敗:', error)
             
             // 提供預設的空資料結構
             faqList.value = []
@@ -210,7 +210,7 @@ export const useFaqStore = defineStore('faq', () => {
                 pageSize: pageSize,
                 page: page
             }
-            console.log(params);
+            //console.log(params);
             
             // 添加搜尋條件
             if (searchForm.question && searchForm.question.trim()) {
@@ -231,11 +231,11 @@ export const useFaqStore = defineStore('faq', () => {
             }
 
             
-            console.log('獲取後台 FAQ 列表參數:', params)
+            //console.log('獲取後台 FAQ 列表參數:', params)
             
             // 固定使用 layer 1
             const response = await axiosClient.get('/backend/fqa/layer/1', { params })
-            console.log('後台 FAQ 列表回應:', response.data)
+            //console.log('後台 FAQ 列表回應:', response.data)
             
             // 更新狀態
             backendFaqList.value = response.data.data.data || []
@@ -249,7 +249,7 @@ export const useFaqStore = defineStore('faq', () => {
             }
             
         } catch (error) {
-            console.error('獲取後台 FAQ 列表失敗:', error)
+            //console.error('獲取後台 FAQ 列表失敗:', error)
             
             // 提供預設的空資料結構
             backendFaqList.value = []
@@ -278,7 +278,7 @@ export const useFaqStore = defineStore('faq', () => {
             
             // 如果已經有詳細內容，直接返回
             if (cache.has(faqId)) {
-                console.log(`使用 ${useBackendApi ? '後台' : '前台'} 快取的 FAQ ${faqId} 詳細內容`)
+                //console.log(`使用 ${useBackendApi ? '後台' : '前台'} 快取的 FAQ ${faqId} 詳細內容`)
                 return {
                     success: true,
                     data: cache.get(faqId)
@@ -288,12 +288,12 @@ export const useFaqStore = defineStore('faq', () => {
             // 添加到載入中的集合
             isLoadingDetail.value.add(faqId)
             
-            console.log(`獲取 ${useBackendApi ? '後台' : '前台'} FAQ ${faqId} 詳細內容`)
+            //console.log(`獲取 ${useBackendApi ? '後台' : '前台'} FAQ ${faqId} 詳細內容`)
             
             // 根據是否使用後台API選擇不同的endpoint
             const apiPath = useBackendApi ? `/backend/fqa/${faqId}` : `/fqa/${faqId}`
             const response = await axiosClient.get(apiPath)
-            console.log(`FAQ ${faqId} 詳細內容回應:`, response.data)
+            //console.log(`FAQ ${faqId} 詳細內容回應:`, response.data)
             
             // 根據 API 文檔，詳細內容在 response.data.data.data 中 (嵌套結構)
             let detailData = response.data.data.data || response.data.data
@@ -306,13 +306,13 @@ export const useFaqStore = defineStore('faq', () => {
                         ...detailData,
                         sub_fqas: detailData.sub_fqas.filter(sub => sub.status === 'Open')
                     }
-                    console.log(`前台過濾後的 sub_fqas 數量:`, detailData.sub_fqas.length)
+                    //console.log(`前台過濾後的 sub_fqas 數量:`, detailData.sub_fqas.length)
                 }
             }
             
             // 將詳細內容存入對應的快取 (包含 sub_fqas)
             cache.set(faqId, detailData)
-            console.log(`已存入 ${useBackendApi ? '後台' : '前台'} 快取`)
+            //console.log(`已存入 ${useBackendApi ? '後台' : '前台'} 快取`)
             
             return {
                 success: true,
@@ -320,7 +320,7 @@ export const useFaqStore = defineStore('faq', () => {
             }
             
         } catch (error) {
-            console.error(`獲取 FAQ ${faqId} 詳細內容失敗:`, error)
+            //console.error(`獲取 FAQ ${faqId} 詳細內容失敗:`, error)
             
             return {
                 success: false,
@@ -339,10 +339,10 @@ export const useFaqStore = defineStore('faq', () => {
      */
     const createFaq = async (faqData) => {
         try {
-            console.log('新增 FAQ 資料:', faqData)
+            //console.log('新增 FAQ 資料:', faqData)
             
             const response = await axiosClient.post('/backend/fqa', faqData)
-            console.log('新增 FAQ 回應:', response.data)
+            //console.log('新增 FAQ 回應:', response.data)
             
             // 清除相關快取
             if (faqData.parentId) {
@@ -355,7 +355,7 @@ export const useFaqStore = defineStore('faq', () => {
                 message: response.data.message || '新增成功'
             }
         } catch (error) {
-            console.error('新增 FAQ 失敗:', error)
+            //console.error('新增 FAQ 失敗:', error)
             
             let errorMessage = '新增失敗'
             if (error.response?.data?.message) {
@@ -379,10 +379,10 @@ export const useFaqStore = defineStore('faq', () => {
      */
     const updateFaq = async (faqId, faqData) => {
         try {
-            console.log(`更新 FAQ ${faqId} 資料:`, faqData)
+            //console.log(`更新 FAQ ${faqId} 資料:`, faqData)
             
             const response = await axiosClient.patch(`/backend/fqa/${faqId}`, faqData)
-            console.log('更新 FAQ 回應:', response.data)
+            //console.log('更新 FAQ 回應:', response.data)
             
             // 清除前後台快取以確保資料一致性
             clearFaqDetailCache(faqId, false) // 清除前台快取
@@ -400,7 +400,7 @@ export const useFaqStore = defineStore('faq', () => {
                 message: response.data.message || '更新成功'
             }
         } catch (error) {
-            console.error(`更新 FAQ ${faqId} 失敗:`, error)
+            //console.error(`更新 FAQ ${faqId} 失敗:`, error)
             
             let errorMessage = '更新失敗'
             if (error.response?.data?.message) {
@@ -423,10 +423,10 @@ export const useFaqStore = defineStore('faq', () => {
      */
     const deleteFaq = async (faqId) => {
         try {
-            console.log(`刪除 FAQ ${faqId}`)
+            //console.log(`刪除 FAQ ${faqId}`)
             
             const response = await axiosClient.delete(`/backend/fqa/${faqId}`)
-            console.log('刪除 FAQ 回應:', response.data)
+            //console.log('刪除 FAQ 回應:', response.data)
             
             // 清除前後台快取
             clearFaqDetailCache(faqId, false)
@@ -437,7 +437,7 @@ export const useFaqStore = defineStore('faq', () => {
                 message: response.data.message || '刪除成功'
             }
         } catch (error) {
-            console.error(`刪除 FAQ ${faqId} 失敗:`, error)
+            //console.error(`刪除 FAQ ${faqId} 失敗:`, error)
             
             let errorMessage = '刪除失敗'
             if (error.response?.data?.message) {
@@ -461,10 +461,10 @@ export const useFaqStore = defineStore('faq', () => {
      */
     const toggleFaqStatus = async (faqId, status) => {
         try {
-            console.log(`切換 FAQ ${faqId} 狀態為:`, status)
+            //console.log(`切換 FAQ ${faqId} 狀態為:`, status)
             
             const response = await axiosClient.patch(`/backend/fqa/${faqId}/status`, { status })
-            console.log('切換 FAQ 狀態回應:', response.data)
+            //console.log('切換 FAQ 狀態回應:', response.data)
             
             // 清除前後台快取以確保資料一致性
             clearFaqDetailCache(faqId, false)
@@ -476,7 +476,7 @@ export const useFaqStore = defineStore('faq', () => {
                 message: response.data.message || '狀態更新成功'
             }
         } catch (error) {
-            console.error(`切換 FAQ ${faqId} 狀態失敗:`, error)
+            //console.error(`切換 FAQ ${faqId} 狀態失敗:`, error)
             
             let errorMessage = '狀態更新失敗'
             if (error.response?.data?.message) {
@@ -500,13 +500,13 @@ export const useFaqStore = defineStore('faq', () => {
      */
     const batchUpdateFaqs = async (faqIds, action) => {
         try {
-            console.log(`批量操作 FAQ:`, { faqIds, action })
+            //console.log(`批量操作 FAQ:`, { faqIds, action })
             
             const response = await axiosClient.post('/backend/fqa/batch', { 
                 ids: faqIds, 
                 action: action 
             })
-            console.log('批量操作 FAQ 回應:', response.data)
+            //console.log('批量操作 FAQ 回應:', response.data)
             
             // 清除相關快取
             faqIds.forEach(id => {
@@ -520,7 +520,7 @@ export const useFaqStore = defineStore('faq', () => {
                 message: response.data.message || '批量操作成功'
             }
         } catch (error) {
-            console.error('批量操作 FAQ 失敗:', error)
+            //console.error('批量操作 FAQ 失敗:', error)
             
             let errorMessage = '批量操作失敗'
             if (error.response?.data?.message) {
@@ -564,10 +564,10 @@ export const useFaqStore = defineStore('faq', () => {
      */
     const updateFaqSequence = async (faqId, newSequence) => {
         try {
-            console.log(`更新 FAQ ${faqId} 順序為:`, newSequence)
+            //console.log(`更新 FAQ ${faqId} 順序為:`, newSequence)
             
             const response = await axiosClient.patch(`/backend/fqa/${faqId}/sequence`, { sequence: newSequence })
-            console.log('更新 FAQ 順序回應:', response.data)
+            //console.log('更新 FAQ 順序回應:', response.data)
             
             // 清除相關快取
             clearFaqDetailCache(faqId, false)
@@ -579,7 +579,7 @@ export const useFaqStore = defineStore('faq', () => {
                 message: response.data.message || '順序更新成功'
             }
         } catch (error) {
-            console.error(`更新 FAQ ${faqId} 順序失敗:`, error)
+            //console.error(`更新 FAQ ${faqId} 順序失敗:`, error)
             
             let errorMessage = '順序更新失敗'
             if (error.response?.data?.message) {
@@ -607,7 +607,7 @@ export const useFaqStore = defineStore('faq', () => {
         
         if (cache.has(faqId)) {
             cache.delete(faqId)
-            console.log(`已清除 ${cacheType} FAQ ${faqId} 的詳細內容快取`)
+            //console.log(`已清除 ${cacheType} FAQ ${faqId} 的詳細內容快取`)
         }
         
         isLoadingDetail.value.delete(faqId)
@@ -626,7 +626,7 @@ export const useFaqStore = defineStore('faq', () => {
         totalItems.value = 0
         totalPages.value = 0
         currentPage.value = 1
-        console.log('已清除所有 FAQ 快取 (包含前後台)')
+        //console.log('已清除所有 FAQ 快取 (包含前後台)')
     }
 
     /**

@@ -98,7 +98,7 @@ const loadAccountData = async () => {
     accountData.value = response
    
   } catch (error) {
-    console.error('載入帳號資料失敗:', error)
+    //console.error('載入帳號資料失敗:', error)
     alert('載入帳號資料失敗')
   } finally {
     isLoading.value = false
@@ -143,7 +143,7 @@ const handleSaveEdit = async () => {
   try {
     // 調用更新 API
     await accountStore.updateAccount(route.params.id, editFormData.value)
-    console.log('更新帳號資料:', editFormData.value)
+    //console.log('更新帳號資料:', editFormData.value)
     
     // 更新本地資料
     accountData.value = { ...editFormData.value }
@@ -151,7 +151,7 @@ const handleSaveEdit = async () => {
     clearErrors()
     alert('帳號更新成功！')
   } catch (error) {
-    console.error('更新帳號失敗:', error)
+    //console.error('更新帳號失敗:', error)
     alert('更新失敗，請稍後再試')
   } finally {
     isSaving.value = false
@@ -172,9 +172,9 @@ const handleDelete = async () => {
   try {
     // 調用刪除 API
     const response = await accountStore.deleteAccount(route.params.id)
-    console.log(response);
+    //console.log(response);
     
-    console.log('刪除帳號:', route.params.id)
+    //console.log('刪除帳號:', route.params.id)
     if(response.status !== 200) {
       alert(response.data.message || '刪除帳號失敗')
     }else{
@@ -182,7 +182,7 @@ const handleDelete = async () => {
       router.push('/settings/account-management')
     }
   } catch (error) {
-    console.error('刪除帳號失敗:', error)
+    //console.error('刪除帳號失敗:', error)
     alert('刪除帳號失敗，請稍後再試')
   } finally {
     isDeleting.value = false

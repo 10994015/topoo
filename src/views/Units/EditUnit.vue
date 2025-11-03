@@ -143,7 +143,7 @@ const unitPath = computed(() => {
 // 從編輯單位 ID 建構完整路徑並初始化表單
 const buildEditUnitPath = async (targetUnitId) => {
   try {
-    console.log('建構編輯單位路徑，目標 ID:', targetUnitId)
+    //console.log('建構編輯單位路徑，目標 ID:', targetUnitId)
     
     const response = await unitStore.fetchUnitById(targetUnitId)
     if (!response.success || !response.data) {
@@ -151,13 +151,13 @@ const buildEditUnitPath = async (targetUnitId) => {
     }
     
     const targetUnit = response.data
-    console.log('目標單位資料:', targetUnit)
+    //console.log('目標單位資料:', targetUnit)
     
     editUnitData.value = targetUnit
     originalUnitName.value = targetUnit.name
     
     unitUsersCount.value = targetUnit.users ? targetUnit.users.length : 0
-    console.log('單位用戶數量:', unitUsersCount.value)
+    //console.log('單位用戶數量:', unitUsersCount.value)
     
     const path = []
     
@@ -182,11 +182,11 @@ const buildEditUnitPath = async (targetUnitId) => {
     }
     
     await buildPath(targetUnit)
-    console.log('編輯模式完整路徑:', path)
+    //console.log('編輯模式完整路徑:', path)
     
     return path
   } catch (error) {
-    console.error('建構編輯單位路徑失敗:', error)
+    //console.error('建構編輯單位路徑失敗:', error)
     throw error
   }
 }
@@ -194,7 +194,7 @@ const buildEditUnitPath = async (targetUnitId) => {
 // 根據編輯模式路徑初始化表單
 const initializeEditForm = async (path) => {
   try {
-    console.log('根據編輯路徑初始化表單:', path)
+    //console.log('根據編輯路徑初始化表單:', path)
     
     formData.unitLayers = []
     
@@ -239,20 +239,20 @@ const initializeEditForm = async (path) => {
       formData.unitLayers.push(formLayer)
     }
     
-    console.log('編輯模式表單初始化完成:', formData.unitLayers)
+    //console.log('編輯模式表單初始化完成:', formData.unitLayers)
     
-    console.log('🚀 編輯模式：開始載入目標單位的用戶資料，單位ID:', editUnitData.value.id)
+    //console.log('🚀 編輯模式：開始載入目標單位的用戶資料，單位ID:', editUnitData.value.id)
     await loadUsers(editUnitData.value.id)
     
   } catch (error) {
-    console.error('初始化編輯表單失敗:', error)
+    //console.error('初始化編輯表單失敗:', error)
     throw error
   }
 }
 
 const buildParentPath = async (targetParentId) => {
   try {
-    console.log('建構父層路徑，目標 ID:', targetParentId)
+    //console.log('建構父層路徑，目標 ID:', targetParentId)
     
     const response = await unitStore.fetchUnitById(targetParentId)
     if (!response.success || !response.data) {
@@ -260,7 +260,7 @@ const buildParentPath = async (targetParentId) => {
     }
     
     const parentUnit = response.data
-    console.log('父單位資料:', parentUnit)
+    //console.log('父單位資料:', parentUnit)
     
     const path = []
     
@@ -284,11 +284,11 @@ const buildParentPath = async (targetParentId) => {
     }
     
     await buildPath(parentUnit)
-    console.log('完整路徑:', path)
+    //console.log('完整路徑:', path)
     
     return path
   } catch (error) {
-    console.error('建構父層路徑失敗:', error)
+    //console.error('建構父層路徑失敗:', error)
     throw error
   }
 }
@@ -296,7 +296,7 @@ const buildParentPath = async (targetParentId) => {
 // 根據父層路徑初始化表單
 const initializeFormFromPath = async (path) => {
   try {
-    console.log('根據路徑初始化表單:', path)
+    //console.log('根據路徑初始化表單:', path)
     
     formData.unitLayers = []
     
@@ -335,7 +335,7 @@ const initializeFormFromPath = async (path) => {
     
     const nextLevel = path.length + 1
     if (nextLevel <= 5) {
-      console.log(`插入模式：添加第 ${nextLevel} 層輸入欄位`)
+      //console.log(`插入模式：添加第 ${nextLevel} 層輸入欄位`)
       formData.unitLayers.push({
         level: nextLevel,
         type: 'input',
@@ -348,9 +348,9 @@ const initializeFormFromPath = async (path) => {
       })
     }
     
-    console.log('表單初始化完成:', formData.unitLayers)
+    //console.log('表單初始化完成:', formData.unitLayers)
   } catch (error) {
-    console.error('初始化表單失敗:', error)
+    //console.error('初始化表單失敗:', error)
     throw error
   }
 }
@@ -359,7 +359,7 @@ const handleLayerChange = async (layerIndex) => {
   const currentLayer = formData.unitLayers[layerIndex]
   
   if (isEditMode.value && currentLayer.isTarget) {
-    console.log('編輯模式：目標單位名稱變更')
+    //console.log('編輯模式：目標單位名稱變更')
     return
   }
   
@@ -372,7 +372,7 @@ const handleLayerChange = async (layerIndex) => {
 
 const loadLayerOptions = async (layerNumber) => {
   try {
-    console.log(`載入第 ${layerNumber} 層選項`)
+    //console.log(`載入第 ${layerNumber} 層選項`)
     const response = await unitStore.fetchUnitsByLayer(layerNumber, {})
     
     if (response.success && response.data && response.data.data) {
@@ -387,7 +387,7 @@ const loadLayerOptions = async (layerNumber) => {
     
     return []
   } catch (error) {
-    console.error(`載入第 ${layerNumber} 層選項失敗:`, error)
+    //console.error(`載入第 ${layerNumber} 層選項失敗:`, error)
     return []
   }
 }
@@ -396,7 +396,7 @@ const loadNextLayerOptions = async (nextLayerLevel, parentId) => {
   if (nextLayerLevel > 5) return
   
   try {
-    console.log(`載入第 ${nextLayerLevel} 層選項，父級 ID:`, parentId)
+    //console.log(`載入第 ${nextLayerLevel} 層選項，父級 ID:`, parentId)
     
     const response = await unitStore.fetchUnitById(parentId)
     
@@ -424,7 +424,7 @@ const loadNextLayerOptions = async (nextLayerLevel, parentId) => {
       }
     }
   } catch (error) {
-    console.error(`載入第 ${nextLayerLevel} 層選項失敗:`, error)
+    //console.error(`載入第 ${nextLayerLevel} 層選項失敗:`, error)
   }
 }
 
@@ -433,11 +433,11 @@ const addInputLayer = (level) => {
   
   const existingLayer = formData.unitLayers.find(layer => layer.level === level)
   if (existingLayer) {
-    console.log(`第 ${level} 層已存在，不重複添加`)
+    //console.log(`第 ${level} 層已存在，不重複添加`)
     return
   }
   
-  console.log(`添加第 ${level} 層 input`)
+  //console.log(`添加第 ${level} 層 input`)
   formData.unitLayers.push({
     level: level,
     type: 'input',
@@ -454,7 +454,7 @@ const toggleLayerType = async (layerIndex) => {
   const layer = formData.unitLayers[layerIndex]
   
   if (layer.isLocked) {
-    console.log('此層級已鎖定，不允許切換類型')
+    //console.log('此層級已鎖定，不允許切換類型')
     return
   }
   
@@ -487,7 +487,7 @@ const toggleLayerType = async (layerIndex) => {
         }
       }
     } catch (error) {
-      console.error('載入選項失敗:', error)
+      //console.error('載入選項失敗:', error)
       layer.options = []
     } finally {
       layer.isLoading = false
@@ -512,37 +512,37 @@ const loadUsers = async (unitId = null, forceReload = false) => {
     let response
     
     if (unitId) {
-      console.log('🔄 載入單位用戶:', { 
-        unitId, 
-        forceReload,
-        isEditMode: isEditMode.value, 
-        editUnitId: editUnitData.value?.id,
-        unitName: editUnitData.value?.name,
-        timestamp: new Date().toLocaleTimeString()
-      })
+      //console.log('🔄 載入單位用戶:', { 
+      //   unitId, 
+      //   forceReload,
+      //   isEditMode: isEditMode.value, 
+      //   editUnitId: editUnitData.value?.id,
+      //   unitName: editUnitData.value?.name,
+      //   timestamp: new Date().toLocaleTimeString()
+      // })
       
-      console.log('📡 發送 fetchUnitUsers API 請求...')
+      //console.log('📡 發送 fetchUnitUsers API 請求...')
       if(isInsertMode.value){
         response = await unitStore.fetchEmptyUnitUsers(searchParams)
       } else {
         response = await unitStore.fetchUnitUsers(unitId, searchParams)
       }
-      console.log('📡 fetchUnitUsers API 回應:', response)
+      //console.log('📡 fetchUnitUsers API 回應:', response)
     } else {
-      console.log('🔄 載入所有有資格用戶:', { 
-        forceReload,
-        searchParams,
-        timestamp: new Date().toLocaleTimeString()
-      })
+      //console.log('🔄 載入所有有資格用戶:', { 
+      //   forceReload,
+      //   searchParams,
+      //   timestamp: new Date().toLocaleTimeString()
+      // })
       
-      console.log('📡 發送 fetchEmptyUnitUsers API 請求...')
+      //console.log('📡 發送 fetchEmptyUnitUsers API 請求...')
       response = await unitStore.fetchEmptyUnitUsers(searchParams)
-      console.log('📡 fetchEmptyUnitUsers API 回應:', response)
+      //console.log('📡 fetchEmptyUnitUsers API 回應:', response)
     }
     
     if (response.success && response.data && response.data.data) {
       const usersData = response.data.data
-      console.log('📊 原始用戶資料:', usersData)
+      //console.log('📊 原始用戶資料:', usersData)
       
       let processedUsers
       
@@ -585,14 +585,14 @@ const loadUsers = async (unitId = null, forceReload = false) => {
           ...sortUsers(notJoinedUsers)
         ]
         
-        console.log('🔝 用戶排序完成:', {
-          joinedCount: joinedUsers.length,
-          notJoinedCount: notJoinedUsers.length,
-          totalCount: processedUsers.length
-        })
+        //console.log('🔝 用戶排序完成:', {
+        //   joinedCount: joinedUsers.length,
+        //   notJoinedCount: notJoinedUsers.length,
+        //   totalCount: processedUsers.length
+        // })
       }
       
-      console.log('🔄 更新 availableUsers.value...')
+      //console.log('🔄 更新 availableUsers.value...')
       availableUsers.value = processedUsers
       
       totalUsers.value = usersData.total || 0
@@ -600,46 +600,46 @@ const loadUsers = async (unitId = null, forceReload = false) => {
       currentPage.value = usersData.page || 1
       
       if (unitId) {
-        console.log(`✅ 單位用戶載入完成:`, {
-          unitId,
-          unitName: editUnitData.value?.name,
-          totalUsers: availableUsers.value.length,
-          joinedUsers: availableUsers.value.filter(u => u.isSelected).length,
-          notJoinedUsers: availableUsers.value.filter(u => !u.isSelected).length,
-          timestamp: new Date().toLocaleTimeString()
-        })
+        //console.log(`✅ 單位用戶載入完成:`, {
+        //   unitId,
+        //   unitName: editUnitData.value?.name,
+        //   totalUsers: availableUsers.value.length,
+        //   joinedUsers: availableUsers.value.filter(u => u.isSelected).length,
+        //   notJoinedUsers: availableUsers.value.filter(u => !u.isSelected).length,
+        //   timestamp: new Date().toLocaleTimeString()
+        // })
         
         if (isEditMode.value) {
-          console.log('📊 編輯模式用戶狀態詳情（已按加入狀態排序）:')
+          //console.log('📊 編輯模式用戶狀態詳情（已按加入狀態排序）:')
           availableUsers.value.forEach((user, index) => {
-            console.log(`${index + 1}. ${user.name} (${user.account}): ${user.is_join ? '✅ 已加入' : '❌ 未加入'}`)
+            //console.log(`${index + 1}. ${user.name} (${user.account}): ${user.is_join ? '✅ 已加入' : '❌ 未加入'}`)
           })
         }
       } else {
-        console.log(`✅ 所有用戶載入完成:`, {
-          totalUsers: availableUsers.value.length,
-          allUsersAvailable: true,
-          timestamp: new Date().toLocaleTimeString()
-        })
+        //console.log(`✅ 所有用戶載入完成:`, {
+        //   totalUsers: availableUsers.value.length,
+        //   allUsersAvailable: true,
+        //   timestamp: new Date().toLocaleTimeString()
+        // })
       }
       
-      console.log('✅ availableUsers.value 更新完成，當前長度:', availableUsers.value.length)
+      //console.log('✅ availableUsers.value 更新完成，當前長度:', availableUsers.value.length)
     } else {
-      console.log('⚠️ 無用戶資料返回或回應格式錯誤:', response)
+      //console.log('⚠️ 無用戶資料返回或回應格式錯誤:', response)
       availableUsers.value = []
       totalUsers.value = 0
       totalPages.value = 0
     }
   } catch (error) {
-    console.error('❌ 載入用戶失敗:', error)
-    console.error('❌ 錯誤詳情:', error.stack)
+    //console.error('❌ 載入用戶失敗:', error)
+    //console.error('❌ 錯誤詳情:', error.stack)
     availableUsers.value = []
     totalUsers.value = 0
     totalPages.value = 0
     alert('載入用戶資料失敗，請稍後再試')
   } finally {
     isLoadingUsers.value = false
-    console.log('🏁 loadUsers 函數執行完成，isLoadingUsers:', isLoadingUsers.value)
+    //console.log('🏁 loadUsers 函數執行完成，isLoadingUsers:', isLoadingUsers.value)
   }
 }
 
@@ -671,15 +671,15 @@ watch(pageSize, async () => {
 })
 
 watch(currentUnitId, async (newUnitId, oldUnitId) => {
-  console.log('單位變更監聽器觸發:', { newUnitId, oldUnitId, isEditMode: isEditMode.value })
+  //console.log('單位變更監聽器觸發:', { newUnitId, oldUnitId, isEditMode: isEditMode.value })
   
   if (isEditMode.value && oldUnitId === null && newUnitId === editUnitData.value?.id) {
-    console.log('編輯模式初始化，跳過重複載入用戶')
+    //console.log('編輯模式初始化，跳過重複載入用戶')
     return
   }
   
   if (isEditMode.value && newUnitId === editUnitData.value?.id) {
-    console.log('編輯模式：允許重新載入用戶資料')
+    //console.log('編輯模式：允許重新載入用戶資料')
     currentPage.value = 1
     searchKeyword.value = ''
     await loadUsers(newUnitId)
@@ -687,7 +687,7 @@ watch(currentUnitId, async (newUnitId, oldUnitId) => {
   }
   
   if (isEditMode.value && newUnitId !== editUnitData.value?.id) {
-    console.warn('編輯模式下單位ID異常變更，保持原有單位ID')
+    //console.warn('編輯模式下單位ID異常變更，保持原有單位ID')
     return
   }
   
@@ -774,7 +774,7 @@ const addManualLayer = () => {
     return
   }
   
-  console.log(`手動添加第 ${nextLevel} 層`)
+  //console.log(`手動添加第 ${nextLevel} 層`)
   addInputLayer(nextLevel)
 }
 
@@ -782,7 +782,7 @@ const previewApiData = computed(() => {
   try {
     return buildApiData()
   } catch (error) {
-    console.error('建構 API 資料時發生錯誤:', error)
+    //console.error('建構 API 資料時發生錯誤:', error)
     return { parentId: null, units: [] }
   }
 })
@@ -792,7 +792,7 @@ const cancel = () => {
 }
 
 const testBuildData = () => {
-  console.log('=== 測試建構 API 資料 ===')
+  //console.log('=== 測試建構 API 資料 ===')
   
   if (isEditMode.value) {
     const targetLayer = formData.unitLayers.find(layer => layer.isTarget)
@@ -805,14 +805,14 @@ const testBuildData = () => {
       }))
     }
     
-    console.log('編輯模式 API 資料:', editData)
+    //console.log('編輯模式 API 資料:', editData)
   } else {
-    console.log('當前表單層級:', formData.unitLayers)
-    console.log('選中的用戶:', selectedUsers.value)
-    console.log('建構的 API 資料:', previewApiData.value)
+    //console.log('當前表單層級:', formData.unitLayers)
+    //console.log('選中的用戶:', selectedUsers.value)
+    //console.log('建構的 API 資料:', previewApiData.value)
   }
   
-  console.log('=========================')
+  //console.log('=========================')
 }
 
 const saveForm = async () => {
@@ -835,19 +835,19 @@ const saveForm = async () => {
         }))
       }
       
-      console.log('準備發送的編輯 API 資料:', editData)
+      //console.log('準備發送的編輯 API 資料:', editData)
       
       const response = await unitStore.updateUnit(editUnitData.value.id, editData)
       
       if (response.success) {
-        console.log('✅ 編輯 API 成功，開始重新載入資料...')
+        //console.log('✅ 編輯 API 成功，開始重新載入資料...')
         
         try {
           await reloadEditPageData()
-          console.log('✅ 編輯完成，資料已重新載入')
+          //console.log('✅ 編輯完成，資料已重新載入')
           alert('編輯單位成功！')
         } catch (reloadError) {
-          console.error('❌ 重新載入資料時發生錯誤:', reloadError)
+          //console.error('❌ 重新載入資料時發生錯誤:', reloadError)
           alert('編輯成功，但重新載入資料失敗，請手動刷新頁面')
         }
       } else {
@@ -870,7 +870,7 @@ const saveForm = async () => {
       
       const apiData = buildApiData()
       
-      console.log('準備發送的 API 資料:', apiData)
+      //console.log('準備發送的 API 資料:', apiData)
       
       const response = await unitStore.createUnit(apiData)
       
@@ -883,7 +883,7 @@ const saveForm = async () => {
     }
     
   } catch (error) {
-    console.error('儲存失敗:', error)
+    //console.error('儲存失敗:', error)
     alert('儲存失敗：' + (error.message || '請稍後再試'))
   } finally {
     isSaving.value = false
@@ -897,7 +897,7 @@ const toggleEditUnitName = () => {
   }
   
   if (!isEditingUnitName.value) {
-    console.log('進入編輯模式，備份當前資料')
+    //console.log('進入編輯模式，備份當前資料')
     
     const targetLayer = formData.unitLayers.find(layer => layer.isTarget)
     if (targetLayer) {
@@ -910,11 +910,7 @@ const toggleEditUnitName = () => {
       isSelected: user.isSelected
     }))
     
-    console.log('備份資料:', {
-      unitName: backupData.originalUnitName,
-      importance_level: backupData.originalimportance_level, // 新增
-      userSelectionsCount: backupData.originalUserSelections.length
-    })
+   
     
     isEditingUnitName.value = true
     
@@ -922,14 +918,14 @@ const toggleEditUnitName = () => {
       targetLayer.isLocked = false
     }
   } else {
-    console.log('取消編輯模式，恢復備份資料')
+    //console.log('取消編輯模式，恢復備份資料')
     
     const targetLayer = formData.unitLayers.find(layer => layer.isTarget)
     if (targetLayer && backupData.originalUnitName !== '') {
       targetLayer.inputValue = backupData.originalUnitName
       targetLayer.importance_level = backupData.originalimportance_level // 新增：恢復重要程度
-      console.log('恢復單位名稱:', backupData.originalUnitName)
-      console.log('恢復重要程度:', backupData.originalimportance_level) // 新增
+      //console.log('恢復單位名稱:', backupData.originalUnitName)
+      //console.log('恢復重要程度:', backupData.originalimportance_level) // 新增
     }
     
     if (backupData.originalUserSelections.length > 0) {
@@ -939,7 +935,7 @@ const toggleEditUnitName = () => {
           user.isSelected = backup.isSelected
         }
       })
-      console.log('恢復用戶選擇狀態完成')
+      //console.log('恢復用戶選擇狀態完成')
     }
     
     isEditingUnitName.value = false
@@ -953,60 +949,56 @@ const toggleEditUnitName = () => {
     backupData.originalUserSelections = []
   }
   
-  console.log('編輯模式狀態:', isEditingUnitName.value)
+  //console.log('編輯模式狀態:', isEditingUnitName.value)
 }
 
 const reloadEditPageData = async () => {
   try {
-    console.log('🔄 開始重新載入編輯頁面資料，當前時間:', new Date().toLocaleTimeString())
+    //console.log('🔄 開始重新載入編輯頁面資料，當前時間:', new Date().toLocaleTimeString())
     
     if (!editUnitData.value || !editUnitData.value.id) {
       throw new Error('editUnitData 或 editUnitData.id 不存在')
     }
     
-    console.log('📡 重新獲取單位詳細資料，單位ID:', editUnitData.value.id)
+    //console.log('📡 重新獲取單位詳細資料，單位ID:', editUnitData.value.id)
     
     const response = await unitStore.fetchUnitById(editUnitData.value.id)
     if (response.success && response.data) {
-      console.log('✅ 單位詳細資料獲取成功:', response.data)
+      //console.log('✅ 單位詳細資料獲取成功:', response.data)
       
       editUnitData.value = response.data
       originalUnitName.value = response.data.name
       unitUsersCount.value = response.data.users ? response.data.users.length : 0
       
-      console.log('📊 單位資料已更新:', {
-        name: editUnitData.value.name,
-        importance_level: editUnitData.value.importance_level, // 新增
-        usersCount: unitUsersCount.value
-      })
+     
       
       const targetLayer = formData.unitLayers.find(layer => layer.isTarget)
       if (targetLayer) {
         targetLayer.inputValue = response.data.name
         targetLayer.importance_level = response.data.importance_level || '1' // 新增：更新重要程度
-        console.log('📝 表單中的單位名稱已更新:', targetLayer.inputValue)
-        console.log('📝 表單中的重要程度已更新:', targetLayer.importance_level) // 新增
+        //console.log('📝 表單中的單位名稱已更新:', targetLayer.inputValue)
+        //console.log('📝 表單中的重要程度已更新:', targetLayer.importance_level) // 新增
       }
     } else {
       throw new Error('重新獲取單位資料失敗：' + (response.message || '未知錯誤'))
     }
     
-    console.log('🔄 直接重新載入用戶資料，單位ID:', editUnitData.value.id)
+    //console.log('🔄 直接重新載入用戶資料，單位ID:', editUnitData.value.id)
     currentPage.value = 1
     searchKeyword.value = ''
     
     try {
       await loadUsers(editUnitData.value.id, true)
-      console.log('✅ 用戶資料重新載入成功')
+      //console.log('✅ 用戶資料重新載入成功')
     } catch (userLoadError) {
-      console.error('❌ 載入用戶資料時發生錯誤:', userLoadError)
+      //console.error('❌ 載入用戶資料時發生錯誤:', userLoadError)
       throw new Error('載入用戶資料失敗：' + userLoadError.message)
     }
     
-    console.log('🎉 編輯頁面資料重新載入完成，時間:', new Date().toLocaleTimeString())
+    //console.log('🎉 編輯頁面資料重新載入完成，時間:', new Date().toLocaleTimeString())
   } catch (error) {
-    console.error('❌ 重新載入資料失敗:', error)
-    console.error('錯誤詳情:', error.stack)
+    //console.error('❌ 重新載入資料失敗:', error)
+    //console.error('錯誤詳情:', error.stack)
     throw error
   }
 }
@@ -1030,7 +1022,7 @@ const saveUnitNameChange = async () => {
       }))
     }
     
-    console.log('單位名稱更新 API 資料:', editData)
+    //console.log('單位名稱更新 API 資料:', editData)
     
     const response = await unitStore.updateUnit(editUnitData.value.id, editData)
     
@@ -1053,20 +1045,20 @@ const saveUnitNameChange = async () => {
       if (currentUser) {
         if (currentUser.isSelected) {
           authStore.user.repair_unit = targetLayer.inputValue
-          console.log('用户仍在单位中，更新 repair_unit 为:', targetLayer.inputValue)
+          //console.log('用户仍在单位中，更新 repair_unit 为:', targetLayer.inputValue)
         } else {
           authStore.user.repair_unit = ''
-          console.log('用户已被移除单位，清空 repair_unit')
+          //console.log('用户已被移除单位，清空 repair_unit')
         }
       } else {
-        console.log('当前用户不在此单位的用户列表中')
+        //console.log('当前用户不在此单位的用户列表中')
       }
       
     } else {
       alert('更新失敗：' + (response.message || '未知錯誤'))
     }
   } catch (error) {
-    console.error('更新單位名稱失敗:', error)
+    //console.error('更新單位名稱失敗:', error)
     alert('更新失敗：' + (error.message || '請稍後再試'))
   } finally {
     isSaving.value = false
@@ -1095,7 +1087,7 @@ const deleteUnit = async () => {
       alert('刪除失敗：' + (response.message || '未知錯誤'))
     }
   } catch (error) {
-    console.error('刪除單位失敗:', error)
+    //console.error('刪除單位失敗:', error)
     alert('刪除失敗：' + (error.message || '請稍後再試'))
   } finally {
     isSaving.value = false
@@ -1128,48 +1120,48 @@ const getimportance_levelLabel = (value) => {
 onMounted(async () => {
   isLoading.value = true
   try {
-    console.log('🚀 onMounted: 路由模式:', { 
-      isCreateMode: isCreateMode.value, 
-      isInsertMode: isInsertMode.value,
-      isEditMode: isEditMode.value,
-      parentId: parentId.value,
-      editUnitId: editUnitId.value,
-      routeName: route.name 
-    })
+    // //console.log('🚀 onMounted: 路由模式:', { 
+    //   isCreateMode: isCreateMode.value, 
+    //   isInsertMode: isInsertMode.value,
+    //   isEditMode: isEditMode.value,
+    //   parentId: parentId.value,
+    //   editUnitId: editUnitId.value,
+    //   routeName: route.name 
+    // })
     
     if (isEditMode.value && editUnitId.value) {
-      console.log('🚀 編輯模式，建構編輯單位路徑')
+      //console.log('🚀 編輯模式，建構編輯單位路徑')
       const editPath = await buildEditUnitPath(editUnitId.value)
       await initializeEditForm(editPath)
     } else if (isInsertMode.value && parentId.value) {
-      console.log('🚀 插入模式，建構父層路徑')
+      //console.log('🚀 插入模式，建構父層路徑')
       const parentPath = await buildParentPath(parentId.value)
       await initializeFormFromPath(parentPath)
     } else {
-      console.log('🚀 創建模式，載入第一層選項')
+      //console.log('🚀 創建模式，載入第一層選項')
       const firstLayerOptions = await loadLayerOptions(1)
       formData.unitLayers[0].options = firstLayerOptions
       formData.unitLayers[0].type = firstLayerOptions.length > 0 ? 'select' : 'input'
       formData.unitLayers[0].isLocked = false
-      console.log('🚀 創建模式初始化完成，第一層:', { 
-        level: formData.unitLayers[0].level, 
-        type: formData.unitLayers[0].type, 
-        options: formData.unitLayers[0].options.length 
-      })
+      // console.log('🚀 創建模式初始化完成，第一層:', { 
+      //   level: formData.unitLayers[0].level, 
+      //   type: formData.unitLayers[0].type, 
+      //   options: formData.unitLayers[0].options.length 
+      // })
       
-      console.log('🚀 創建模式：載入所有有資格的用戶')
+      //console.log('🚀 創建模式：載入所有有資格的用戶')
       await loadUsers(null)
     }
     
-    console.log('🚀 初始化完成，最終層級狀態:', formData.unitLayers.map(l => ({ 
-      level: l.level, 
-      type: l.type, 
-      isLocked: l.isLocked,
-      isTarget: l.isTarget,
-      importance_level: l.importance_level // 新增
-    })))
+    //console.log('🚀 初始化完成，最終層級狀態:', formData.unitLayers.map(l => ({ 
+    //   level: l.level, 
+    //   type: l.type, 
+    //   isLocked: l.isLocked,
+    //   isTarget: l.isTarget,
+    //   importance_level: l.importance_level // 新增
+    // })))
   } catch (error) {
-    console.error('❌ 初始化失敗:', error)
+    //console.error('❌ 初始化失敗:', error)
     alert('初始化失敗：' + (error.message || '請稍後再試'))
     
     if (!isEditMode.value) {
@@ -1179,7 +1171,7 @@ onMounted(async () => {
       try {
         await loadUsers(null)
       } catch (userError) {
-        console.error('❌ fallback 載入用戶失敗:', userError)
+        //console.error('❌ fallback 載入用戶失敗:', userError)
       }
     }
   } finally {

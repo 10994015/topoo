@@ -35,14 +35,14 @@ export const toUTCString = (date) => {
     
     // 檢查日期是否有效
     if (isNaN(localDate.getTime())) {
-      console.warn('無效的日期格式:', date);
+      //console.warn('無效的日期格式:', date);
       return null;
     }
     
     // 轉換為 UTC ISO 字串
     return localDate.toISOString();
   } catch (error) {
-    console.error('UTC 轉換錯誤:', error);
+    //console.error('UTC 轉換錯誤:', error);
     return null;
   }
 };

@@ -120,7 +120,7 @@ const loadStatusList = async () => {
     totalPages.value = statusStore.statuses?.data?.totalPages || 0
     
   } catch (error) {
-    console.error('載入維修狀態列表失敗:', error)
+    //console.error('載入維修狀態列表失敗:', error)
     statusData.value = []
     totalItems.value = 0
     totalPages.value = 0
@@ -210,11 +210,11 @@ const deleteStatus = async (item) => {
       alert('刪除成功！')
       await loadStatusList()
     } else {
-      console.error('刪除失敗:', result.message)
+      //console.error('刪除失敗:', result.message)
       alert(`刪除失敗: ${result.message}`)
     }
   } catch (error) {
-    console.error('刪除異常:', error)
+    //console.error('刪除異常:', error)
     alert('刪除時發生錯誤，請稍後再試')
   }
 }

@@ -13,7 +13,7 @@ export const useCategoryStore = defineStore('category', () => {
     const getCategoryReasons = computed(() => {
         return (categoryId) => {
             const reasonData = categoryReasons.value.get(categoryId)
-            console.log(reasonData);
+            //console.log(reasonData);
             
             return reasonData?.data.data || []
         }
@@ -66,17 +66,17 @@ export const useCategoryStore = defineStore('category', () => {
             params.pageSize = limit
             params.page = page
             
-            console.log(params);
+            //console.log(params);
             
-            console.log('獲取類別列表參數:', params)
+            //console.log('獲取類別列表參數:', params)
             
             const response = await axiosClient.get('/backend/enum/repair-category', { params })
-            console.log('類別列表回應:', response.data)
+            //console.log('類別列表回應:', response.data)
             
             categories.value = response.data
             
         } catch (error) {
-            console.error('獲取類別列表失敗:', error)
+            //console.error('獲取類別列表失敗:', error)
             // 提供預設的空資料結構
             categories.value = {
                 data: [],
@@ -114,18 +114,18 @@ export const useCategoryStore = defineStore('category', () => {
             }
             if(categoryId) { params.parentId = categoryId }
             
-            console.log(`獲取類別 ${categoryId} 的原因列表參數:`, params)
+            //console.log(`獲取類別 ${categoryId} 的原因列表參數:`, params)
             
             const response = await axiosClient.get('/backend/enum/repair-reason', { params })
-            console.log(`類別 ${categoryId} 原因列表回應:`, response.data)
+            //console.log(`類別 ${categoryId} 原因列表回應:`, response.data)
             
             categoryReasons.value.set(categoryId, response.data)
 
-            console.log(categoryReasons.value);
+            //console.log(categoryReasons.value);
             
             
         } catch (error) {
-            console.error(`獲取類別 ${categoryId} 原因列表失敗:`, error)
+            //console.error(`獲取類別 ${categoryId} 原因列表失敗:`, error)
             // 提供預設的空資料結構
             categoryReasons.value.set(categoryId, {
                 data: [],
@@ -143,10 +143,10 @@ export const useCategoryStore = defineStore('category', () => {
      */
     const createCategory = async (categoryData) => {
         try {
-            console.log('新增類別資料:', categoryData)
+            //console.log('新增類別資料:', categoryData)
             
             const response = await axiosClient.post('/backend/enum/repair-category', categoryData)
-            console.log('新增類別回應:', response.data)
+            //console.log('新增類別回應:', response.data)
             
             return {
                 success: true,
@@ -154,7 +154,7 @@ export const useCategoryStore = defineStore('category', () => {
                 message: response.data.message || '新增成功'
             }
         } catch (error) {
-            console.error('新增類別失敗:', error)
+            //console.error('新增類別失敗:', error)
             
             // 處理錯誤回應
             let errorMessage = '新增失敗'
@@ -179,10 +179,10 @@ export const useCategoryStore = defineStore('category', () => {
      */
     const updateCategory = async (categoryId, categoryData) => {
         try {
-            console.log(`更新類別 ${categoryId} 資料:`, categoryData)
+            //console.log(`更新類別 ${categoryId} 資料:`, categoryData)
             
             const response = await axiosClient.patch(`/backend/enum/repair-category/${categoryId}`, categoryData)
-            console.log('更新類別回應:', response.data)
+            //console.log('更新類別回應:', response.data)
             
             return {
                 success: true,
@@ -190,7 +190,7 @@ export const useCategoryStore = defineStore('category', () => {
                 message: response.data.message || '更新成功'
             }
         } catch (error) {
-            console.error(`更新類別 ${categoryId} 失敗:`, error)
+            //console.error(`更新類別 ${categoryId} 失敗:`, error)
             
             let errorMessage = '更新失敗'
             if (error.response?.data?.message) {
@@ -213,10 +213,10 @@ export const useCategoryStore = defineStore('category', () => {
      */
     const deleteCategory = async (categoryId) => {
         try {
-            console.log(`刪除類別 ${categoryId}`)
+            //console.log(`刪除類別 ${categoryId}`)
             
             const response = await axiosClient.delete(`/backend/enum/repair-category/${categoryId}`)
-            console.log('刪除類別回應:', response.data)
+            //console.log('刪除類別回應:', response.data)
             
             // 同時清除該類別的原因快取
             categoryReasons.value.delete(categoryId)
@@ -226,7 +226,7 @@ export const useCategoryStore = defineStore('category', () => {
                 message: response.data.message || '刪除成功'
             }
         } catch (error) {
-            console.error(`刪除類別 ${categoryId} 失敗:`, error)
+            //console.error(`刪除類別 ${categoryId} 失敗:`, error)
             
             let errorMessage = '刪除失敗'
             if (error.response?.data?.message) {
@@ -249,18 +249,18 @@ export const useCategoryStore = defineStore('category', () => {
      */
     const fetchCategoryDetail = async (categoryId) => {
         try {
-            console.log(`獲取類別 ${categoryId} 詳細資料`)
+            //console.log(`獲取類別 ${categoryId} 詳細資料`)
             
             const params = {
                 enumId: categoryId
             }
             
             const response = await axiosClient.get('/backend/enum/repair-category', { params })
-            console.log('類別詳細資料回應:', response.data)
+            //console.log('類別詳細資料回應:', response.data)
             
             // 從列表中找到對應的類別
             const category = response.data.data.data[0]|| []
-            console.log(category);
+            //console.log(category);
             
             if (category) {
                 return {
@@ -274,7 +274,7 @@ export const useCategoryStore = defineStore('category', () => {
                 }
             }
         } catch (error) {
-            console.error(`獲取類別 ${categoryId} 詳細資料失敗:`, error)
+            //console.error(`獲取類別 ${categoryId} 詳細資料失敗:`, error)
             
             return {
                 success: false,
@@ -285,20 +285,20 @@ export const useCategoryStore = defineStore('category', () => {
     }
     // 置頂 /backend/enum/repair-category/{id}/sequence
     const moveCategoryToTop = async (categoryId) => {
-        console.log(`將類別 ${categoryId} 置頂`)
+        //console.log(`將類別 ${categoryId} 置頂`)
         try{
             const response = await axiosClient.patch(`/backend/enum/repair-category/${categoryId}/sequence`)
 
-            console.log(response.data);
+            //console.log(response.data);
 
             if (response.data.statusCode === 200) {
-                console.log(`類別 ${categoryId} 已成功置頂`)
+                //console.log(`類別 ${categoryId} 已成功置頂`)
                 return {
                     success: true,
                     message: response.data.message || '置頂成功'
                 }
             } else {
-                console.error(`類別 ${categoryId} 置頂失敗:`, response.data.message)
+                //console.error(`類別 ${categoryId} 置頂失敗:`, response.data.message)
                 return {
                     success: false,
                     message: response.data.message || '置頂失敗',
@@ -306,7 +306,7 @@ export const useCategoryStore = defineStore('category', () => {
                 }
             }
         } catch (error) {
-            console.error(`類別 ${categoryId} 置頂失敗:`, error)
+            //console.error(`類別 ${categoryId} 置頂失敗:`, error)
             
             let errorMessage = '置頂失敗'
             if (error.response?.data?.message) {
@@ -329,7 +329,7 @@ export const useCategoryStore = defineStore('category', () => {
      */
     const createReason = async (categoryId, reasonData) => {
         try {
-            console.log(`新增類別 ${categoryId} 的原因:`, reasonData)
+            //console.log(`新增類別 ${categoryId} 的原因:`, reasonData)
             
             // 確保包含 parentId
             const data = {
@@ -337,11 +337,11 @@ export const useCategoryStore = defineStore('category', () => {
                 parentId: categoryId
             }
 
-            console.log(data);
+            //console.log(data);
             
             
             const response = await axiosClient.post('/backend/enum/repair-reason', data)
-            console.log('新增原因回應:', response.data)
+            //console.log('新增原因回應:', response.data)
             
             return {
                 success: true,
@@ -349,7 +349,7 @@ export const useCategoryStore = defineStore('category', () => {
                 message: response.data.message || '新增成功'
             }
         } catch (error) {
-            console.error(`新增類別 ${categoryId} 原因失敗:`, error)
+            //console.error(`新增類別 ${categoryId} 原因失敗:`, error)
             
             let errorMessage = '新增失敗'
             if (error.response?.data?.message) {
@@ -373,10 +373,10 @@ export const useCategoryStore = defineStore('category', () => {
      */
     const updateReason = async (reasonId, reasonData) => {
         try {
-            console.log(`更新原因 ${reasonId} 資料:`, reasonData)
+            //console.log(`更新原因 ${reasonId} 資料:`, reasonData)
             
             const response = await axiosClient.patch(`/backend/enum/repair-reason/${reasonId}`, reasonData)
-            console.log('更新原因回應:', response.data)
+            //console.log('更新原因回應:', response.data)
             
             return {
                 success: true,
@@ -384,7 +384,7 @@ export const useCategoryStore = defineStore('category', () => {
                 message: response.data.message || '更新成功'
             }
         } catch (error) {
-            console.error(`更新原因 ${reasonId} 失敗:`, error)
+            //console.error(`更新原因 ${reasonId} 失敗:`, error)
             
             let errorMessage = '更新失敗'
             if (error.response?.data?.message) {
@@ -408,10 +408,10 @@ export const useCategoryStore = defineStore('category', () => {
      */
     const deleteReason = async (reasonId, categoryId = null) => {
         try {
-            console.log(`刪除原因 ${reasonId}`)
+            //console.log(`刪除原因 ${reasonId}`)
             
             const response = await axiosClient.delete(`/backend/enum/repair-reason/${reasonId}`)
-            console.log('刪除原因回應:', response.data)
+            //console.log('刪除原因回應:', response.data)
             
             // 如果提供了 categoryId，清除該類別的原因快取
             if (categoryId) {
@@ -423,7 +423,7 @@ export const useCategoryStore = defineStore('category', () => {
                 message: response.data.message || '刪除成功'
             }
         } catch (error) {
-            console.error(`刪除原因 ${reasonId} 失敗:`, error)
+            //console.error(`刪除原因 ${reasonId} 失敗:`, error)
             
             let errorMessage = '刪除失敗'
             if (error.response?.data?.message) {
@@ -446,19 +446,19 @@ export const useCategoryStore = defineStore('category', () => {
      */
     const fetchReasonDetail = async (reasonId) => {
         try {
-            console.log(`獲取原因 ${reasonId} 詳細資料`)
+            //console.log(`獲取原因 ${reasonId} 詳細資料`)
             const params = {
                 enumId: reasonId
             }
             const response = await axiosClient.get(`/backend/enum/repair-reason`, { params })
-            console.log('原因詳細資料回應:', response.data)
+            //console.log('原因詳細資料回應:', response.data)
             
             return {
                 success: true,
                 data: response.data.data.data[0] || response.data.data[0]
             }
         } catch (error) {
-            console.error(`獲取原因 ${reasonId} 詳細資料失敗:`, error)
+            //console.error(`獲取原因 ${reasonId} 詳細資料失敗:`, error)
             
             return {
                 success: false,
@@ -471,16 +471,16 @@ export const useCategoryStore = defineStore('category', () => {
     // 置頂原因
     const moveReasonToTop = async (reasonId) => {
         try {
-            console.log(`置頂原因 ${reasonId}`)
+            //console.log(`置頂原因 ${reasonId}`)
             const response = await axiosClient.patch(`/backend/enum/repair-reason/${reasonId}/sequence`)
-            console.log('置頂原因回應:', response.data)
+            //console.log('置頂原因回應:', response.data)
             
             return {
                 success: true,
                 message: response.data.message || '置頂成功'
             }
         } catch (error) {
-            console.error(`置頂原因 ${reasonId} 失敗:`, error)
+            //console.error(`置頂原因 ${reasonId} 失敗:`, error)
             
             let errorMessage = '置頂失敗'
             if (error.response?.data?.message) {
@@ -502,7 +502,7 @@ export const useCategoryStore = defineStore('category', () => {
      */
     const clearCategoryReasonsCache = (categoryId) => {
         categoryReasons.value.delete(categoryId)
-        console.log(`已清除類別 ${categoryId} 的原因快取`)
+        //console.log(`已清除類別 ${categoryId} 的原因快取`)
     }
 
     /**
@@ -512,7 +512,7 @@ export const useCategoryStore = defineStore('category', () => {
         categories.value = null
         categoryReasons.value.clear()
         isInitialized.value = false
-        console.log('已清除所有快取')
+        //console.log('已清除所有快取')
     }
 
     // 返回 store 的狀態和方法

@@ -20,7 +20,7 @@ export const useAccountStore = defineStore('account', () => {
         provider:'',
     }) => {
         try {
-            console.log(searchForm);
+            //console.log(searchForm);
             const params = {};
             if (searchForm.text) params.q = searchForm.text;
             if (searchForm.status) params.status = searchForm.status;
@@ -42,46 +42,46 @@ export const useAccountStore = defineStore('account', () => {
             params.sortBy = searchForm.sortField; // 排序欄位
             params.sortOrder = searchForm.sortOrder.toUpperCase(); // 排序方向
             const response = await axiosClient.get('/backend/user', { params });
-            console.log(response.data);
+            //console.log(response.data);
             accounts.value = response.data.data;
         } catch (error) {
-            console.error('獲取帳號列表失敗:', error);
+            //console.error('獲取帳號列表失敗:', error);
         }
     }
 
     const getAccountById = async (id) => {
         try {
             const response = await axiosClient.get(`/backend/user/${id}`);
-            console.log(response.data);
+            //console.log(response.data);
             account.value = response.data.data;
             return response.data.data;
         } catch (error) {
-            console.error('獲取帳號失敗:', error);
+            //console.error('獲取帳號失敗:', error);
         }
     }
 
     const updateAccount = async (id, data) => {
         try {
             const response = await axiosClient.patch(`/backend/user/${id}`, data);
-            console.log(response.data);
+            //console.log(response.data);
             // 更新成功後，重新獲取帳號列表
             account.value = response.data.data;
             await fetchAccounts();
             return response.data;
         } catch (error) {
-            console.error('更新帳號失敗:', error);
+            //console.error('更新帳號失敗:', error);
         }
     }
 
     const deleteAccount = async (id) => {
         try {
             const response = await axiosClient.delete(`/backend/user/${id}`);
-            console.log(response);
+            //console.log(response);
             // 刪除成功後，重新獲取帳號列表
             await fetchAccounts();
             return response;
         } catch (error) {
-            console.error('刪除帳號失敗:', error);
+            //console.error('刪除帳號失敗:', error);
             return error.response; // 返回錯誤響應以便處理
         }
     }
@@ -89,12 +89,12 @@ export const useAccountStore = defineStore('account', () => {
     const createAccount = async (data) => {
         try {
             const response = await axiosClient.post('/backend/user', data);
-            console.log(response.data);
+            //console.log(response.data);
             // 創建成功後，重新獲取帳號列表
             await fetchAccounts();
             return response.data;
         } catch (error) {
-            console.error('創建帳號失敗:', error.response.data);
+            //console.error('創建帳號失敗:', error.response.data);
             return error.response
         }
     }
@@ -114,7 +114,7 @@ export const useAccountStore = defineStore('account', () => {
             link.click();
             document.body.removeChild(link); // 下載後移除連結
         } catch (error) {
-            console.error('下載帳號匯入範本失敗:', error);
+            //console.error('下載帳號匯入範本失敗:', error);
         }
     }
     /*
@@ -132,12 +132,12 @@ export const useAccountStore = defineStore('account', () => {
                 timeout: 60000, // 60秒超時，因為檔案處理可能需要較長時間
                 onUploadProgress: (progressEvent) => {
                     const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-                    console.log(`上傳進度: ${percentCompleted}%`);
+                    //console.log(`上傳進度: ${percentCompleted}%`);
                     // 可以通過事件發送進度更新
                 }
             });
             
-            console.log('帳號匯入回應:', response.data);
+            //console.log('帳號匯入回應:', response.data);
             
             // 匯入成功後，重新獲取帳號列表
             await fetchAccounts();
@@ -153,7 +153,7 @@ export const useAccountStore = defineStore('account', () => {
             
         } catch (error) {
             isLoading.value = false;
-            console.error('帳號匯入失敗:', error);
+            //console.error('帳號匯入失敗:', error);
             
             let errorMessage = '匯入失敗';
             let errorDetails = [];

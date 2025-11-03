@@ -52,11 +52,11 @@ const handleSave = async () => {
   isSaving.value = true
   try {
     // 這裡調用 API 儲存資料
-    console.log('儲存表單資料:', formData)
+    //console.log('儲存表單資料:', formData)
     
     // 模擬 API 調用
     const result = await accountStore.createAccount(formData)
-    console.log('儲存結果:', result);
+    //console.log('儲存結果:', result);
     
     if(result.statusCode === 200){
         alert('儲存成功！')
@@ -67,7 +67,7 @@ const handleSave = async () => {
     }
     
   } catch (error) {
-    console.error('儲存失敗:', error)
+    //console.error('儲存失敗:', error)
     alert(error)
   } finally {
     isSaving.value = false

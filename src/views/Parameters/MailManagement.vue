@@ -118,7 +118,7 @@ const loadData = async () => {
       sortOrder: sortConfig.value.order
     }
     
-    console.log('載入參數:', params)
+    //console.log('載入參數:', params)
     
     const response = await mailStore.fetchMails(params)
     
@@ -129,7 +129,7 @@ const loadData = async () => {
     
     isLoading.value = false
   } catch (error) {
-    console.error('載入資料失敗:', error)
+    //console.error('載入資料失敗:', error)
     isLoading.value = false
     // 可以在這裡顯示錯誤訊息
   }
@@ -139,7 +139,7 @@ const loadData = async () => {
 const handleSearch = async () => {
   currentPage.value = 1
   isSearching.value = true
-  console.log('執行搜尋:', searchForm)
+  //console.log('執行搜尋:', searchForm)
   await loadData()
   isSearching.value = false
 }
@@ -155,7 +155,7 @@ const handleReset = async () => {
 // 分頁大小變更
 const handlePageSizeChange = async () => {
   currentPage.value = 1
-  console.log('分頁大小變更:', pageSize.value)
+  //console.log('分頁大小變更:', pageSize.value)
   await loadData()
 }
 
@@ -208,13 +208,13 @@ const addMailbox = () => {
     alert('您沒有權限新增系統信箱')
     return
   }
-  console.log('新增系統信箱')
+  //console.log('新增系統信箱')
   router.push('/settings/parameter/mail-management/create')
 }
 
 // 檢視信箱
 const editMailbox = (item) => {
-  console.log('檢視信箱:', item)
+  //console.log('檢視信箱:', item)
   router.push(`/settings/parameter/mail-management/edit/${item.id}`)
 }
 
@@ -223,10 +223,10 @@ const deleteMailbox = async (item) => {
   if (confirm(`確定要刪除信箱 ${item.email} 嗎？`)) {
     try {
       await mailStore.deleteMail(item.id)
-      console.log('刪除成功')
+      //console.log('刪除成功')
       await loadData()
     } catch (error) {
-      console.error('刪除失敗:', error)
+      //console.error('刪除失敗:', error)
     }
   }
 }
@@ -239,21 +239,21 @@ const testMailConnection = async (item) => {
   }
   try {
     const result = await mailStore.testMailConnection(item.id)
-    console.log('測試結果:', result)
+    //console.log('測試結果:', result)
     if(result.statusCode === 202){
       alert(result.message)
     }else{
       alert('測試失敗: ' + result.message)
     }
   } catch (error) {
-    console.error('測試失敗:', error)
+    //console.error('測試失敗:', error)
     alert('測試信箱連接失敗')
   }
 }
 
 // 監聽分頁大小變更
 watch(pageSize, async (newSize) => {
-  console.log('分頁大小變更:', newSize)
+  //console.log('分頁大小變更:', newSize)
   currentPage.value = 1
   await loadData()
 })

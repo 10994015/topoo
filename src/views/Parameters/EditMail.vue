@@ -193,14 +193,14 @@ const loadMailList = async () => {
       totalItems.value = response.data.total || 0
     }
   } catch (error) {
-    console.error('載入信箱列表失敗:', error)
+    //console.error('載入信箱列表失敗:', error)
   }
 }
 
 // 分頁大小變更
 const handlePageSizeChange = async () => {
   currentPage.value = 1
-  console.log('分頁大小變更:', pageSize.value)
+  //console.log('分頁大小變更:', pageSize.value)
   await loadMailList()
 }
 
@@ -247,7 +247,7 @@ const loadEditData = async () => {
     isLoading.value = true
     await mailStore.getMailById(mailId.value)
     const data = mailStore.mail.data[0];
-    console.log(data);
+    //console.log(data);
     
     if (data) {
       // 填充表單資料
@@ -269,7 +269,7 @@ const loadEditData = async () => {
     
     isLoading.value = false
   } catch (error) {
-    console.error('載入編輯資料失敗:', error)
+    //console.error('載入編輯資料失敗:', error)
     isLoading.value = false
   }
 }
@@ -296,7 +296,7 @@ const testConnection = async () => {
     showTestResult.value = true
     isTesting.value = false
   } catch (error) {
-    console.error('測試連接失敗:', error)
+    //console.error('測試連接失敗:', error)
     testResult.value = {
       success: false,
       message: error.response?.data?.message || '測試失敗，請檢查設定'
@@ -335,12 +335,12 @@ const handleSave = async () => {
       // 新增模式
       const result = await mailStore.createMail(formData)
       alert('新增成功')
-      console.log(result);
+      //console.log(result);
       
       
       // 新增成功後跳轉到編輯模式
       if (result.data && result.data.mailId) {
-        console.log('跳轉');
+        //console.log('跳轉');
         
         router.push(`/settings/parameter/mail-management/edit/${result.data.mailId}`)
       }
@@ -351,7 +351,7 @@ const handleSave = async () => {
     isSubmitting.value = false
     
   } catch (error) {
-    console.error('儲存失敗:', error)
+    //console.error('儲存失敗:', error)
     alert(error.response?.data?.message || '儲存失敗，請稍後再試')
     isSubmitting.value = false
   }
@@ -379,7 +379,7 @@ const deleteMail = async (item) => {
         router.push('/settings/parameter/mail-management')
       }
     } catch (error) {
-      console.error('刪除失敗:', error)
+      //console.error('刪除失敗:', error)
       alert(error.response?.data?.message || '刪除失敗，請稍後再試')
     }
   }

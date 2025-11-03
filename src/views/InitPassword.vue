@@ -84,7 +84,7 @@ const handleSubmit = async () => {
       confirmPassword: confirmPassword.value
     })
 
-    console.log(result)
+    //console.log(result)
     if(result.success){
         showSuccessModal.value = true
     }else{
@@ -92,7 +92,7 @@ const handleSubmit = async () => {
     }
     
   } catch (error) {
-    console.error('重設密碼失敗:', error)
+    //console.error('重設密碼失敗:', error)
     if (error.message && error.message.includes('token')) {
       passwordError.value = '重設連結已失效，請重新申請'
       isValidToken.value = false

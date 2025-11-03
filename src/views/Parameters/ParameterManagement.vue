@@ -175,7 +175,7 @@ const resetSearch = () => {
   searchNotFound.value = false
   isSearching.value = false
 
-  console.log(filteredData.value);
+  //console.log(filteredData.value);
   
 }
 
@@ -242,25 +242,25 @@ const goToPage = (page) => {
 
 // 頁面操作
 const addParameter = () => {
-  console.log('新增參數')
+  //console.log('新增參數')
 }
 
 const editParameter = (url) => {
   if (url) {
     router.push(url)
   } else {
-    console.log('編輯功能尚未開放')
+    //console.log('編輯功能尚未開放')
   }
 }
 
 const deleteParameter = (item) => {
-  console.log('刪除參數:', item)
+  //console.log('刪除參數:', item)
 }
 
 // 初始化
 onMounted(() => {
   resetSearch()
-  console.log('參數管理頁面已載入')
+  //console.log('參數管理頁面已載入')
 })
 </script>
 

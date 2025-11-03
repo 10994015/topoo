@@ -195,7 +195,7 @@ watch(() => repairProgressForm.repairCategoryId, async (newCategoryId, oldCatego
         await repairStore.fetchReasons(newCategoryId)
         reasons.value = repairStore.reasons.data || []
       } catch (error) {
-        console.error('獲取維修原因失敗:', error)
+        //console.error('獲取維修原因失敗:', error)
         await repairStore.fetchReasons()
         reasons.value = repairStore.reasons.data || []
       }
@@ -219,7 +219,7 @@ watch(() => completeRepairForm.repairCategoryId, async (newCategoryId, oldCatego
         await repairStore.fetchReasons(newCategoryId)
         reasons.value = repairStore.reasons.data || []
       } catch (error) {
-        console.error('獲取維修原因失敗:', error)
+        //console.error('獲取維修原因失敗:', error)
         await repairStore.fetchReasons()
         reasons.value = repairStore.reasons.data || []
       }
@@ -320,7 +320,7 @@ const resetForm = async (formType) => {
     await repairStore.fetchReasons()
     reasons.value = repairStore.reasons.data || []
   } catch (error) {
-    console.error('重置時獲取維修原因失敗:', error)
+    //console.error('重置時獲取維修原因失敗:', error)
     reasons.value = []
   }
 }
@@ -349,7 +349,7 @@ const downloadReport = async (reportType) => {
       alert(result.message)
     }
   } catch (error) {
-    console.error('下載報表失敗:', error)
+    //console.error('下載報表失敗:', error)
     // 顯示後端返回的錯誤訊息
     const errorMessage = error.message || '下載報表失敗，請稍後再試'
     alert(errorMessage)
@@ -366,7 +366,7 @@ const switchTab = async (tabName) => {
     (tabName === 'satisfaction-survey' && hasDownloadSatisfactionSurveyPermission.value)
   
   if (!hasPermission) {
-    console.warn(`無權限訪問 ${tabName} 頁面`)
+    //console.warn(`無權限訪問 ${tabName} 頁面`)
     return
   }
   
@@ -377,7 +377,7 @@ const switchTab = async (tabName) => {
     await repairStore.fetchReasons()
     reasons.value = repairStore.reasons.data || []
   } catch (error) {
-    console.error('切換標籤時獲取維修原因失敗:', error)
+    //console.error('切換標籤時獲取維修原因失敗:', error)
     reasons.value = []
   }
 }
@@ -400,7 +400,7 @@ onMounted(async () => {
     activeTab.value = getDefaultTab()
     
   } catch (error) {
-    console.error('載入數據失敗:', error)
+    //console.error('載入數據失敗:', error)
   } finally {
     isLoading.value = false
   }

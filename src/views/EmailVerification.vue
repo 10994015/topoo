@@ -33,7 +33,7 @@ const resendVerification = async () => {
 
   try {
     // 這裡應該調用重新發送驗證信的 API
-    console.log('重新發送驗證信至:', userEmail.value)
+    //console.log('重新發送驗證信至:', userEmail.value)
     
     // 模擬 API 呼叫
     await new Promise(resolve => setTimeout(resolve, 2000))
@@ -48,7 +48,7 @@ const resendVerification = async () => {
     startCooldown()
     
   } catch (error) {
-    console.error('重新發送失敗:', error)
+    //console.error('重新發送失敗:', error)
     alert('發送失敗，請稍後重試')
   } finally {
     isResending.value = false

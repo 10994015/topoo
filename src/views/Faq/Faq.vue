@@ -64,7 +64,7 @@ const selectFaq = async (faqId) => {
     try {
       const result = await faqStore.fetchFaqDetail(faqId, false)
     } catch (error) {
-      console.error('載入FAQ詳細資料失敗:', error)
+      //console.error('載入FAQ詳細資料失敗:', error)
       // 可以在這裡加入錯誤提示
     }
   }
@@ -120,7 +120,7 @@ const handleSearch = async () => {
         expandedSubFqas.value.clear()
       }
     } catch (error) {
-      console.error('搜尋失敗:', error)
+      //console.error('搜尋失敗:', error)
     }
   }, 300) // 減少防抖時間到300ms提高響應速度
 }
@@ -135,7 +135,7 @@ const clearSearch = async () => {
   try {
     await faqStore.fetchFaqList()
   } catch (error) {
-    console.error('載入FAQ列表失敗:', error)
+    //console.error('載入FAQ列表失敗:', error)
   }
   
   // 聚焦到搜尋框
@@ -152,7 +152,7 @@ const retryLoadFaqDetail = async () => {
     try {
       await faqStore.fetchFaqDetail(selectedFaqId.value)
     } catch (error) {
-      console.error('重試載入失敗:', error)
+      //console.error('重試載入失敗:', error)
     }
   }
 }
@@ -166,7 +166,7 @@ const refreshFaqList = async () => {
   try {
     await faqStore.fetchFaqList()
   } catch (error) {
-    console.error('重新載入FAQ列表失敗:', error)
+    //console.error('重新載入FAQ列表失敗:', error)
   }
 }
 
@@ -228,9 +228,9 @@ const copyFaqLink = async (faqId) => {
   try {
     const url = `${window.location.origin}${window.location.pathname}?faq=${faqId}`
     await navigator.clipboard.writeText(url)
-    console.log('連結已複製到剪貼板')
+    //console.log('連結已複製到剪貼板')
   } catch (error) {
-    console.error('複製連結失敗:', error)
+    //console.error('複製連結失敗:', error)
   }
 }
 
@@ -247,7 +247,7 @@ watch(searchTerm, (newValue, oldValue) => {
     // 如果之前有搜尋詞，重新載入完整列表
     if (oldValue && oldValue.trim()) {
       faqStore.fetchFaqList().catch(error => {
-        console.error('載入FAQ列表失敗:', error)
+        //console.error('載入FAQ列表失敗:', error)
       })
     }
     return
@@ -302,7 +302,7 @@ onMounted(async () => {
     window.addEventListener('resize', handleResize)
     
   } catch (error) {
-    console.error('初始化失敗:', error)
+    //console.error('初始化失敗:', error)
   }
 })
 

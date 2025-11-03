@@ -25,7 +25,7 @@ const fetchRepairDetail = async () => {
     const response = await repairStore.fetchRepairDetail(repairId.value)
     repairDetail.value = response
   } catch (error) {
-    console.error('獲取報修詳細資料失敗:', error)
+    //console.error('獲取報修詳細資料失敗:', error)
     alert('載入失敗，請稍後重試')
   } finally {
     isLoading.value = false
@@ -37,10 +37,10 @@ const fetchProgressRecords = async () => {
   try {
     await repairStore.fetchRepairProgress(repairId.value)
     mockProgressData.value = repairStore.repairProgress || []
-    console.log(mockProgressData.value);
+    //console.log(mockProgressData.value);
     
   } catch (error) {
-    console.error('獲取進度記錄失敗:', error)
+    //console.error('獲取進度記錄失敗:', error)
   }
 }
 
@@ -136,31 +136,31 @@ const fetchFileContent = async (fileId) => {
     const response = await repairStore.viewFile(fileId)
     return response
   } catch (error) {
-    console.error('獲取檔案內容失敗:', error)
+    //console.error('獲取檔案內容失敗:', error)
     throw error
   }
 }
 
 // 檔案預覽事件處理
 const onFileDownloaded = (file) => {
-  console.log('檔案已下載:', file.file_name)
+  //console.log('檔案已下載:', file.file_name)
 }
 
 const onPreviewLoadSuccess = (blob) => {
-  console.log('預覽載入成功')
+  //console.log('預覽載入成功')
 }
 
 const onPreviewLoadError = (error) => {
-  console.error('預覽載入失敗:', error)
+  //console.error('預覽載入失敗:', error)
   alert('預覽失敗，請稍後重試')
 }
 onMounted(async () => {
   // 實際開發時取消註解
   const response = await repairStore.fetchRepairDetail(repairId.value)
-  console.log(response);
+  //console.log(response);
   
   repairDetail.value = repairStore.repairDetail
-  console.log(repairDetail.value);
+  //console.log(repairDetail.value);
   
   isLoading.value = false
 })

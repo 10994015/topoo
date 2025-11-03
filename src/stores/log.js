@@ -22,22 +22,22 @@ export const useLogStore = defineStore('log', () => {
     const fetchLogActions = async () => {
         try {
             isLoadingActions.value = true
-            console.log('開始獲取日誌操作類型...')
+            //console.log('開始獲取日誌操作類型...')
             
             const response = await axiosClient.get('/backend/log/action')
-            console.log('日誌操作類型API回應:', response.data)
+            //console.log('日誌操作類型API回應:', response.data)
             
             if (response.data && response.data.data) {
                 logActions.value = response.data.data
-                console.log('日誌操作類型設定完成:', logActions.value)
+                //console.log('日誌操作類型設定完成:', logActions.value)
             } else {
                 logActions.value = []
-                console.warn('API回應格式異常，設為空陣列')
+                //console.warn('API回應格式異常，設為空陣列')
             }
             
             return response.data
         } catch (error) {
-            console.error('獲取日誌操作類型失敗:', error)
+            //console.error('獲取日誌操作類型失敗:', error)
             logActions.value = []
             throw error
         } finally {
@@ -72,9 +72,9 @@ export const useLogStore = defineStore('log', () => {
         log_action: ''
     }, column = "created_at", sortDirection = "desc", limit = 10, page = 1) => {
         try {
-            console.log('搜尋參數:', searchForm);
-            console.log('時間範圍:', searchForm.startAt, searchForm.endAt);
-            console.log(column, sortDirection, limit, page);
+            //console.log('搜尋參數:', searchForm);
+            //console.log('時間範圍:', searchForm.startAt, searchForm.endAt);
+            //console.log(column, sortDirection, limit, page);
             
             const params = {};
             
@@ -104,15 +104,15 @@ export const useLogStore = defineStore('log', () => {
             params.pageSize = limit; // 每頁數量
             params.page = page; // 頁數
             
-            console.log('API 參數:', params);
+            //console.log('API 參數:', params);
             
             const response = await axiosClient.get('/backend/log', { params });
-            console.log('API 回應:', response.data);
+            //console.log('API 回應:', response.data);
             logs.value = response.data;
             
             return response.data;
         } catch (error) {
-            console.error('獲取日誌列表失敗:', error);
+            //console.error('獲取日誌列表失敗:', error);
             throw error;
         }
     }
@@ -139,10 +139,10 @@ export const useLogStore = defineStore('log', () => {
     const fetchLogById = async (id) => {
         try {
             isLoading.value = true
-            console.log('獲取日誌詳情:', id)
+            //console.log('獲取日誌詳情:', id)
             
             const response = await axiosClient.get(`/backend/log/${id}`)
-            console.log('日誌詳情API回應:', response.data)
+            //console.log('日誌詳情API回應:', response.data)
             
             if (response.data && response.data.data) {
                 return response.data.data
@@ -150,7 +150,7 @@ export const useLogStore = defineStore('log', () => {
                 throw new Error('API回應格式異常')
             }
         } catch (error) {
-            console.error('獲取日誌詳情失敗:', error)
+            //console.error('獲取日誌詳情失敗:', error)
             throw error
         } finally {
             isLoading.value = false

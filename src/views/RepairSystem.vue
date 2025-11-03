@@ -65,7 +65,7 @@ watch(() => searchForm.repairCategoryId, async (newCategoryId, oldCategoryId) =>
         await repairStore.fetchReasons(newCategoryId)
         reasons.value = repairStore.reasons.data
       } catch (error) {
-        console.error('獲取維修原因失敗:', error)
+        //console.error('獲取維修原因失敗:', error)
         await repairStore.fetchReasons()
         reasons.value = repairStore.reasons.data
       }
@@ -86,7 +86,7 @@ const endItem = computed(() => {
 })
 
 const viewRepair = (id) => {
-  console.log('查看帳號詳情:', id)
+  //console.log('查看帳號詳情:', id)
   router.push(`/view-repair/${id}`)
 }
 
@@ -125,13 +125,13 @@ const showEllipsis = computed(() => {
 // 方法
 const handleSearch = async () => {
   currentPage.value = 1
-  console.log('執行搜尋:', searchForm)
+  //console.log('執行搜尋:', searchForm)
   await getRepairData(searchForm, sortColumn.value, sortDirection.value, pageSize.value, currentPage.value);
 }
 
 // watch pageSize
 watch(pageSize, async (newSize) => {
-  console.log('分頁大小變更:', newSize)
+  //console.log('分頁大小變更:', newSize)
   currentPage.value = 1
   await getRepairData(searchForm, sortColumn.value, sortDirection.value, newSize, currentPage.value);
 })
@@ -150,7 +150,7 @@ const handleReset = async () => {
     await repairStore.fetchReasons()
     reasons.value = repairStore.reasons.data
   } catch (error) {
-    console.error('重置時獲取維修原因失敗:', error)
+    //console.error('重置時獲取維修原因失敗:', error)
     reasons.value = []
   }
 }
@@ -163,11 +163,11 @@ const sortBy = async (column) => {
     sortDirection.value = 'asc'
   }
   await getRepairData(searchForm, sortColumn.value, sortDirection.value, pageSize.value, currentPage.value);
-  console.log('排序:', column, sortDirection.value)
+  //console.log('排序:', column, sortDirection.value)
 }
 
 const goToPage = async (page) => {
-  console.log(page);
+  //console.log(page);
   await getRepairData(searchForm, sortColumn.value, sortDirection.value, pageSize.value, page);
   if (page >= 1 && page <= totalPages.value) {
     currentPage.value = page
@@ -184,16 +184,16 @@ const getStatusText = (status) => {
 }
 
 const getRepairData = async(searchForm, column="repair_time", sortDirection="asc", limit=10, page=1) => {
-  console.log(searchForm, column, sortDirection);
+  //console.log(searchForm, column, sortDirection);
   isSearching.value = true
   await repairStore.fetchRepairs(searchForm, column, sortDirection, limit, page);
-  console.log(repairStore.repairs);
+  //console.log(repairStore.repairs);
   
   repairData.value = repairStore.repairs.data;
   totalPages.value = repairStore.repairs.data.totalPages;
   totalItems.value = repairStore.repairs.data.total;
 
-  console.log(totalItems.value, totalPages.value);
+  //console.log(totalItems.value, totalPages.value);
   
   isSearching.value = false
 }
@@ -207,7 +207,7 @@ const createNewRepair = () => {
 }
 
 onMounted(async ()=>{
-  console.log('onMounted: RepairSystem');
+  //console.log('onMounted: RepairSystem');
   
   // 添加視窗尺寸監聽器
   window.addEventListener('resize', handleResize)
@@ -222,7 +222,7 @@ onMounted(async ()=>{
     reasons.value = repairStore.reasons.data
     statuses.value = repairStore.statuses.data
   } catch (error) {
-    console.error('載入資料失敗:', error)
+    //console.error('載入資料失敗:', error)
   } finally {
     isLoading.value = false
   }

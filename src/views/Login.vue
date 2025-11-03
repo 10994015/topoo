@@ -62,20 +62,20 @@ const handleLogin = async () => {
         router.push(`/init-password/${result.data.changePwToken}`);
         return;
       }
-      console.log('登入成功');
+      //console.log('登入成功');
       
       // ✨ 從 sessionStorage 取得重定向路徑
       const redirectPath = sessionStorage.getItem('redirectAfterLogin') || '/'
       sessionStorage.removeItem('redirectAfterLogin') // 清除
-      console.log('登入成功，重定向到:', redirectPath)
+      //console.log('登入成功，重定向到:', redirectPath)
       router.push(redirectPath)
       
     } else {
-      console.error('登入失敗', result.error);
+      //console.error('登入失敗', result.error);
       errorMsg.value = result.error || '登入失敗，請檢查帳號或密碼'
     }
   } catch (error) {
-    console.error('登入處理失敗:', error)
+    //console.error('登入處理失敗:', error)
     errorMsg.value = '登入失敗，請稍後再試'
     alert('登入失敗，請稍後再試')
   } finally {
@@ -88,7 +88,7 @@ const handleRegister = () => {
 }
 
 const handleGoogleSuccess = async (response) => {
-  console.log("Google登入成功，收到credential:", response)
+  //console.log("Google登入成功，收到credential:", response)
   
   isGoogleLoading.value = true
   errorMsg.value = ''
@@ -102,20 +102,20 @@ const handleGoogleSuccess = async (response) => {
         router.push(`/init-password/${result.data.changePwToken}`);
         return;
       }
-      console.log('Google登入成功');
+      //console.log('Google登入成功');
       
       // ✨ 從 sessionStorage 取得重定向路徑
       const redirectPath = sessionStorage.getItem('redirectAfterLogin') || '/'
       sessionStorage.removeItem('redirectAfterLogin') // 清除
-      console.log('Google登入成功，重定向到:', redirectPath)
+      //console.log('Google登入成功，重定向到:', redirectPath)
       router.push(redirectPath)
       
     } else {
-      console.error('Google登入失敗', result.error);
+      //console.error('Google登入失敗', result.error);
       alert(result.error || 'Google登入失敗')
     }
   } catch (error) {
-    console.error('Google登入處理失敗:', error)
+    //console.error('Google登入處理失敗:', error)
     alert('Google登入失敗，請稍後再試')
   } finally {
     isGoogleLoading.value = false
@@ -124,7 +124,7 @@ const handleGoogleSuccess = async (response) => {
 
 
 const handleGoogleError = (error) => {
-  console.error("Google登入錯誤:", error)
+  //console.error("Google登入錯誤:", error)
   alert('Google登入失敗，請稍後再試')
   isGoogleLoading.value = false
 }

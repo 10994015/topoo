@@ -115,7 +115,7 @@ const showEllipsis = computed(() => {
 const handleSearch = async () => {
   currentPage.value = 1
   isSearching.value = true
-  console.log('執行搜尋:', searchForm)
+  //console.log('執行搜尋:', searchForm)
   await loadData()
   isSearching.value = false
 }
@@ -138,16 +138,16 @@ const loadData = async () => {
       pageSize: pageSize.value
     })
 
-    console.log(permissionStore.permissions);
+    //console.log(permissionStore.permissions);
     
     permissionData.value = permissionStore.permissions.data || []
-    console.log(permissionData.value);
+    //console.log(permissionData.value);
     
     totalItems.value = permissionStore.permissions.total
     totalPages.value = permissionStore.permissions.totalPages
     
   } catch (error) {
-    console.error('載入資料失敗:', error)
+    //console.error('載入資料失敗:', error)
   } finally {
     // 模擬 API 調用延遲
     setTimeout(() => {
@@ -171,7 +171,7 @@ const handleSort = async (field) => {
     sortConfig.value.field = field
     sortConfig.value.order = 'asc'
   }
-  console.log(sortConfig.value);
+  //console.log(sortConfig.value);
   
   await loadData()
 }
@@ -201,15 +201,15 @@ const goToPage = async (page) => {
 
 const createNewPermission = () => {
   if (!hasFullPermission.value) {
-    console.warn('沒有權限新增權限群組')
+    //console.warn('沒有權限新增權限群組')
     return
   }
-  console.log('新增權限群組')
+  //console.log('新增權限群組')
   router.push('/settings/permission-group/create')
 }
 
 const viewPermission = (permission) => {
-  console.log(permission);
+  //console.log(permission);
   
   router.push(`/settings/permission-group/edit/${permission.role_id}`)
 }

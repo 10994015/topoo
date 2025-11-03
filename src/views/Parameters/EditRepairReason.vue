@@ -172,18 +172,18 @@ const validateForm = () => {
 const loadCategories = async () => {
   try {
     await categoryStore.fetchCategories({ name: '' }, 'sequence', 'asc', 100, 1)
-    console.log(categoryStore.categories);
+    //console.log(categoryStore.categories);
     
     categories.value = categoryStore.categories?.data.data || []
   } catch (error) {
-    console.error('載入類別列表失敗:', error)
+    //console.error('載入類別列表失敗:', error)
   }
 }
 
 // 載入原因列表
 const loadReasonList = async () => {
   try {
-    console.log(categoryId.value);
+    //console.log(categoryId.value);
     
     // 調用 fetchReasons 載入資料
     await categoryStore.fetchReasons(
@@ -197,11 +197,11 @@ const loadReasonList = async () => {
     // 使用計算屬性獲取該類別的原因資料
     // categoryReasons 是 Map，需要用計算屬性 getCategoryReasons 來獲取
     const categoryReasons = categoryStore.getCategoryReasons(categoryId.value)
-    console.log('獲取到的原因資料:', categoryReasons);
+    //console.log('獲取到的原因資料:', categoryReasons);
     
     // 或者直接從 Map 中獲取
     const reasonsFromMap = categoryStore.categoryReasons.get(categoryId.value)
-    console.log('從 Map 獲取的資料:', reasonsFromMap);
+    //console.log('從 Map 獲取的資料:', reasonsFromMap);
     
     // 設置列表資料
     reasonData.value = categoryReasons || []
@@ -211,7 +211,7 @@ const loadReasonList = async () => {
     totalPages.value = categoryStore.getReasonTotalPages(categoryId.value) || 0
     
   } catch (error) {
-    console.error('載入原因列表失敗:', error)
+    //console.error('載入原因列表失敗:', error)
     // 設置預設值避免錯誤
     reasonData.value = []
     totalItems.value = 0
@@ -227,18 +227,18 @@ const loadReasonDetail = async () => {
     isLoadingDetail.value = true
     
     const result = await categoryStore.fetchReasonDetail(reasonId.value)
-    console.log(result);
+    //console.log(result);
     
     if (result.success) {
       // 填入表單資料
       formData.name = result.data.name || ''
       formData.parentId = result.data.parentId || categoryId.value
     } else {
-      console.error('載入原因詳細資料失敗:', result.message)
+      //console.error('載入原因詳細資料失敗:', result.message)
       alert(`載入失敗: ${result.message}`)
     }
   } catch (error) {
-    console.error('載入原因詳細資料異常:', error)
+    //console.error('載入原因詳細資料異常:', error)
     alert('載入資料時發生錯誤，請稍後再試')
   } finally {
     isLoadingDetail.value = false
@@ -329,7 +329,7 @@ const handleSubmit = async () => {
         formData.name = ''
       }
     } else {
-      console.error('操作失敗:', result.message)
+      //console.error('操作失敗:', result.message)
       alert(`操作失敗: ${result.message}`)
       
       // 如果是驗證錯誤，嘗試解析錯誤訊息
@@ -342,7 +342,7 @@ const handleSubmit = async () => {
       }
     }
   } catch (error) {
-    console.error('提交表單異常:', error)
+    //console.error('提交表單異常:', error)
     alert('操作時發生錯誤，請稍後再試')
   } finally {
     isSaving.value = false
@@ -375,11 +375,11 @@ const handleMoveToTop = async() => {
         // 重新載入列表
         await loadReasonList()
         } else {
-        console.error('置頂失敗:', result.message)
+        //console.error('置頂失敗:', result.message)
         alert(`置頂失敗: ${result.message}`)
         }
     } catch (error) {
-        console.error('置頂異常:', error)
+        //console.error('置頂異常:', error)
         alert('置頂時發生錯誤，請稍後再試')
     } finally {
         isSaving.value = false
@@ -411,11 +411,11 @@ const handleDelete = async () => {
         router.push('/settings/parameter/repair-reason-management')
       }
     } else {
-      console.error('刪除失敗:', result.message)
+      //console.error('刪除失敗:', result.message)
       alert(`刪除失敗: ${result.message}`)
     }
   } catch (error) {
-    console.error('刪除異常:', error)
+    //console.error('刪除異常:', error)
     alert('刪除時發生錯誤，請稍後再試')
   } finally {
     isLoading.value = false
@@ -442,11 +442,11 @@ const deleteReason = async (item) => {
         router.push(`/settings/parameter/repair-category-management`)
       }
     } else {
-      console.error('刪除失敗:', result.message)
+      //console.error('刪除失敗:', result.message)
       alert(`刪除失敗: ${result.message}`)
     }
   } catch (error) {
-    console.error('刪除異常:', error)
+    //console.error('刪除異常:', error)
     alert('刪除時發生錯誤，請稍後再試')
   }
 }
@@ -494,7 +494,7 @@ onMounted(async () => {
     isLoadingDetail.value = true
     await loadCategories()
     // 設置預設類別
-    console.log('當前類別ID:', categoryId.value);
+    //console.log('當前類別ID:', categoryId.value);
     if (categoryId.value) {
       formData.parentId = categoryId.value
     }

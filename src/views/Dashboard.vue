@@ -376,7 +376,7 @@ const handleResize = () => {
 const switchTrendTimeRange = async (range) => {
   trendTimeRange.value = range
   isTrendLoading.value = true
-  console.log('切換趨勢圖時間範圍:', range)
+  //console.log('切換趨勢圖時間範圍:', range)
   
   try {
     // 更新趨勢圖數據
@@ -386,7 +386,7 @@ const switchTrendTimeRange = async (range) => {
     await nextTick()
     createTrendChart()
   } catch (error) {
-    console.error('趨勢圖數據載入失敗:', error)
+    //console.error('趨勢圖數據載入失敗:', error)
   } finally {
     isTrendLoading.value = false
   }
@@ -396,7 +396,7 @@ const switchTrendTimeRange = async (range) => {
 const switchBarTimeRange = async (range) => {
   barTimeRange.value = range
   isBarLoading.value = true
-  console.log('切換長條圖時間範圍:', range)
+  //console.log('切換長條圖時間範圍:', range)
   
   try {
     // 更新長條圖數據
@@ -406,7 +406,7 @@ const switchBarTimeRange = async (range) => {
     await nextTick()
     createBarChart()
   } catch (error) {
-    console.error('長條圖數據載入失敗:', error)
+    //console.error('長條圖數據載入失敗:', error)
   } finally {
     isBarLoading.value = false
   }
@@ -414,7 +414,7 @@ const switchBarTimeRange = async (range) => {
 
 // 切換搜尋類型
 const switchSearchType = async (searchType) => {
-  console.log('切換搜尋類型:', searchType)
+  //console.log('切換搜尋類型:', searchType)
   if (
     searchType === 'All' &&
     !hasRepairTodoPermission.value &&
@@ -479,13 +479,13 @@ const adjustColor = (color, percent) => {
 
 // 查看案件詳情
 const viewCase = (caseId) => {
-  console.log('查看案件:', caseId)
+  //console.log('查看案件:', caseId)
   router.push(`/view-repair/${caseId}`)
 }
 
 // 查看詳細資訊
 const viewDetails = () => {
-  console.log('查看詳細資訊')
+  //console.log('查看詳細資訊')
   let url = '/repair-system'
   if(hasTodoPermission.value) {
     url = 'settings/todo-management'
@@ -507,7 +507,7 @@ watchEffect(async () => {
     
     // 設置防抖延遲，避免短時間內多次觸發
     debounceTimer.value = setTimeout(async () => {
-      console.log('初始創建所有圖表')
+      //console.log('初始創建所有圖表')
       await nextTick()
       createTrendChart()
       createBarChart()
@@ -521,7 +521,7 @@ watchEffect(async () => {
 // 修改 watch 邏輯，只在初始載入完成後才響應變化
 watch([trendTimeRange], async () => {
   if (chartsCreated.value && initialLoadComplete.value) {
-    console.log('重新創建趨勢圖 - 時間範圍變更')
+    //console.log('重新創建趨勢圖 - 時間範圍變更')
     await nextTick()
     createTrendChart()
   }
@@ -529,7 +529,7 @@ watch([trendTimeRange], async () => {
 
 watch([barTimeRange], async () => {
   if (chartsCreated.value && initialLoadComplete.value) {
-    console.log('重新創建長條圖 - 時間範圍變更')
+    //console.log('重新創建長條圖 - 時間範圍變更')
     await nextTick()
     createBarChart()
   }
@@ -537,7 +537,7 @@ watch([barTimeRange], async () => {
 
 watch([treeChartSize], async () => {
   if (chartsCreated.value && initialLoadComplete.value) {
-    console.log('重新創建樹狀圖 - 尺寸變更')
+    //console.log('重新創建樹狀圖 - 尺寸變更')
     await nextTick()
     createTreeChart()
   }
@@ -550,7 +550,7 @@ watch(() => dashboardStore.repairTrendData, async (newData, oldData) => {
       newData?.length && 
       oldData?.length && // 確保不是首次載入
       JSON.stringify(newData) !== JSON.stringify(oldData)) {
-    console.log('重新創建趨勢圖 - 數據更新')
+    //console.log('重新創建趨勢圖 - 數據更新')
     await nextTick()
     createTrendChart()
   }
@@ -562,7 +562,7 @@ watch(() => dashboardStore.caseProcessingData, async (newData, oldData) => {
       newData?.length && 
       oldData?.length && // 確保不是首次載入
       JSON.stringify(newData) !== JSON.stringify(oldData)) {
-    console.log('重新創建長條圖 - 數據更新')
+    //console.log('重新創建長條圖 - 數據更新')
     await nextTick()
     createBarChart()
   }
@@ -574,7 +574,7 @@ watch(() => dashboardStore.esgStats.systemTressSavingNumber, async (newValue, ol
       newValue !== undefined && 
       oldValue !== undefined && // 確保不是首次載入
       newValue !== oldValue) {
-    console.log('重新創建樹狀圖 - ESG數據更新')
+    //console.log('重新創建樹狀圖 - ESG數據更新')
     await nextTick()
     createTreeChart()
   }
@@ -582,7 +582,7 @@ watch(() => dashboardStore.esgStats.systemTressSavingNumber, async (newValue, ol
 
 // 初始化
 onMounted(async () => {
-  console.log('Dashboard 組件初始化')
+  //console.log('Dashboard 組件初始化')
   
   // 添加視窗尺寸監聽器
   window.addEventListener('resize', handleResize)

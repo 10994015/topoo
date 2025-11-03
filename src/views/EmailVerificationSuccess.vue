@@ -19,14 +19,14 @@ const verificationError = ref('')
 onMounted(async () => {
   const token = (route.params.token);
   
-  console.log('token:', token);
+  //console.log('token:', token);
   
   const response = await authStore.emailVerification(token)
 
-  console.log(response);
+  //console.log(response);
 
   if(!response.success){
-    console.log('驗證失敗:', response.error);
+    //console.log('驗證失敗:', response.error);
     verificationSuccess.value = false
     verificationError.value = '憑證無效或已過期，請重新註冊'
   } else {
@@ -52,7 +52,7 @@ const goToLogin = () => {
 // 重新發送驗證信
 const resendVerification = () => {
   // 這裡可以添加重新發送驗證信的邏輯
-  console.log('重新發送驗證信')
+  //console.log('重新發送驗證信')
 }
 
 // 返回註冊頁面

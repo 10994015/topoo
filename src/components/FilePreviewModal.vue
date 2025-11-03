@@ -103,7 +103,7 @@ const loadFileContent = async () => {
     }
     
     const id = props.file.file_id || props.file.id
-    console.log(id);
+    //console.log(id);
     
     // 調用父組件傳入的檔案獲取函數
     const response = await props.fetchFileContent(id)
@@ -124,7 +124,7 @@ const loadFileContent = async () => {
     emit('load-success', blob)
     
   } catch (err) {
-    console.error('預覽檔案時發生錯誤:', err)
+    //console.error('預覽檔案時發生錯誤:', err)
     error.value = true
     loading.value = false
     emit('load-error', err)
@@ -158,17 +158,17 @@ const handleDownload = async () => {
 
 // 圖片載入完成
 const onImageLoad = () => {
-  console.log('圖片載入完成')
+  //console.log('圖片載入完成')
 }
 
 // 影片載入完成
 const onVideoLoad = () => {
-  console.log('影片載入完成')
+  //console.log('影片載入完成')
 }
 
 // 預覽載入錯誤
 const onPreviewError = () => {
-  console.error('預覽載入失敗')
+  //console.error('預覽載入失敗')
   error.value = true
 }
 

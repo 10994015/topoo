@@ -39,14 +39,14 @@ const handleSubmit = async () => {
 
   try {
     // 這裡應該調用忘記密碼 API
-    console.log('發送重置密碼郵件至:', email.value)
+    //console.log('發送重置密碼郵件至:', email.value)
     
     // 模擬 API 呼叫
     await new Promise(resolve => setTimeout(resolve, 2000))
 
     const result = await authStore.sendResetPasswordEmail(email.value)
 
-    console.log(result);
+    //console.log(result);
 
     if(!result.success){
       emailError.value = '查無此Email信箱，請檢查後再試'
@@ -58,7 +58,7 @@ const handleSubmit = async () => {
     showSuccessModal.value = true
     
   } catch (error) {
-    console.error('發送失敗:', error)
+    //console.error('發送失敗:', error)
     emailError.value = '發送失敗，請稍後重試'
   } finally {
     isSubmitting.value = false

@@ -27,11 +27,11 @@ export const setUnauthorizedHandler = (handler) => {
 axiosClient.interceptors.request.use(
   config => {
     // 在發送請求之前做些什麼
-    console.log('🚀 發送請求:', config.method?.toUpperCase(), config.url)
+    //console.log('🚀 發送請求:', config.method?.toUpperCase(), config.url)
     return config
   },
   error => {
-    console.error('❌ 請求錯誤:', error)
+    //console.error('❌ 請求錯誤:', error)
     return Promise.reject(error)
   }
 )
@@ -40,7 +40,7 @@ axiosClient.interceptors.request.use(
 axiosClient.interceptors.response.use(
   response => {
     // 對回應資料做點什麼
-    console.log('✅ 收到回應:', response.status, response.config.url)
+    //console.log('✅ 收到回應:', response.status, response.config.url)
     
     // 成功請求時重置 401 處理狀態
     isHandling401 = false
@@ -48,15 +48,15 @@ axiosClient.interceptors.response.use(
     return response
   },
   error => {
-    console.error('❌ 回應錯誤:', error.response?.status, error.config?.url)
+    //console.error('❌ 回應錯誤:', error.response?.status, error.config?.url)
     
     // 統一錯誤處理
     if (error.response?.status === 401) {
-      console.warn('🔒 認證失敗，登入憑證已過期')
+      //console.warn('🔒 認證失敗，登入憑證已過期')
       
       // 避免重複處理 401 錯誤
       if (isHandling401) {
-        console.log('已在處理 401 錯誤，跳過')
+        //console.log('已在處理 401 錯誤，跳過')
         return Promise.reject(error)
       }
       
@@ -65,7 +65,7 @@ axiosClient.interceptors.response.use(
       // 檢查當前是否已經在登入頁
       const currentPath = window.location.pathname
       if (currentPath === '/login' || currentPath === '/register' || currentPath === '/forgot-password') {
-        console.log('當前已在登入相關頁面，跳過 401 處理')
+        //console.log('當前已在登入相關頁面，跳過 401 處理')
         isHandling401 = false
         return Promise.reject(error)
       }
@@ -75,18 +75,18 @@ axiosClient.interceptors.response.use(
         onUnauthorized()
       } else {
         // 備用方案：直接跳轉
-        console.warn('未設置 401 處理函數，使用備用方案')
+        //console.warn('未設置 401 處理函數，使用備用方案')
         window.location.href = '/login'
       }
       
     } else if (error.response?.status === 403) {
-      console.warn('🚫 權限不足')
+      //console.warn('🚫 權限不足')
     } else if (error.response?.status === 500) {
-      console.error('🔧 伺服器內部錯誤')
+      //console.error('🔧 伺服器內部錯誤')
     } else if (error.code === 'ECONNABORTED') {
-      console.error('⏰ 請求超時')
+      //console.error('⏰ 請求超時')
     } else if (!error.response) {
-      console.error('🌐 網路連線錯誤')
+      //console.error('🌐 網路連線錯誤')
     }
     
     return Promise.reject(error)

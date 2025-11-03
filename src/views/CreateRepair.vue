@@ -225,12 +225,12 @@ const processFiles = async (files) => {
         const formData = new FormData()
         formData.append('file', file)
         
-        console.log('開始上傳檔案:', file.name)
+        //console.log('開始上傳檔案:', file.name)
         
         // 呼叫 store 的上傳方法
         const result = await repairStore.saveRepairFiles(formData)
         
-        console.log('上傳結果:', result)
+        //console.log('上傳結果:', result)
         
         // 上傳成功，更新檔案資訊
         uploadedFiles.value[fileIndex] = {
@@ -239,10 +239,10 @@ const processFiles = async (files) => {
           isUploading: false // 標記上傳完成
         }
         
-        console.log('檔案上傳成功:', uploadedFiles.value[fileIndex])
+        //console.log('檔案上傳成功:', uploadedFiles.value[fileIndex])
         
       } catch (error) {
-        console.error('檔案上傳失敗:', error)
+        //console.error('檔案上傳失敗:', error)
         
         // 上傳失敗，從列表中移除這個檔案
         uploadedFiles.value.splice(fileIndex, 1)
@@ -268,23 +268,23 @@ const removeFile = async (index) => {
   const fileToRemove = uploadedFiles.value[index]
   
   const fileId = fileToRemove.id[0].id // 直接取得 ID
-  console.log(fileId);
+  //console.log(fileId);
   
   // 開始刪除 loading
   deletingFileId.value = fileId
   
   try {
     if (fileId) {
-      console.log('正在刪除後端檔案:', fileId)
+      //console.log('正在刪除後端檔案:', fileId)
       await repairStore.removeRepairFile(fileId)
-      console.log('刪除後端檔案成功:', fileId)
+      //console.log('刪除後端檔案成功:', fileId)
     }
     
     // 從列表中移除檔案
     uploadedFiles.value.splice(index, 1)
     
   } catch (error) {
-    console.error('刪除後端檔案失敗:', error)
+    //console.error('刪除後端檔案失敗:', error)
     if (!confirm('無法刪除後端檔案，是否仍要從列表中移除？')) {
       return
     }
@@ -325,7 +325,7 @@ const getFileIconClass = (fileName) => {
 // 檢查檔案是否正在刪除中
 const isDeleting = (file) => {
   const fileId = file.id?.[0]?.id || file.id
-  console.log(fileId);
+  //console.log(fileId);
   
   return deletingFileId.value === fileId
 }
@@ -377,7 +377,7 @@ const handleSubmit = async () => {
   isSubmitting.value = true
   
   try {
-    console.log('原始表單資料:', repairForm)
+    //console.log('原始表單資料:', repairForm)
     
     // 準備檔案 ID 陣列
     const fileIds = uploadedFiles.value
@@ -390,7 +390,7 @@ const handleSubmit = async () => {
       })
       .filter(id => id) // 過濾掉空值
     
-    console.log('處理後的 fileIds:', fileIds)
+    //console.log('處理後的 fileIds:', fileIds)
     
     // 準備要提交的資料物件
     const submitData = {
@@ -404,16 +404,16 @@ const handleSubmit = async () => {
       fileIds: fileIds
     }
     
-    console.log('準備提交的資料:', submitData)
+    //console.log('準備提交的資料:', submitData)
     
     const result = await repairStore.createRepair(submitData)
 
-    console.log("result:", result)
+    //console.log("result:", result)
     alert('報修申請提交成功！')
     router.push('/repair-system') // 跳轉到報修列表頁面
     
   } catch (error) {
-    console.error('提交失敗:', error)
+    //console.error('提交失敗:', error)
     alert('提交失敗，請稍後重試')
   } finally {
     isSubmitting.value = false
@@ -459,11 +459,11 @@ onMounted(async () => {
     await repairStore.fetchReasons(repairForm.repairCategoryId || '-')
     
     categories.value = repairStore.categories?.data || []
-    console.log(categories.value);
+    //console.log(categories.value);
     
     reasons.value = repairStore.reasons?.data || []
   } catch (error) {
-    console.error('載入枚舉資料失敗:', error)
+    //console.error('載入枚舉資料失敗:', error)
   } finally {
     isReasonLoading.value = false
   }

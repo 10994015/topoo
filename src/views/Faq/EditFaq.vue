@@ -221,13 +221,13 @@ const handleDrop = async (e, targetIndex) => {
       // 強制重新載入列表
       await forceReloadFaqList()
       
-      console.log('常見問題順序更新成功')
+      //console.log('常見問題順序更新成功')
     } else {
-      console.error('更新順序失敗:', result.message)
+      //console.error('更新順序失敗:', result.message)
       alert(`更新順序失敗: ${result.message}`)
     }
   } catch (error) {
-    console.error('更新順序異常:', error)
+    //console.error('更新順序異常:', error)
     alert('更新順序時發生錯誤，請稍後再試')
   } finally {
     dragOverIndex.value = -1
@@ -248,9 +248,9 @@ const getStatusClass = (status) => {
 // 根據parentId取得分類名稱
 const getCategoryName = (parentId) => {
   // 優先使用當前儲存的分類名稱
-  console.log(currentCategoryName.value);
-  console.log(formData.parentId);
-  console.log(parentId);
+  //console.log(currentCategoryName.value);
+  //console.log(formData.parentId);
+  //console.log(parentId);
   
   if (currentCategoryName.value) {
     return currentCategoryName.value
@@ -303,10 +303,10 @@ const loadCategoryOptions = async () => {
     
     // 過濾出第一層問題（parentId為null的）作為分類選項
     categoryOptions.value = faqStore.backendFaqList.filter(item => !item.parent_id) || []
-    console.log('載入的分類選項:', categoryOptions.value)
+    //console.log('載入的分類選項:', categoryOptions.value)
     
   } catch (error) {
-    console.error('載入問題分類失敗:', error)
+    //console.error('載入問題分類失敗:', error)
     categoryOptions.value = []
   } finally {
     isLoadingCategories.value = false
@@ -371,22 +371,22 @@ const loadFaqList = async (forceRefresh = false) => {
       const endIndex = startIndex + pageSize.value
       faqData.value = sortedData.slice(startIndex, endIndex)
       
-      console.log('成功載入FAQ列表:', {
-        total: totalItems.value,
-        currentPage: currentPage.value,
-        dataLength: faqData.value.length
-      })
+      //console.log('成功載入FAQ列表:', {
+      //   total: totalItems.value,
+      //   currentPage: currentPage.value,
+      //   dataLength: faqData.value.length
+      // })
       
     } else {
       faqData.value = []
       totalItems.value = 0
       totalPages.value = 0
       currentCategoryName.value = ''
-      console.log('未能獲取FAQ列表資料')
+      //console.log('未能獲取FAQ列表資料')
     }
     
   } catch (error) {
-    console.error('載入FAQ列表失敗:', error)
+    //console.error('載入FAQ列表失敗:', error)
     faqData.value = []
     totalItems.value = 0
     totalPages.value = 0
@@ -396,7 +396,7 @@ const loadFaqList = async (forceRefresh = false) => {
 
 // 強制重新載入FAQ列表（清除快取）
 const forceReloadFaqList = async () => {
-  console.log('強制重新載入FAQ列表...')
+  //console.log('強制重新載入FAQ列表...')
   
   // 清除相關快取（前後台都清除）
   if (formData.parentId) {
@@ -419,7 +419,7 @@ const loadFaqDetail = async () => {
     isLoadingDetail.value = true
     
     const result = await faqStore.fetchFaqDetail(route.params.id, true)
-    console.log(result)
+    //console.log(result)
     
     if (result.success) {
       // 填入表單資料，但優先使用路由中的 categoryId
@@ -429,11 +429,11 @@ const loadFaqDetail = async () => {
       formData.status = result.data.status || 'Open'
       formData.updatedAt = result.data.updated_at
     } else {
-      console.error('載入FAQ詳細資料失敗:', result.message)
+      //console.error('載入FAQ詳細資料失敗:', result.message)
       alert(`載入失敗: ${result.message}`)
     }
   } catch (error) {
-    console.error('載入FAQ詳細資料異常:', error)
+    //console.error('載入FAQ詳細資料異常:', error)
     alert('載入資料時發生錯誤，請稍後再試')
   } finally {
     isLoadingDetail.value = false
@@ -525,7 +525,7 @@ const handleSubmit = async () => {
         handleReset()
       }
     } else {
-      console.error('操作失敗:', result.message)
+      //console.error('操作失敗:', result.message)
       alert(`操作失敗: ${result.message}`)
       
       if (result.error && typeof result.error === 'object') {
@@ -547,7 +547,7 @@ const handleSubmit = async () => {
       }
     }
   } catch (error) {
-    console.error('提交表單異常:', error)
+    //console.error('提交表單異常:', error)
     alert('操作時發生錯誤，請稍後再試')
   } finally {
     isSaving.value = false
@@ -591,11 +591,11 @@ const handleDelete = async () => {
       faqStore.clearAllCache()
       router.push('/settings/faq-management')
     } else {
-      console.error('刪除失敗:', result.message)
+      //console.error('刪除失敗:', result.message)
       alert(`刪除失敗: ${result.message}`)
     }
   } catch (error) {
-    console.error('刪除異常:', error)
+    //console.error('刪除異常:', error)
     alert('刪除時發生錯誤，請稍後再試')
   } finally {
     isLoading.value = false
@@ -625,11 +625,11 @@ const deleteFaq = async (item) => {
         router.push(`/settings/faq/${faqCategoryId.value}/create`)
       }
     } else {
-      console.error('刪除失敗:', result.message)
+      //console.error('刪除失敗:', result.message)
       alert(`刪除失敗: ${result.message}`)
     }
   } catch (error) {
-    console.error('刪除異常:', error)
+    //console.error('刪除異常:', error)
     alert('刪除時發生錯誤，請稍後再試')
   }
 }

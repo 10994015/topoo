@@ -932,14 +932,14 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
   
-  console.log(`導航到: ${to.path}`)
+  //console.log(`導航到: ${to.path}`)
   
   // 定義公開頁面
   const publicPages = ['/login', '/register', '/forgot-password', '/email-verification', '/init-password', '/change-password/verify']
   const isPublicPage = publicPages.some(page => to.path.startsWith(page))
   
   if (isPublicPage) {
-    console.log('→ 公開頁面')
+    //console.log('→ 公開頁面')
     next()
     return
   }
@@ -948,10 +948,10 @@ router.beforeEach(async (to, from, next) => {
   if (to.meta.requiresAuth) {
     try {
       const isAuthenticated = await authStore.checkAuth()
-      console.log('認證狀態:', isAuthenticated)
+      //console.log('認證狀態:', isAuthenticated)
       
       if (!isAuthenticated) {
-        console.log('未認證，跳轉到登入頁')
+        //console.log('未認證，跳轉到登入頁')
         // ✨ 使用 sessionStorage 儲存原路徑
         sessionStorage.setItem('redirectAfterLogin', to.fullPath)
         next('/login')
@@ -990,7 +990,7 @@ router.beforeEach(async (to, from, next) => {
         }
       }
     } catch (error) {
-      console.error('認證檢查失敗:', error)
+      //console.error('認證檢查失敗:', error)
       // ✨ Token 過期也儲存原路徑
       sessionStorage.setItem('redirectAfterLogin', to.fullPath)
       next('/login')
@@ -1013,7 +1013,7 @@ router.afterEach((to, from) => {
     document.title = systemName
   }
   
-  console.log(`網頁標題已更新為: ${document.title}`)
+  //console.log(`網頁標題已更新為: ${document.title}`)
 })
 
 export default router

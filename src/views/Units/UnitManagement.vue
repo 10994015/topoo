@@ -141,7 +141,7 @@ const showEllipsis = computed(() => {
 // 方法
 const handleSearch = async () => {
   currentPage.value = 1
-  console.log('執行搜尋:', searchForm)
+  //console.log('執行搜尋:', searchForm)
   await getUnitData()
 }
 
@@ -150,7 +150,7 @@ const handleReset = async () => {
   currentPage.value = 1
   
   // 重置時重新載入第一層資料
-  console.log('重置搜尋，載入第一層資料')
+  //console.log('重置搜尋，載入第一層資料')
   await getUnitData()
 }
 
@@ -162,7 +162,7 @@ const sortBy = async (column) => {
     sortDirection.value = 'asc'
   }
   await getUnitData()
-  console.log('排序:', column, sortDirection.value)
+  //console.log('排序:', column, sortDirection.value)
 }
 
 const goToPage = async (page) => {
@@ -191,7 +191,7 @@ const toggleExpand = async (unitId, unitIndex) => {
     
     const unitInfo = findUnitInTree(unitData.value, unitId)
     if (!unitInfo) {
-      console.error('找不到單位:', unitId)
+      //console.error('找不到單位:', unitId)
       return
     }
     
@@ -199,7 +199,7 @@ const toggleExpand = async (unitId, unitIndex) => {
     await toggleUnitInTree(unitInfo.unit, unitInfo.parent, unitInfo.index)
     
   } catch (error) {
-    console.error('切換展開狀態失敗:', error)
+    //console.error('切換展開狀態失敗:', error)
     alert('載入子單位失敗，請稍後再試')
   }
 }
@@ -210,7 +210,7 @@ const toggleUnitInTree = async (unit, parentArray, unitIndex) => {
     if (unit.isExpanded) {
       // 收合 - 保留已載入的 children 資料
       unit.isExpanded = false
-      console.log('收合單位，保留已載入的資料')
+      //console.log('收合單位，保留已載入的資料')
     } else {
       // 展開邏輯
       if (unit.hasChildren === false) {
@@ -219,11 +219,11 @@ const toggleUnitInTree = async (unit, parentArray, unitIndex) => {
       
       if (unit.children && unit.children.length > 0) {
         // 已經載入過子單位（可能來自搜尋結果或之前的 API），直接展開
-        console.log('使用已載入的子單位資料，不重複呼叫 API，children 長度:', unit.children.length)
+        //console.log('使用已載入的子單位資料，不重複呼叫 API，children 長度:', unit.children.length)
         unit.isExpanded = true
       } else {
         // children 為空，需要從 API 載入子單位
-        console.log('children 陣列為空，從 API 載入子單位資料:', unit.id)
+        //console.log('children 陣列為空，從 API 載入子單位資料:', unit.id)
         unit.isLoading = true
         
         try {
@@ -258,7 +258,7 @@ const toggleUnitInTree = async (unit, parentArray, unitIndex) => {
               unit.hasChildren = true
               unit.children = childUnits
               unit.isExpanded = true
-              console.log(`成功從 API 載入 ${childUnits.length} 個子單位`)
+              //console.log(`成功從 API 載入 ${childUnits.length} 個子單位`)
             } else {
               // 沒有子單位 - 跳出提示
               unit.hasChildren = false
@@ -268,7 +268,7 @@ const toggleUnitInTree = async (unit, parentArray, unitIndex) => {
             }
           }
         } catch (error) {
-          console.error('載入子單位失敗:', error)
+          //console.error('載入子單位失敗:', error)
           unit.hasChildren = false
           unit.isExpanded = false
           throw error
@@ -278,18 +278,18 @@ const toggleUnitInTree = async (unit, parentArray, unitIndex) => {
       }
     }
   } catch (error) {
-    console.error('處理樹狀結構單位失敗:', error)
+    //console.error('處理樹狀結構單位失敗:', error)
     throw error
   }
 }
 
 const createNewUnit = () => {
-  console.log('新增單位')
+  //console.log('新增單位')
   router.push('/settings/unit/unit-create')
 }
 
 const insertUnit = (id) => {
-  console.log('編輯單位:', id)
+  //console.log('編輯單位:', id)
   router.push(`/settings/unit/unit-insert/${id}`)
 }
 
@@ -301,7 +301,7 @@ const deleteUnit = async (unitId, unitName) => {
 
   try {
     isDeleting.value = true
-    console.log('開始刪除單位:', unitId)
+    //console.log('開始刪除單位:', unitId)
 
     const response = await unitStore.deleteUnit(unitId)
     
@@ -312,7 +312,7 @@ const deleteUnit = async (unitId, unitName) => {
       await getUnitData()
     }
   } catch (error) {
-    console.error('刪除單位失敗:', error)
+    //console.error('刪除單位失敗:', error)
     alert(`刪除失敗：${error.message || '請稍後再試'}`)
   } finally {
     isDeleting.value = false
@@ -324,7 +324,7 @@ const downloadTemplate = async () => {
   try {
     await unitStore.downloadImportTemplate()
   } catch (error) {
-    console.error('下載範本失敗:', error)
+    //console.error('下載範本失敗:', error)
     alert('下載範本失敗，請稍後再試')
   }
 }
@@ -396,7 +396,7 @@ const confirmImport = async () => {
     
     const result = await unitStore.importUnits(formData)
 
-    console.log(result);
+    //console.log(result);
 
     let message = '';
     let resultData = {};
@@ -436,7 +436,7 @@ const confirmImport = async () => {
     }, 500)
     
   } catch (error) {
-    console.error('批次匯入失敗:', error)
+    //console.error('批次匯入失敗:', error)
     let resultData = {};
     resultData = {
       message: error.response?.data?.message || '匯入失敗，請檢查檔案資料格式',
@@ -448,7 +448,7 @@ const confirmImport = async () => {
       data: resultData,
     }
 
-    console.log(importResult.value);
+    //console.log(importResult.value);
     
     isImporting.value = false
   }
@@ -542,7 +542,7 @@ const getUnitData = async () => {
     // 根據是否有搜尋關鍵字決定使用哪種搜尋方式
     if (searchForm.keyword && searchForm.keyword.trim()) {
       // 有搜尋關鍵字，使用深度搜尋
-      console.log('執行深度搜尋:', searchForm.keyword)
+      //console.log('執行深度搜尋:', searchForm.keyword)
       response = await unitStore.searchUnits(searchParams)
       
       // 深度搜尋不需要分頁（通常返回所有匹配結果）
@@ -552,7 +552,7 @@ const getUnitData = async () => {
       }
     } else {
       // 沒有搜尋關鍵字，使用原本的邏輯
-      console.log('執行第一層查詢')
+      //console.log('執行第一層查詢')
       if (unitStore.isInitialized) {
         response = await unitStore.searchUnits(searchParams)
       } else {
@@ -572,10 +572,10 @@ const getUnitData = async () => {
       totalPages.value = 0
     }
     
-    console.log('資料載入完成，單位數量:', unitData.value.length)
+    //console.log('資料載入完成，單位數量:', unitData.value.length)
     
   } catch (error) {
-    console.error('載入單位資料失敗:', error)
+    //console.error('載入單位資料失敗:', error)
     alert('載入資料失敗，請稍後再試')
   } finally {
     isSearching.value = false
@@ -584,7 +584,7 @@ const getUnitData = async () => {
 
 // watch pageSize
 watch(pageSize, async (newSize) => {
-  console.log('分頁大小變更:', newSize)
+  //console.log('分頁大小變更:', newSize)
   currentPage.value = 1
   await getUnitData()
 })
@@ -593,11 +593,11 @@ onMounted(async () => {
   // 添加視窗尺寸監聽器
   window.addEventListener('resize', handleResize)
   
-  console.log('onMounted: UnitManagement')
+  //console.log('onMounted: UnitManagement')
   try {
     await getUnitData()
   } catch (error) {
-    console.error('載入資料失敗:', error)
+    //console.error('載入資料失敗:', error)
   }
 })
 

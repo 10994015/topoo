@@ -7,10 +7,10 @@ import { useAuthStore } from '@/stores/auth'
 const router = useRouter()
 const authStore = useAuthStore()
 authStore.getPermissions()
-console.log(authStore.permissions);
+//console.log(authStore.permissions);
 
 const isManager =  computed(() => authStore.permissions.length > 0)
-console.log(isManager.value);
+//console.log(isManager.value);
 
 // 響應式資料
 const isLoading = ref(false)
@@ -48,7 +48,7 @@ const loadUserProfile = async () => {
     // 從 authStore 獲取用戶資料
     const user = authStore.user || await authStore.fetchUser()
     
-    console.log(user);
+    //console.log(user);
     
     // 設定用戶資料
     Object.assign(userProfile, {
@@ -62,7 +62,7 @@ const loadUserProfile = async () => {
     // 複製到編輯表單
     Object.assign(editForm, userProfile)
   } catch (error) {
-    console.error('載入用戶資料失敗:', error)
+    //console.error('載入用戶資料失敗:', error)
     // 設定預設值
     Object.assign(userProfile, {
       account: 'User001',
@@ -116,7 +116,7 @@ const saveProfile = async () => {
   isLoading.value = true
   try {
     // 這裡調用 API 更新用戶資料
-    console.log('更新用戶資料:', editForm)
+    //console.log('更新用戶資料:', editForm)
     const params= {
       nickname: editForm.nickname,
     }
@@ -125,7 +125,7 @@ const saveProfile = async () => {
     }
     // 模擬 API 調用
     const response = await authStore.updateUser(params)
-    console.log(response);
+    //console.log(response);
     if(response.success){
       // 更新本地資料 (只更新可編輯的欄位)
       userProfile.nickname = editForm.nickname
@@ -140,7 +140,7 @@ const saveProfile = async () => {
     }
    
   } catch (error) {
-    console.error('更新失敗:', error)
+    //console.error('更新失敗:', error)
     alert('更新失敗，請重試')
   } finally {
     isLoading.value = false

@@ -171,7 +171,7 @@ const loadStatusList = async () => {
     totalItems.value = statusStore.statuses?.data?.total || 0
     totalPages.value = statusStore.statuses?.data?.totalPages || 0
   } catch (error) {
-    console.error('載入狀態列表失敗:', error)
+    //console.error('載入狀態列表失敗:', error)
     statusData.value = []
     totalItems.value = 0
     totalPages.value = 0
@@ -186,7 +186,7 @@ const loadStatusDetail = async () => {
     isLoadingDetail.value = true
     
     const result = await statusStore.fetchStatusDetail(route.params.statusId)
-    console.log('載入狀態詳細資料:', result);
+    //console.log('載入狀態詳細資料:', result);
     
     if (result.success) {
       // 填入表單資料
@@ -194,11 +194,11 @@ const loadStatusDetail = async () => {
       // 最後更新時間
       formData.updatedAt = result.data.updated_at
     } else {
-      console.error('載入狀態詳細資料失敗:', result.message)
+      //console.error('載入狀態詳細資料失敗:', result.message)
       alert(`載入失敗: ${result.message}`)
     }
   } catch (error) {
-    console.error('載入狀態詳細資料異常:', error)
+    //console.error('載入狀態詳細資料異常:', error)
     alert('載入資料時發生錯誤，請稍後再試')
   } finally {
     isLoadingDetail.value = false
@@ -291,7 +291,7 @@ const handleSubmit = async () => {
       }
      
     } else {
-      console.error('操作失敗:', result.message)
+      //console.error('操作失敗:', result.message)
       alert(`操作失敗: ${result.message}`)
       
       // 如果是驗證錯誤，嘗試解析錯誤訊息
@@ -304,7 +304,7 @@ const handleSubmit = async () => {
       }
     }
   } catch (error) {
-    console.error('提交表單異常:', error)
+    //console.error('提交表單異常:', error)
     alert('操作時發生錯誤，請稍後再試')
   } finally {
     isSaving.value = false
@@ -338,11 +338,11 @@ const handleMoveToTop = async () => {
       await loadStatusList()
       
     } else {
-      console.error('置頂失敗:', result.message)
+      //console.error('置頂失敗:', result.message)
       alert(`置頂失敗: ${result.message}`)
     }
   } catch (error) {
-    console.error('置頂異常:', error)
+    //console.error('置頂異常:', error)
     alert('置頂時發生錯誤，請稍後再試')
   } finally {
     isSaving.value = false
@@ -369,11 +369,11 @@ const deleteStatus = async (item) => {
         router.push('/settings/parameter/repair-status/create')
       }
     } else {
-      console.error('刪除失敗:', result.message)
+      //console.error('刪除失敗:', result.message)
       alert(`刪除失敗: ${result.message}`)
     }
   } catch (error) {
-    console.error('刪除異常:', error)
+    //console.error('刪除異常:', error)
     alert('刪除時發生錯誤，請稍後再試')
   }
 }
@@ -426,7 +426,7 @@ onMounted(async () => {
     isInitialized.value = true
     
   } catch (error) {
-    console.error('初始化失敗:', error)
+    //console.error('初始化失敗:', error)
     isInitialized.value = true // 即使失敗也要標記初始化完成
   } finally {
     isLoadingDetail.value = false

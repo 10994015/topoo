@@ -149,7 +149,7 @@ const showEllipsis = computed(() => {
 const handleSearch = async () => {
   currentPage.value = 1
   isSearching.value = true
-  console.log('執行搜尋:', searchForm)
+  //console.log('執行搜尋:', searchForm)
   await loadData()
   isSearching.value = false
 }
@@ -165,7 +165,7 @@ const handleReset = async () => {
 }
 
 const loadData = async () => {
-  console.log(currentPage.value);
+  //console.log(currentPage.value);
   
   isLoading.value = true
   const params = {
@@ -179,12 +179,12 @@ const loadData = async () => {
     pageSize: pageSize.value,
     provider: searchForm.loginSource
   };
-  console.log(params);
+  //console.log(params);
   
   await accountStore.fetchAccounts(params);
 
   accountData.value = accountStore.accounts.data;
-  console.log(accountStore.accounts.total);
+  //console.log(accountStore.accounts.total);
   
   totalItems.value = accountStore.accounts.total
   totalPages.value = accountStore.accounts.totalPages
@@ -225,7 +225,7 @@ const getSortClass = (field) => {
 }
 
 const goToPage = async (page) => {
-  console.log(page);
+  //console.log(page);
   if (page >= 1 && page <= totalPages.value) {
     currentPage.value = page
     await loadData();
@@ -237,12 +237,12 @@ const downloadTemplate = async () => {
 }
 
 const createNewAccount = () => {
-  console.log('新增帳號')
+  //console.log('新增帳號')
   router.push('/settings/account/create')
 }
 
 const viewAccount = (account) => {
-  console.log('查看帳號詳情:', account)
+  //console.log('查看帳號詳情:', account)
   router.push(`/settings/account-view/${account.id}`)
 }
 
@@ -326,7 +326,7 @@ const confirmImport = async () => {
     
     const result = await accountStore.importAccounts(formData)
 
-    console.log(result);
+    //console.log(result);
 
     let message = '';
     let resultData = {};
@@ -366,7 +366,7 @@ const confirmImport = async () => {
     }, 500)
     
   } catch (error) {
-    console.error('批次匯入失敗:', error)
+    //console.error('批次匯入失敗:', error)
     let resultData = {};
     resultData = {
       message: error.response?.data?.message || '匯入失敗，請檢查檔案資料格式',
@@ -378,7 +378,7 @@ const confirmImport = async () => {
       data: resultData,
     }
 
-    console.log(importResult.value);
+    //console.log(importResult.value);
     
     isImporting.value = false
   }
@@ -426,7 +426,7 @@ const formatFileSize = (bytes) => {
 
 // watch pageSize
 watch(pageSize, async (newSize) => {
-  console.log('分頁大小變更:', newSize)
+  //console.log('分頁大小變更:', newSize)
   pageSize.value = newSize
   currentPage.value = 1
   await loadData();

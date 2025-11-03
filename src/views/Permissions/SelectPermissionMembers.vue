@@ -123,7 +123,7 @@ const isIndeterminate = computed(() => {
 // 方法
 const handleSearch = async () => {
   currentPage.value = 1
-  console.log('執行搜尋:', searchForm.keyword)
+  //console.log('執行搜尋:', searchForm.keyword)
   loading.table = true
   try {
     await loadData()
@@ -185,7 +185,7 @@ const goToPage = async (page) => {
 
 const handlePageSizeChange = async()=>{
   currentPage.value = 1
-  console.log('頁面大小變更:', pageSize.value)
+  //console.log('頁面大小變更:', pageSize.value)
   
   loading.table = true
   try {
@@ -212,7 +212,7 @@ const handleUserSelect = (user, checked) => {
     user.isSelected = checked
     // tempCheckedUsers.value = users.value.filter(u => u.isSelected).map(u => u.id)
   }
-  console.log(users.value);
+  //console.log(users.value);
 }
 
 // 儲存
@@ -227,14 +227,14 @@ const handleSave = async () => {
     user_id: user.id,
     is_in_role: user.isSelected,
   }))
-  console.log('成員:', patchUsers)
+  //console.log('成員:', patchUsers)
 
   
   try {
     // 模擬 API 調用
     const result = await permissionStore.updateMembersToPermission(groupId.value, patchUsers)
 
-    console.log(result);
+    //console.log(result);
     
     if(result.statusCode === 200){
       alert('儲存成功！');
@@ -243,14 +243,14 @@ const handleSave = async () => {
         try {
             await loadData()
         } catch (error) {
-            console.error('載入失敗:', error)
+            //console.error('載入失敗:', error)
         } finally {
             loading.table = false
         }
     }
   } catch (error) {
-    console.error('儲存失敗:', error)
-    console.log(error.response.data.message);
+    //console.error('儲存失敗:', error)
+    //console.log(error.response.data.message);
     
     alert('儲存失敗，' + (error.response.data.message || '未知錯誤'))
   } finally {
@@ -265,7 +265,7 @@ const handleCancel = () => {
 
 const loadData = async ()=>{
     await permissionStore.getPermissionById(groupId.value)
-    console.log(permissionStore.permission);
+    //console.log(permissionStore.permission);
     
     groupInfo.value = {
       name: permissionStore.permission.role_name,
@@ -280,7 +280,7 @@ const loadData = async ()=>{
         pageSize: pageSize.value
     };
     await permissionStore.getPermissionMembers(groupId.value, params)
-    console.log(permissionStore.permissionGroupMembers);
+    //console.log(permissionStore.permissionGroupMembers);
     
     users.value = permissionStore.permissionGroupMembers.data.map(user => ({
       id: user.id,
@@ -292,7 +292,7 @@ const loadData = async ()=>{
       isSelected: permissionStore.permission.users.some(permissionUser => permissionUser.user_id === user.id),
       isAdmin: user.is_admin // 假設所有載入的用戶都在群組中
     }))
-    console.log(users.value);
+    //console.log(users.value);
     
     totalItems.value = permissionStore.permissionGroupMembers.total
     totalPages.value = permissionStore.permissionGroupMembers.totalPages
@@ -307,7 +307,7 @@ onMounted(async () => {
   try {
       await loadData()
   } catch (error) {
-    console.error('載入失敗:', error)
+    //console.error('載入失敗:', error)
   } finally {
     loading.initial = false
   }

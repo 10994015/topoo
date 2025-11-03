@@ -33,7 +33,7 @@ const fetchtodoDetail = async () => {
     const response = await repairStore.fetchtodoDetail(repairId.value)
     todoDetail.value = response
   } catch (error) {
-    console.error('獲取報修詳細資料失敗:', error)
+    //console.error('獲取報修詳細資料失敗:', error)
     alert('載入失敗，請稍後重試')
   } finally {
     isLoading.value = false
@@ -45,10 +45,10 @@ const fetchProgressRecords = async () => {
   try {
     await todoStore.fetchTodoProgress(repairId.value)
     mockProgressData.value = todoStore.todoProgress || []
-    console.log(mockProgressData.value);
+    //console.log(mockProgressData.value);
     
   } catch (error) {
-    console.error('獲取進度記錄失敗:', error)
+    //console.error('獲取進度記錄失敗:', error)
   }
 }
 
@@ -114,10 +114,10 @@ const handAssign = () => {
     alert('您沒有權限指派案件')
     return
   }
-  console.log(todoId.value);
+  //console.log(todoId.value);
   const id =  repairId.value
   // 實作承辦案件邏輯
-  console.log('指派案件')
+  //console.log('指派案件')
   router.push({
     name: 'app.settings.assign-work',
     params: { id: id }
@@ -131,10 +131,10 @@ const deleteAssign = async () => {
     return
   }
   // 實作刪除案件邏輯
-  console.log('刪除案件')
+  //console.log('刪除案件')
   // 可以呼叫 API 或顯示確認對話框
   const response = await todoStore.removeTodo(todoId.value)
-  console.log(response);
+  //console.log(response);
   
   if (response.success) {
     alert('刪除成功！')
@@ -199,33 +199,33 @@ const fetchFileContent = async (fileId) => {
     const response = await todoStore.viewFile(fileId)
     return response
   } catch (error) {
-    console.error('獲取檔案內容失敗:', error)
+    //console.error('獲取檔案內容失敗:', error)
     throw error
   }
 }
 
 // 檔案預覽事件處理
 const onFileDownloaded = (file) => {
-  console.log('檔案已下載:', file.file_name)
+  //console.log('檔案已下載:', file.file_name)
 }
 
 const onPreviewLoadSuccess = (blob) => {
-  console.log('預覽載入成功')
+  //console.log('預覽載入成功')
 }
 
 const onPreviewLoadError = (error) => {
-  console.error('預覽載入失敗:', error)
+  //console.error('預覽載入失敗:', error)
   alert('預覽失敗，請稍後重試')
 }
 onMounted(async () => {
   const response = await todoStore.fetchTodoDetail(repairId.value)
-  console.log(response);
+  //console.log(response);
   
   todoDetail.value = todoStore.todoDetail
   if(todoDetail.value.todo_id){
     todoId.value = todoDetail.value.todo_id
   }
-  console.log(todoDetail.value);
+  //console.log(todoDetail.value);
   
   isLoading.value = false
 })

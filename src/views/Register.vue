@@ -147,21 +147,21 @@ const handleSubmit = async () => {
   isLoading.value = true
 
   try {
-    console.log('註冊資料:', formData)
+    //console.log('註冊資料:', formData)
 
     const result = await useAuthStore().register(formData)
 
-    console.log('註冊結果:', result)
+    //console.log('註冊結果:', result)
     
     if(result.success) {
-      console.log('註冊成功:', result.data)
+      //console.log('註冊成功:', result.data)
       localStorage.setItem('registeredEmail', formData.email)
       router.push('/email-verification')
     } else {
       throw new Error(result.message || '註冊失敗')
     }
   } catch (error) {
-    console.error('註冊失敗:', error)
+    //console.error('註冊失敗:', error)
     alert('註冊失敗，請重試')
   } finally {
     isLoading.value = false
@@ -169,7 +169,7 @@ const handleSubmit = async () => {
 }
 
 const handleGoogleSuccess = async (response) => {
-  console.log("Google登入成功，收到credential:", response)
+  //console.log("Google登入成功，收到credential:", response)
   
   isGoogleLoading.value = true
   
@@ -182,14 +182,14 @@ const handleGoogleSuccess = async (response) => {
         router.push(`/init-password/${result.data.changePwToken}`);
         return;
       }
-      console.log('Google登入成功');
+      //console.log('Google登入成功');
       router.push('/')
     } else {
-      console.error('Google登入失敗', result.error);
+      //console.error('Google登入失敗', result.error);
       alert(result.error || 'Google登入失敗')
     }
   } catch (error) {
-    console.error('Google登入處理失敗:', error)
+    //console.error('Google登入處理失敗:', error)
     alert('Google登入失敗，請稍後再試')
   } finally {
     isGoogleLoading.value = false
@@ -197,14 +197,14 @@ const handleGoogleSuccess = async (response) => {
 }
 
 const handleGoogleError = (error) => {
-  console.error("Google登入錯誤:", error)
+  //console.error("Google登入錯誤:", error)
   alert('Google登入失敗，請稍後再試')
   isGoogleLoading.value = false
 }
 
 const goToLogin = () => {
   router.push('/login')
-  console.log('導向登入頁')
+  //console.log('導向登入頁')
 }
 </script>
 
