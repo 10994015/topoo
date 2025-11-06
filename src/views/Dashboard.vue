@@ -480,7 +480,7 @@ const adjustColor = (color, percent) => {
 // 查看案件詳情
 const viewCase = (caseId) => {
   //console.log('查看案件:', caseId)
-  router.push(`/view-repair/${caseId}`)
+  router.push(`/view-todo/${caseId}`)
 }
 
 // 查看詳細資訊
