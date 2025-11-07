@@ -479,8 +479,14 @@ const adjustColor = (color, percent) => {
 
 // 查看案件詳情
 const viewCase = (caseId) => {
-  //console.log('查看案件:', caseId)
-  router.push(`/view-todo/${caseId}`)
+  console.log('查看案件:', caseId)
+  if(hasTodoPermission.value){
+    router.push(`/settings/view-todo/${caseId}`)
+  }else if(hasRepairTodoPermission.value){
+    router.push(`/settings/view-repair-todo/${caseId}`)
+  }else{
+    router.push(`/view-repair/${caseId}`)
+  }
 }
 
 // 查看詳細資訊
@@ -494,8 +500,6 @@ const viewDetails = () => {
   }
   router.push(url)
 }
-
-// ===== 修改後的響應式邏輯 - 解決重複動畫問題 =====
 
 // 使用防抖機制的 watchEffect - 避免快速重複觸發
 watchEffect(async () => {
