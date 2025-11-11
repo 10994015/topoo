@@ -204,7 +204,12 @@ const uploadFile = async (fileObj) => {
   } catch (error) {
     //console.error('檔案上傳失敗:', error)
     alert(`檔案 "${fileObj.name}" 上傳失敗`)
-    fileObj.uploading = false
+    
+    // 上傳失敗時，從上傳中列表移除該檔案
+    const index = selectedFiles.value.findIndex(f => f.id === fileObj.id)
+    if (index > -1) {
+      selectedFiles.value.splice(index, 1)
+    }
   }
 }
 
