@@ -313,7 +313,7 @@ const handleGoogleError = (error) => {
         </div>
         
         <div class="version-info">
-          系統版本 ver 1.06
+          系統版本 ver 1.0.6
         </div>
       </div>
     </div>
