@@ -270,6 +270,14 @@ const getPriorityLabel = (level) => {
   }
   return levelMap[level] || '-'
 }
+const getImportanceLabel = (level) => {
+  const levelMap = {
+    1: '普級',
+    2: '保固級',
+    3: '急件'
+  }
+  return levelMap[level] || '-'
+}
 
 // 狀態變更處理
 const onStatusChange = () => {
@@ -748,7 +756,7 @@ onMounted(async () => {
                   <div class="priority-info">
                     <span class="priority-label">重要程度</span>
                     <span :class="[caseDetail.importance_level ? 'priority-badge' : '', getPriorityClass(caseDetail.importance_level)]">
-                      {{ getPriorityLabel(caseDetail.importance_level) }}
+                      {{ getImportanceLabel(caseDetail.importance_level) }}
                     </span>
                   </div>
                 </div>

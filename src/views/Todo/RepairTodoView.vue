@@ -169,6 +169,11 @@ const levels = {
     2: '中級',
     3: '高級',
 }
+const importanceLevels = {
+  1: '普級',
+  2: '保固級',
+  3: '急件'
+}
 const levelsMap = {
   1: 'priority-normal',
   2: 'priority-medium',
@@ -451,7 +456,7 @@ onMounted(async () => {
                   <div class="priority-info">
                     <span class="priority-label">重要程度</span>
                     <span :class="[repairDetail.importance_level ? 'priority-badge' : '', levelsMap[repairDetail.importance_level] || '']">
-                      {{ levels[repairDetail.importance_level] || '-' }}
+                      {{ importanceLevels[repairDetail.importance_level] || '-' }}
                     </span>
                   </div>
                 </div>
