@@ -84,6 +84,7 @@ const flattenedData = computed(() => {
 
 // 計算最外層項次的資料
 const displayData = computed(() => {
+  
   return flattenedData.value.map((item) => {
     // 只有第一層的才有項次，其他層級不顯示項次
     const parentIndex = item.level === 1 ? 
@@ -694,6 +695,11 @@ onUnmounted(() => {
                 </span>
                 <span class="sort-icon neutral" v-else>⇅</span>
               </th>
+              <th 
+                width="150"
+              >
+                單位標籤
+              </th>
               <th class="sortable" @click="!isLoading && sortBy('order')" width="100">
                 單位層次
                 <span class="sort-icon" v-if="sortColumn === 'order'">
@@ -758,6 +764,18 @@ onUnmounted(() => {
                   <router-link :to="`/settings/unit/unit-edit/${item.id}`" class="unit-name">{{ item.name }}</router-link>
                 </div>
               </td>
+             <td>
+              <div v-if="item.unit_labels && item.unit_labels.length > 0" class="unit-labels-wrapper">
+                <span 
+                  v-for="(label, index) in item.unit_labels" 
+                  :key="index"
+                  class="unit-label-badge"
+                >
+                  {{ label }}
+                </span>
+              </div>
+              <span v-else class="no-labels">-</span>
+            </td>
               <td>{{ item.level }}</td>
               <td>{{ formatDateTime(item.created_at) }}</td>
               <td>
@@ -845,6 +863,20 @@ onUnmounted(() => {
             <div class="card-field">
               <span class="field-label">單位層次：</span>
               <span class="field-value">L{{ item.level }}</span>
+            </div>
+            <div class="card-field" v-if="item.unit_labels && item.unit_labels.length > 0">
+              <span class="field-label">單位標籤：</span>
+              <span class="field-value">
+                <div class="mobile-unit-labels">
+                  <span 
+                    v-for="(label, index) in item.unit_labels" 
+                    :key="index"
+                    class="mobile-label-badge"
+                  >
+                    {{ label }}
+                  </span>
+                </div>
+              </span>
             </div>
             <div class="card-field">
               <span class="field-label">建立時間：</span>
@@ -1482,7 +1514,29 @@ onUnmounted(() => {
             font-size: 14px;
             color: #333;
           }
+          .unit-labels-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            align-items: center;
 
+            .unit-label-badge {
+              display: inline-flex;
+              align-items: center;
+              padding: 2px 8px;
+              background: #17a2b8; // 淺藍
+              color: #fff; // 白色文字
+              border-radius: 12px;
+              font-size: 11px;
+              font-weight: 500;
+              white-space: nowrap;
+            }
+          }
+
+          .no-labels {
+            color: #999;
+            font-style: italic;
+          }
           .unit-name-cell {
             position: relative;
             
@@ -1688,6 +1742,24 @@ onUnmounted(() => {
           color: #333;
           flex: 1;
           word-break: break-word;
+           .mobile-unit-labels {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 2px;
+
+            .mobile-label-badge {
+              display: inline-flex;
+              align-items: center;
+              padding: 2px 6px;
+              background: #17a2b8;
+              color: #fff;
+              border-radius: 10px;
+              font-size: 10px;
+              font-weight: 500;
+              white-space: nowrap;
+            }
+          }
         }
       }
     }

@@ -3,7 +3,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSurveyStore } from '@/stores/survey'
 import { formatDateTime } from '@/utils/dateUtils'
-import { mdiArrowLeft, mdiAccount, mdiOfficeBuilding, mdiCalendarClock } from '@mdi/js'
+import { mdiArrowLeft, mdiAccount, mdiOfficeBuilding, mdiCalendarClock, mdiTag } from '@mdi/js'
 
 const route = useRoute()
 const router = useRouter()
@@ -19,16 +19,17 @@ const headerImage = ref('/images/survey-bg.jpg')
 
 // 計算屬性
 const surveyQuestions = computed(() => {
-  if (!responseDetail.value?.surveyQuestion) return []
-  return responseDetail.value.surveyQuestion || []
+  if (!responseDetail.value?.survey_question) return []
+  return responseDetail.value.survey_question || []
 })
 
 const responseInfo = computed(() => {
   if (!responseDetail.value) return {}
   return {
-    repairTitle: responseDetail.value.repairTitle || '',
+    repairTitle: responseDetail.value.repair_title || '',
     name: responseDetail.value.name || '',
-    repairUnit: responseDetail.value.repairUnit || '',
+    repairUnit: responseDetail.value.repair_unit || '',
+    unitLabels: responseDetail.value.unit_labels || [], // ⭐ 新增：單位標籤
     created_at: responseDetail.value.created_at || ''
   }
 })
@@ -97,29 +98,30 @@ const loadResponseDetail = async () => {
     loadError.value = null
     
     const responseId = route.params.id
-    //console.log('載入問卷回覆詳情，ID:', responseId)
+    console.log('載入問卷回覆詳情，ID:', responseId)
     
     const result = await surveyStore.fetchSurveyResponseDetail(responseId)
     
     if (result.success) {
       responseDetail.value = result.data
-      //console.log('問卷回覆詳情載入成功:', responseDetail.value)
-      //console.log('surveyQuestion 數據:', responseDetail.value?.surveyQuestion)
-      //console.log('問題數量:', responseDetail.value?.surveyQuestion?.length)
+      console.log('問卷回覆詳情載入成功:', responseDetail.value)
+      console.log('survey_question 數據:', responseDetail.value?.survey_question)
+      console.log('問題數量:', responseDetail.value?.survey_question?.length)
+      console.log('單位標籤:', responseDetail.value?.unit_labels)
       
       // 檢查每個問題的結構
-      if (responseDetail.value?.surveyQuestion) {
-        responseDetail.value.surveyQuestion.forEach((question, index) => {
-          //console.log(`問題 ${index + 1}:`, question)
-          //console.log(`問題 ${index + 1} 選項:`, question.options)
+      if (responseDetail.value?.survey_question) {
+        responseDetail.value.survey_question.forEach((question, index) => {
+          console.log(`問題 ${index + 1}:`, question)
+          console.log(`問題 ${index + 1} 選項:`, question.options)
         })
       }
     } else {
       loadError.value = result.message || '載入失敗'
-      //console.error('載入問卷回覆詳情失敗:', result.message)
+      console.error('載入問卷回覆詳情失敗:', result.message)
     }
   } catch (error) {
-    //console.error('載入問卷回覆詳情時發生錯誤:', error)
+    console.error('載入問卷回覆詳情時發生錯誤:', error)
     loadError.value = '載入過程中發生錯誤，請稍後重試'
   } finally {
     isLoading.value = false
@@ -191,6 +193,22 @@ onMounted(() => {
               </svg>
               <span class="info-label">填寫時間：</span>
               <span class="info-value">{{ formatDateTime(responseInfo.created_at) }}</span>
+            </div>
+            <!-- ⭐ 新增：單位標籤顯示 -->
+            <div class="info-item full-width" v-if="responseInfo.unitLabels && responseInfo.unitLabels.length > 0">
+              <svg width="16" height="16" viewBox="0 0 24 24" class="info-icon">
+                <path :d="mdiTag" fill="currentColor"></path>
+              </svg>
+              <span class="info-label">單位標籤：</span>
+              <div class="unit-labels-container">
+                <span 
+                  v-for="(label, index) in responseInfo.unitLabels" 
+                  :key="index" 
+                  class="unit-label-badge"
+                >
+                  {{ label }}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -465,6 +483,12 @@ onMounted(() => {
         border-radius: 8px;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
+        // ⭐ 新增：單位標籤佔滿整行
+        &.full-width {
+          grid-column: 1 / -1;
+          flex-wrap: wrap;
+        }
+
         .info-icon {
           color: #6c5ce7;
           flex-shrink: 0;
@@ -481,6 +505,25 @@ onMounted(() => {
           font-size: 14px;
           color: #333;
           font-weight: 600;
+        }
+
+        // ⭐ 新增：單位標籤容器
+        .unit-labels-container {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          
+          .unit-label-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            background: #6c5ce7;
+            color: white;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            box-shadow: 0 1px 3px rgba(108, 92, 231, 0.3);
+          }
         }
       }
     }
@@ -853,6 +896,17 @@ onMounted(() => {
       .info-value {
         font-size: 13px;
       }
+
+      // ⭐ 手機版單位標籤調整
+      .unit-labels-container {
+        width: 100%;
+        margin-top: 8px;
+        
+        .unit-label-badge {
+          font-size: 11px;
+          padding: 3px 10px;
+        }
+      }
     }
   }
 
@@ -919,6 +973,14 @@ onMounted(() => {
       .info-label,
       .info-value {
         font-size: 12px;
+      }
+
+      // ⭐ 小手機單位標籤調整
+      .unit-labels-container {
+        .unit-label-badge {
+          font-size: 10px;
+          padding: 2px 8px;
+        }
       }
     }
   }

@@ -19,6 +19,7 @@ export const PERMISSIONS = {
   SURVEY_EXCEL_DOWNLOAD: '問卷滿意度報表Excel下載',
   FAQ_MANAGEMENT: '常見問題管理',
   LOG_MANAGEMENT: '系統日誌查詢',
+  UNIT_TAG_MANAGEMENT: '單位標籤管理',
 }
 
 // 權限檢查輔助函數

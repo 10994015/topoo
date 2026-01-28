@@ -337,10 +337,20 @@ onMounted(() => {
           <div class="detail-row">
             <div class="detail-label">單位</div>
             <div class="detail-value">
-              <span>{{ accountData.repair_unit || '-' }}</span>
+              <div class="unit-info">
+                <span class="unit-name">{{ accountData.repair_unit || '-' }}</span>
+                <div v-if="accountData.unit_labels && accountData.unit_labels.length > 0" class="unit-labels-badges">
+                  <span 
+                    v-for="(label, index) in accountData.unit_labels" 
+                    :key="index"
+                    class="unit-label-badge"
+                  >
+                    {{ label }}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
-          
           <div class="detail-row">
             <div class="detail-label">登入來源</div>
             <div class="detail-value">
@@ -543,7 +553,35 @@ onMounted(() => {
       font-size: 14px;
       display: flex;
       align-items: center;
+      .unit-info {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
 
+        .unit-name {
+          color: #333;
+          font-weight: 500;
+        }
+
+        .unit-labels-badges {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+          align-items: center;
+
+          .unit-label-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            background: #17a2b8;
+            color: white;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+          }
+        }
+      }
       .input-container {
         width: 100%;
       }
@@ -673,6 +711,15 @@ onMounted(() => {
 
     .detail-value {
       padding-top: 10px;
+      .unit-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+
+        .unit-labels-badges {
+          margin-left: 0;
+        }
+      }
     }
 
     &.full-width .detail-label {

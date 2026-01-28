@@ -50,6 +50,7 @@ import EditFaqCategory from '@/views/Faq/EditFaqCategory.vue'
 import EditFaq from '@/views/Faq/EditFaq.vue'
 import LogManagement from '@/views/LogComponent/LogManagement.vue'
 import LogView from '@/views/LogComponent/LogView.vue'
+import UnitTagManagement from '@/views/Parameters/UnitTagManagement.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -324,6 +325,38 @@ const router = createRouter({
             ],
             permissionMode: 'Readonly'
           }
+        },
+        {
+          path: 'parameter/unit-tag-management',
+          name: 'app.settings.unit-tag-management',
+          component: UnitTagManagement,
+          meta: { 
+            title: '單位標籤管理',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '參數管理', to: '/settings/parameter-management' },
+              { text: '單位標籤管理', to: null },
+            ],
+            permission: PERMISSIONS.UNIT_TAG_MANAGEMENT,
+            permissionMode: 'Readonly' 
+          },
+        },
+        // 新增/編輯單位標籤（使用同一個元件）
+        {
+          path: 'parameter/unit-tag/:id',
+          name: 'app.settings.unit-tag.form',
+          component: () => import('@/views/Parameters/UnitTagEditForm.vue'),
+          meta: { 
+            title: '單位標籤管理',
+            breadcrumbs: [
+              { text: '首頁', to: '/' },
+              { text: '參數管理', to: '/settings/parameter-management' },
+              { text: '單位標籤管理', to: '/settings/parameter/unit-tag-management' },
+              { text: '單位標籤', to: null },
+            ],
+            permission: PERMISSIONS.UNIT_TAG_MANAGEMENT,
+            permissionMode: 'Readonly' 
+          },
         },
         {
           path: 'parameter/mail-management',

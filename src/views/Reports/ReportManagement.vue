@@ -1,9 +1,10 @@
 <script setup>
-import { ref, reactive, onMounted, computed, watch } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useReportStore } from '@/stores/report'
 import { useRepairStore } from '@/stores/repair'
 import { useAuthStore } from '@/stores/auth'
 import { checkPermission, PERMISSIONS } from '@/utils/permissions'
+import axiosClient from '@/axios' // ⭐ 新增：引入 axios
 
 const reportStore = useReportStore()
 const repairStore = useRepairStore()
@@ -52,6 +53,16 @@ const categories = ref([])
 const reasons = ref([])
 const statuses = ref([])
 
+// 單位搜尋相關
+const unitSearchKeyword = ref('')
+const unitSearchResults = ref([])
+const showUnitDropdown = ref(false)
+const isSearchingUnits = ref(false)
+const unitSearchDebounceTimer = ref(null)
+
+// 單位標籤相關
+const unitLabels = ref([])
+const isLoadingUnitLabels = ref(false)
 // 計算允許的日期範圍（當前日期前後1年）
 const minDate = computed(() => {
   const date = new Date()
@@ -103,7 +114,8 @@ const repairProgressForm = reactive({
   endAt: '',
   repairUnit: '',
   assignUserName: '',
-  overdueDays:''
+  overdueDays:'',
+  unitLabelId: null
 })
 
 // 帳號管理報表表單
@@ -172,6 +184,99 @@ const hasAnyPermission = computed(() => {
          hasDownloadSatisfactionSurveyPermission.value
 })
 
+//搜尋單位函數
+const searchUnits = async (keyword) => {
+  if (!keyword || keyword.trim().length === 0) {
+    unitSearchResults.value = []
+    showUnitDropdown.value = false
+    return
+  }
+
+  try {
+    isSearchingUnits.value = true
+    
+    // 呼叫 Store 的方法
+    const response = await reportStore.searchUnits(keyword.trim())
+    
+    if (response.success && response.data) {
+      unitSearchResults.value = response.data
+      showUnitDropdown.value = true
+    } else {
+      unitSearchResults.value = []
+      showUnitDropdown.value = false
+    }
+  } catch (error) {
+    console.error('搜尋單位失敗:', error)
+    unitSearchResults.value = []
+    showUnitDropdown.value = false
+  } finally {
+    isSearchingUnits.value = false
+  }
+}
+
+// ⭐ 新增：防抖處理（使用者輸入時延遲搜尋）
+const handleUnitSearch = (keyword) => {
+  // 清除之前的計時器
+  if (unitSearchDebounceTimer.value) {
+    clearTimeout(unitSearchDebounceTimer.value)
+  }
+
+  // 設定新的計時器（延遲 500ms）
+  unitSearchDebounceTimer.value = setTimeout(() => {
+    searchUnits(keyword)
+  }, 500)
+}
+
+// ⭐ 新增：選擇單位
+const selectUnit = (unitName) => {
+  repairProgressForm.repairUnit = unitName
+  unitSearchKeyword.value = unitName
+  showUnitDropdown.value = false
+  unitSearchResults.value = []
+}
+
+// ⭐ 新增：清空單位選擇
+const clearUnitSelection = () => {
+  repairProgressForm.repairUnit = ''
+  unitSearchKeyword.value = ''
+  unitSearchResults.value = []
+  showUnitDropdown.value = false
+}
+
+// ⭐ 新增：監聽輸入框變化
+watch(unitSearchKeyword, (newValue) => {
+  handleUnitSearch(newValue)
+})
+
+// ⭐ 新增：點擊外部關閉下拉選單
+const handleClickOutside = (event) => {
+  const dropdown = document.querySelector('.unit-search-dropdown')
+  const input = document.querySelector('.unit-search-input')
+  
+  if (dropdown && input && 
+      !dropdown.contains(event.target) && 
+      !input.contains(event.target)) {
+    showUnitDropdown.value = false
+  }
+}
+// ⭐ 新增：載入單位標籤
+const loadUnitLabels = async () => {
+  try {
+    isLoadingUnitLabels.value = true
+    const response = await reportStore.fetchUnitLabels()
+    
+    if (response.success && response.data) {
+      unitLabels.value = response.data
+    } else {
+      unitLabels.value = []
+    }
+  } catch (error) {
+    console.error('載入單位標籤失敗:', error)
+    unitLabels.value = []
+  } finally {
+    isLoadingUnitLabels.value = false
+  }
+}
 // 監聽權限變化，確保 activeTab 總是有效的
 watch(validTabs, (newTabs) => {
   if (newTabs.length > 0 && !newTabs.includes(activeTab.value)) {
@@ -297,6 +402,9 @@ const resetForm = async (formType) => {
       Object.keys(repairProgressForm).forEach(key => {
         repairProgressForm[key] = ''
       })
+      unitSearchKeyword.value = ''
+      unitSearchResults.value = []
+      showUnitDropdown.value = false
       break
     case 'account-management':
       Object.keys(accountManagementForm).forEach(key => {
@@ -389,7 +497,8 @@ onMounted(async () => {
     await Promise.all([
       repairStore.fetchCategories(),
       repairStore.fetchReasons(), // 初始載入時獲取所有維修原因
-      repairStore.fetchStatuses()
+      repairStore.fetchStatuses(),
+      loadUnitLabels()
     ])
     
     categories.value = repairStore.categories?.data || []
@@ -403,6 +512,20 @@ onMounted(async () => {
     //console.error('載入數據失敗:', error)
   } finally {
     isLoading.value = false
+  }
+  
+  // ⭐ 新增：監聽點擊外部事件
+  document.addEventListener('click', handleClickOutside)
+})
+
+// ⭐ 新增：清理函數
+onUnmounted(() => {
+  // 移除監聽
+  document.removeEventListener('click', handleClickOutside)
+  
+  // 清除計時器
+  if (unitSearchDebounceTimer.value) {
+    clearTimeout(unitSearchDebounceTimer.value)
   }
 })
 </script>
@@ -483,7 +606,10 @@ onMounted(async () => {
               </option>
             </select>
           </div>
+          
         </div>
+
+        
         
         <div class="form-row">
           <div class="form-field">
@@ -504,16 +630,68 @@ onMounted(async () => {
             </select>
           </div>
           
-          <div class="form-field">
-            <input 
-              type="text" 
-              v-model="repairProgressForm.repairUnit"
-              placeholder="報修單位"
-              class="form-input"
-              :disabled="isLoading"
-            />
+          <div class="form-field unit-search-container">
+            <div class="unit-search-wrapper">
+              <input 
+                type="text" 
+                v-model="unitSearchKeyword"
+                placeholder="輸入單位名稱搜尋"
+                class="form-input unit-search-input"
+                :disabled="isLoading"
+                @focus="unitSearchKeyword && searchUnits(unitSearchKeyword)"
+              />
+              
+              <!-- ⭐ 修改：已選擇的單位資訊（移到這裡） -->
+              <div v-if="repairProgressForm.repairUnit" class="selected-unit-badge">
+                已選擇：{{ repairProgressForm.repairUnit }}
+              </div>
+              
+              <!-- 搜尋中指示器 -->
+              <span v-if="isSearchingUnits" class="search-loading-icon">⟳</span>
+              
+              <!-- 清除按鈕 -->
+              <button 
+                v-if="unitSearchKeyword" 
+                type="button"
+                class="clear-unit-btn"
+                @click="clearUnitSelection"
+                :disabled="isLoading"
+              >
+                ✕
+              </button>
+              
+              <!-- 下拉選單 -->
+              <div 
+                v-if="showUnitDropdown && unitSearchResults.length > 0" 
+                class="unit-search-dropdown"
+              >
+                <div 
+                  v-for="unit in unitSearchResults" 
+                  :key="unit.unitId"
+                  class="unit-search-item"
+                  @click="selectUnit(unit.name)"
+                >
+                  <div class="unit-name">{{ unit.name }}</div>
+                </div>
+              </div>
+              
+              <!-- 無結果提示 -->
+              <div 
+                v-if="showUnitDropdown && unitSearchResults.length === 0 && !isSearchingUnits && unitSearchKeyword"
+                class="unit-search-dropdown no-results"
+              >
+                <div class="no-results-text">查無相關單位</div>
+              </div>
+            </div>
           </div>
-          
+          <div class="form-field">
+            <select v-model="repairProgressForm.unitLabelId" class="form-select" :disabled="isLoading || isLoadingUnitLabels">
+              <option :value="null">所有單位標籤</option>
+              <option v-for="label in unitLabels" :key="label.id" :value="label.id">
+                {{ label.name }}
+              </option>
+            </select>
+          </div>
           <div class="form-field">
             <input 
               type="text" 
@@ -954,49 +1132,35 @@ onMounted(async () => {
       display: flex;
       gap: 20px;
       align-items: end;
-      margin-bottom: 20px;
+      margin-bottom: 30px; // ⭐ 從 20px 改為 30px，給 badge 留空間
 
-      // 1600px 以下 - 調整間距避免重疊
+      // 1600px 以下
       @media (max-width: 1600px) and (min-width: 1025px) {
         gap: 16px;
-        flex-wrap: wrap; // 允許換行
-        align-items: stretch; // 改為拉伸對齊
-        
-        // 特別針對完修報表的佈局
-        &:has(.date-field) {
-          .form-field {
-            flex: 1 1 auto;
-            min-width: 180px;
-            max-width: 220px;
-          }
-        }
+        flex-wrap: wrap;
+        align-items: stretch;
+        margin-bottom: 32px; // ⭐ 增加間距
       }
 
-      // 平板：保持水平佈局，調整間距
+      // 平板
       @media (max-width: 1024px) and (min-width: 769px) {
         gap: 16px;
-        margin-bottom: 18px;
-        flex-wrap: wrap; // 允許換行
-        
-        // 如果一行放不下，自動換行
-        .form-field {
-          min-width: 200px;
-          flex: 1 1 calc(50% - 8px);
-        }
+        margin-bottom: 34px; // ⭐ 增加間距
+        flex-wrap: wrap;
       }
 
-      // 手機：改為垂直佈局
+      // 手機
       @media (max-width: 768px) {
         flex-direction: column;
         gap: 14px;
         align-items: stretch;
-        margin-bottom: 16px;
+        margin-bottom: 36px; // ⭐ 增加間距
       }
 
-      // 小手機：進一步縮小間距
+      // 小手機
       @media (max-width: 480px) {
         gap: 12px;
-        margin-bottom: 14px;
+        margin-bottom: 34px; // ⭐ 增加間距
       }
 
       &:last-child {
@@ -1625,7 +1789,161 @@ onMounted(async () => {
     }
   }
 }
+// ⭐ 單位搜尋容器
+.unit-search-container {
+  position: relative;
+  
+  .unit-search-wrapper {
+    position: relative;
+    
+    .unit-search-input {
+      padding-right: 70px; // 為搜尋圖標和清除按鈕留空間
+    }
+    
+    // ⭐ 新增：已選擇的單位 Badge（使用 absolute 定位）
+    .selected-unit-badge {
+      position: absolute;
+      left: 12px;
+      bottom: -28px; // 顯示在輸入框下方
+      padding: 4px 10px;
+      background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+      color: #2e7d32;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      white-space: nowrap;
+      z-index: 1;
+      box-shadow: 0 1px 3px rgba(46, 125, 50, 0.2);
+      
+      // 平板調整
+      @media (max-width: 1024px) and (min-width: 769px) {
+        font-size: 11px;
+        bottom: -26px;
+        padding: 3px 8px;
+      }
+      
+      // 手機調整
+      @media (max-width: 768px) {
+        font-size: 11px;
+        bottom: -30px;
+        padding: 4px 10px;
+        left: 0;
+      }
+      
+      // 小手機調整
+      @media (max-width: 480px) {
+        font-size: 10px;
+        bottom: -28px;
+        padding: 3px 8px;
+      }
+    }
+    
+    .search-loading-icon {
+      position: absolute;
+      right: 40px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #6c5ce7;
+      font-size: 16px;
+      animation: spin 1s linear infinite;
+      pointer-events: none;
+    }
+    
+    .clear-unit-btn {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #e9ecef;
+      border: none;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #666;
+      font-size: 14px;
+      transition: all 0.2s;
+      
+      &:hover:not(:disabled) {
+        background: #dc3545;
+        color: white;
+      }
+      
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+    
+    // 下拉選單
+    .unit-search-dropdown {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      max-height: 300px;
+      overflow-y: auto;
+      z-index: 1000;
+      
+      // 平板調整
+      @media (max-width: 1024px) {
+        max-height: 250px;
+      }
+      
+      // 手機調整
+      @media (max-width: 768px) {
+        max-height: 200px;
+      }
+      
+      &.no-results {
+        padding: 16px;
+        text-align: center;
+        
+        .no-results-text {
+          color: #999;
+          font-size: 14px;
+        }
+      }
+      
+      .unit-search-item {
+        padding: 12px 16px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        border-bottom: 1px solid #f0f0f0;
+        
+        &:last-child {
+          border-bottom: none;
+        }
+        
+        &:hover {
+          background: #f8f9fa;
+        }
+        
+        &:active {
+          background: #e9ecef;
+        }
+        
+        .unit-name {
+          font-size: 14px;
+          color: #333;
+          font-weight: 500;
+        }
+      }
+    }
+  }
+}
 
+@keyframes spin {
+  0% { transform: translateY(-50%) rotate(0deg); }
+  100% { transform: translateY(-50%) rotate(360deg); }
+}
 // 確保在所有裝置上的滾動順暢
 * {
   -webkit-overflow-scrolling: touch;

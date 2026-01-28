@@ -1,6 +1,5 @@
-
 <script setup>
-import { ref, computed, reactive, onMounted, watch } from 'vue'
+import { ref, computed, reactive, onMounted, watch, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUnitStore } from '@/stores/unit'
 import { formatDateTime } from '@/utils/dateUtils'
@@ -36,7 +35,9 @@ const formData = reactive({
       type: 'select', 
       selectedId: '', 
       inputValue: '', 
-      importance_level: '1', // 新增：預設為普級
+      importance_level: '1',
+      unit_label_ids: [], // ⭐ 單位標籤 IDs
+      unit_labels: [], // ⭐ 單位標籤名稱（用於顯示）
       options: [], 
       isLoading: false, 
       isLocked: false 
@@ -47,9 +48,18 @@ const formData = reactive({
 // 備份資料
 const backupData = reactive({
   originalUnitName: '',
-  originalimportance_level: '', // 新增：備份重要程度
+  originalimportance_level: '',
+  originalUnitLabelIds: [], // ⭐ 備份標籤 IDs
+  originalUnitLabels: [], // ⭐ 備份標籤名稱
   originalUserSelections: []
 })
+
+// ⭐ 單位標籤相關狀態
+const availableUnitLabels = ref([])
+const isLoadingLabels = ref(false)
+const labelSearchKeyword = ref('')
+const showLabelDropdown = ref(false)
+const showMobileLabelModal = ref(false)
 
 // 編輯模式專用資料
 const editUnitData = ref(null)
@@ -72,6 +82,240 @@ const isLoadingUsers = ref(false)
 const availableUsers = ref([])
 const totalUsers = ref(0)
 const totalPages = ref(0)
+
+// ⭐ 修改：獲取當前層的標籤（用於顯示）
+const getCurrentLayerLabels = () => {
+  // 編輯模式：取目標層的標籤
+  if (isEditMode.value) {
+    const targetLayer = formData.unitLayers.find(layer => layer.isTarget)
+    return targetLayer?.unit_labels || []
+  }
+  
+  // 新增模式：取最後一個 input 層的標籤
+  for (let i = formData.unitLayers.length - 1; i >= 0; i--) {
+    const layer = formData.unitLayers[i]
+    if (layer.type === 'input' && layer.inputValue) {
+      return layer.unit_labels || []
+    }
+  }
+  
+  return []
+}
+
+// ⭐ 修改：當前層已選標籤（字串陣列）
+const currentLayerLabels = computed(() => getCurrentLayerLabels())
+
+// ⭐ 修改：已選標籤物件（用於顯示）
+const selectedLabels = computed(() => {
+  const labelNames = currentLayerLabels.value
+  
+  // 如果沒有標籤名稱，返回空陣列
+  if (!labelNames || labelNames.length === 0) {
+    return []
+  }
+  
+  // 如果 availableUnitLabels 還沒載入，直接用標籤名稱建立暫時物件
+  if (availableUnitLabels.value.length === 0) {
+    return labelNames.map((name, index) => ({
+      id: `temp-${index}`, // 暫時 ID
+      name: name
+    }))
+  }
+  
+  // 從 availableUnitLabels 中找到對應的標籤物件
+  const matched = availableUnitLabels.value.filter(label => 
+    labelNames.includes(label.name)
+  )
+  
+  // 如果有些標籤在 availableUnitLabels 中找不到（可能是舊標籤），也顯示出來
+  const matchedNames = matched.map(l => l.name)
+  const unmatchedNames = labelNames.filter(name => !matchedNames.includes(name))
+  
+  const unmatchedLabels = unmatchedNames.map((name, index) => ({
+    id: `unmatched-${index}`, // 暫時 ID
+    name: name
+  }))
+  
+  return [...matched, ...unmatchedLabels]
+})
+
+
+
+// ⭐ 過濾後的標籤列表
+const filteredUnitLabels = computed(() => {
+  if (!labelSearchKeyword.value) {
+    return availableUnitLabels.value
+  }
+  
+  const keyword = labelSearchKeyword.value.toLowerCase()
+  return availableUnitLabels.value.filter(label => 
+    label.name.toLowerCase().includes(keyword)
+  )
+})
+
+// ⭐ 判斷是否可以選擇標籤
+const canSelectLabelsInCreateMode = computed(() => {
+  // 編輯模式：看是否在編輯狀態
+  if (isEditMode.value) {
+    return isEditingUnitName.value
+  }
+  
+  // 新增模式：檢查當前層是否有輸入內容
+  const currentLayer = getCurrentLayer()
+  if (!currentLayer) return false
+  
+  // 如果是 input 類型，檢查是否有輸入值
+  if (currentLayer.type === 'input') {
+    return currentLayer.inputValue && currentLayer.inputValue.trim().length > 0
+  }
+  
+  // 如果是 select 類型，檢查是否有選擇
+  if (currentLayer.type === 'select') {
+    return !!currentLayer.selectedId
+  }
+  
+  return false
+})
+
+// ⭐ 載入單位標籤
+const loadUnitLabels = async () => {
+  try {
+    isLoadingLabels.value = true
+    const response = await unitStore.fetchUnitLabels(labelSearchKeyword.value)
+    
+    if (response.success && response.data) {
+      availableUnitLabels.value = response.data
+    } else {
+      availableUnitLabels.value = []
+    }
+  } catch (error) {
+    console.error('載入單位標籤失敗:', error)
+    availableUnitLabels.value = []
+  } finally {
+    isLoadingLabels.value = false
+  }
+}
+
+// ⭐ 修改：切換標籤選擇
+const toggleLabelSelection = (labelId) => {
+  const targetLayer = getCurrentLayer()
+  if (!targetLayer) return
+  
+  // 初始化陣列
+  if (!targetLayer.unit_label_ids) {
+    targetLayer.unit_label_ids = []
+  }
+  if (!targetLayer.unit_labels) {
+    targetLayer.unit_labels = []
+  }
+  
+  // 找到對應的標籤物件
+  const label = availableUnitLabels.value.find(l => l.id === labelId)
+  if (!label) return
+  
+  // 切換選擇狀態
+  const idIndex = targetLayer.unit_label_ids.indexOf(labelId)
+  const nameIndex = targetLayer.unit_labels.indexOf(label.name)
+  
+  if (idIndex > -1) {
+    // 取消選擇
+    targetLayer.unit_label_ids.splice(idIndex, 1)
+    if (nameIndex > -1) {
+      targetLayer.unit_labels.splice(nameIndex, 1)
+    }
+  } else {
+    // 新增選擇
+    targetLayer.unit_label_ids.push(labelId)
+    targetLayer.unit_labels.push(label.name)
+  }
+}
+
+// ⭐ 修改：判斷標籤是否已選
+const isLabelSelected = (labelId) => {
+  const label = availableUnitLabels.value.find(l => l.id === labelId)
+  if (!label) return false
+  
+  return currentLayerLabels.value.includes(label.name)
+}
+
+// ⭐ 修改：移除單個標籤（接收標籤名稱）
+const removeSelectedLabel = (labelName) => {
+  const targetLayer = getCurrentLayer()
+  if (!targetLayer) return
+  
+  // 找到對應的標籤物件
+  const label = availableUnitLabels.value.find(l => l.name === labelName)
+  if (!label) return
+  
+  // 移除 ID
+  const idIndex = targetLayer.unit_label_ids?.indexOf(label.id)
+  if (idIndex !== undefined && idIndex > -1) {
+    targetLayer.unit_label_ids.splice(idIndex, 1)
+  }
+  
+  // 移除名稱
+  const nameIndex = targetLayer.unit_labels?.indexOf(labelName)
+  if (nameIndex !== undefined && nameIndex > -1) {
+    targetLayer.unit_labels.splice(nameIndex, 1)
+  }
+}
+
+// ⭐ 修改：清空所有標籤
+const clearAllLabels = () => {
+  const targetLayer = getCurrentLayer()
+  if (targetLayer) {
+    targetLayer.unit_label_ids = []
+    targetLayer.unit_labels = []
+  }
+}
+
+// ⭐ 獲取當前操作的層級
+const getCurrentLayer = () => {
+  if (isEditMode.value) {
+    return formData.unitLayers.find(layer => layer.isTarget)
+  }
+  
+  for (let i = formData.unitLayers.length - 1; i >= 0; i--) {
+    const layer = formData.unitLayers[i]
+    if (layer.type === 'input' && layer.inputValue) {
+      return layer
+    }
+  }
+  
+  return formData.unitLayers[formData.unitLayers.length - 1]
+}
+
+// ⭐ 桌面版切換下拉選單
+const toggleLabelDropdown = () => {
+  showLabelDropdown.value = !showLabelDropdown.value
+  if (showLabelDropdown.value && availableUnitLabels.value.length === 0) {
+    loadUnitLabels()
+  }
+}
+
+// ⭐ 手機版開啟/關閉標籤選擇 Modal
+const openMobileLabelModal = () => {
+  showMobileLabelModal.value = true
+  if (availableUnitLabels.value.length === 0) {
+    loadUnitLabels()
+  }
+}
+
+const closeMobileLabelModal = () => {
+  showMobileLabelModal.value = false
+  labelSearchKeyword.value = ''
+}
+
+// ⭐ 關閉桌面版下拉選單（點擊外部時）
+const closeDropdownOnClickOutside = (event) => {
+  const dropdown = document.querySelector('.label-dropdown')
+  const button = document.querySelector('.select-labels-btn')
+  
+  if (dropdown && !dropdown.contains(event.target) && 
+      button && !button.contains(event.target)) {
+    showLabelDropdown.value = false
+  }
+}
 
 // 分頁控制
 const visiblePages = computed(() => {
@@ -140,24 +384,18 @@ const unitPath = computed(() => {
     .join(' > ')
 })
 
-// 從編輯單位 ID 建構完整路徑並初始化表單
+// ⭐ 修改：從編輯單位 ID 建構完整路徑並初始化表單
 const buildEditUnitPath = async (targetUnitId) => {
   try {
-    //console.log('建構編輯單位路徑，目標 ID:', targetUnitId)
-    
     const response = await unitStore.fetchUnitById(targetUnitId)
     if (!response.success || !response.data) {
       throw new Error('無法取得單位資料')
     }
     
     const targetUnit = response.data
-    //console.log('目標單位資料:', targetUnit)
-    
     editUnitData.value = targetUnit
     originalUnitName.value = targetUnit.name
-    
     unitUsersCount.value = targetUnit.users ? targetUnit.users.length : 0
-    //console.log('單位用戶數量:', unitUsersCount.value)
     
     const path = []
     
@@ -169,7 +407,9 @@ const buildEditUnitPath = async (targetUnitId) => {
         name: unit.name,
         layer: unit.layer,
         level: levelNumber,
-        importance_level: unit.importance_level || '1', // 新增：從 API 取得重要程度
+        importance_level: unit.importance_level || '1',
+        unit_label_ids: unit.unit_label_ids || [], // ⭐ 保持這個用於提交
+        unit_labels: unit.unit_labels || [], // ⭐ 新增：用於顯示的標籤名稱陣列
         isTarget: unit.id === targetUnitId
       })
       
@@ -182,20 +422,16 @@ const buildEditUnitPath = async (targetUnitId) => {
     }
     
     await buildPath(targetUnit)
-    //console.log('編輯模式完整路徑:', path)
-    
     return path
   } catch (error) {
-    //console.error('建構編輯單位路徑失敗:', error)
+    console.error('建構編輯單位路徑失敗:', error)
     throw error
   }
 }
 
-// 根據編輯模式路徑初始化表單
+// ⭐ 修改：根據編輯模式路徑初始化表單
 const initializeEditForm = async (path) => {
   try {
-    //console.log('根據編輯路徑初始化表單:', path)
-    
     formData.unitLayers = []
     
     for (let i = 0; i < path.length; i++) {
@@ -212,7 +448,9 @@ const initializeEditForm = async (path) => {
             id: subUnit.sub_unit_id,
             name: subUnit.sub_unit_name,
             layer: `L${i + 1}`,
-            importance_level: subUnit.importance_level || '1' // 新增：子單位的重要程度
+            importance_level: subUnit.importance_level || '1',
+            unit_label_ids: subUnit.unit_label_ids || [],
+            unit_labels: subUnit.unit_labels || [] // ⭐ 新增
           }))
         }
       }
@@ -222,7 +460,9 @@ const initializeEditForm = async (path) => {
         type: 'select',
         selectedId: pathItem.id,
         inputValue: pathItem.isTarget ? pathItem.name : '',
-        importance_level: pathItem.importance_level, // 新增：設定重要程度
+        importance_level: pathItem.importance_level,
+        unit_label_ids: pathItem.unit_label_ids || [],
+        unit_labels: pathItem.unit_labels || [], // ⭐ 新增：用於顯示
         options: options,
         isLoading: false,
         isLocked: !pathItem.isTarget,
@@ -239,29 +479,22 @@ const initializeEditForm = async (path) => {
       formData.unitLayers.push(formLayer)
     }
     
-    //console.log('編輯模式表單初始化完成:', formData.unitLayers)
-    
-    //console.log('🚀 編輯模式：開始載入目標單位的用戶資料，單位ID:', editUnitData.value.id)
     await loadUsers(editUnitData.value.id)
     
   } catch (error) {
-    //console.error('初始化編輯表單失敗:', error)
+    console.error('初始化編輯表單失敗:', error)
     throw error
   }
 }
 
 const buildParentPath = async (targetParentId) => {
   try {
-    //console.log('建構父層路徑，目標 ID:', targetParentId)
-    
     const response = await unitStore.fetchUnitById(targetParentId)
     if (!response.success || !response.data) {
       throw new Error('無法取得父單位資料')
     }
     
     const parentUnit = response.data
-    //console.log('父單位資料:', parentUnit)
-    
     const path = []
     
     const buildPath = async (unit) => {
@@ -272,7 +505,9 @@ const buildParentPath = async (targetParentId) => {
         name: unit.name,
         layer: unit.layer,
         level: levelNumber,
-        importance_level: unit.importance_level || '1' // 新增：從 API 取得重要程度
+        importance_level: unit.importance_level || '1',
+        unit_label_ids: unit.unit_label_ids || [],
+        unit_labels: unit.unit_labels || [] // ⭐ 新增
       })
       
       if (unit.parent_id) {
@@ -284,11 +519,9 @@ const buildParentPath = async (targetParentId) => {
     }
     
     await buildPath(parentUnit)
-    //console.log('完整路徑:', path)
-    
     return path
   } catch (error) {
-    //console.error('建構父層路徑失敗:', error)
+    console.error('建構父層路徑失敗:', error)
     throw error
   }
 }
@@ -296,8 +529,6 @@ const buildParentPath = async (targetParentId) => {
 // 根據父層路徑初始化表單
 const initializeFormFromPath = async (path) => {
   try {
-    //console.log('根據路徑初始化表單:', path)
-    
     formData.unitLayers = []
     
     for (let i = 0; i < path.length; i++) {
@@ -314,7 +545,9 @@ const initializeFormFromPath = async (path) => {
             id: subUnit.sub_unit_id,
             name: subUnit.sub_unit_name,
             layer: `L${i + 1}`,
-            importance_level: subUnit.importance_level || '1' // 新增
+            importance_level: subUnit.importance_level || '1',
+            unit_label_ids: subUnit.unit_label_ids || [],
+            unit_labels: subUnit.unit_labels || [] // ⭐ 新增
           }))
         }
       }
@@ -324,7 +557,9 @@ const initializeFormFromPath = async (path) => {
         type: 'select',
         selectedId: pathItem.id,
         inputValue: '',
-        importance_level: pathItem.importance_level, // 新增
+        importance_level: pathItem.importance_level,
+        unit_label_ids: pathItem.unit_label_ids || [],
+        unit_labels: pathItem.unit_labels || [], // ⭐ 新增
         options: options,
         isLoading: false,
         isLocked: true
@@ -335,22 +570,21 @@ const initializeFormFromPath = async (path) => {
     
     const nextLevel = path.length + 1
     if (nextLevel <= 5) {
-      //console.log(`插入模式：添加第 ${nextLevel} 層輸入欄位`)
       formData.unitLayers.push({
         level: nextLevel,
         type: 'input',
         selectedId: '',
         inputValue: '',
-        importance_level: '1', // 新增：預設為普級
+        importance_level: '1',
+        unit_label_ids: [],
+        unit_labels: [], // ⭐ 新增
         options: [],
         isLoading: false,
         isLocked: false
       })
     }
-    
-    //console.log('表單初始化完成:', formData.unitLayers)
   } catch (error) {
-    //console.error('初始化表單失敗:', error)
+    console.error('初始化表單失敗:', error)
     throw error
   }
 }
@@ -359,7 +593,6 @@ const handleLayerChange = async (layerIndex) => {
   const currentLayer = formData.unitLayers[layerIndex]
   
   if (isEditMode.value && currentLayer.isTarget) {
-    //console.log('編輯模式：目標單位名稱變更')
     return
   }
   
@@ -372,7 +605,6 @@ const handleLayerChange = async (layerIndex) => {
 
 const loadLayerOptions = async (layerNumber) => {
   try {
-    //console.log(`載入第 ${layerNumber} 層選項`)
     const response = await unitStore.fetchUnitsByLayer(layerNumber, {})
     
     if (response.success && response.data && response.data.data) {
@@ -381,13 +613,15 @@ const loadLayerOptions = async (layerNumber) => {
         id: unit.id,
         name: unit.name,
         layer: unit.layer,
-        importance_level: unit.importance_level || '1' // 新增
+        importance_level: unit.importance_level || '1',
+        unit_label_ids: unit.unit_label_ids || [],
+        unit_labels: unit.unit_labels || [] // ⭐ 新增
       }))
     }
     
     return []
   } catch (error) {
-    //console.error(`載入第 ${layerNumber} 層選項失敗:`, error)
+    console.error(`載入第 ${layerNumber} 層選項失敗:`, error)
     return []
   }
 }
@@ -396,8 +630,6 @@ const loadNextLayerOptions = async (nextLayerLevel, parentId) => {
   if (nextLayerLevel > 5) return
   
   try {
-    //console.log(`載入第 ${nextLayerLevel} 層選項，父級 ID:`, parentId)
-    
     const response = await unitStore.fetchUnitById(parentId)
     
     if (response.success && response.data && response.data.sub_units) {
@@ -405,7 +637,9 @@ const loadNextLayerOptions = async (nextLayerLevel, parentId) => {
         id: subUnit.sub_unit_id,
         name: subUnit.sub_unit_name,
         layer: `L${nextLayerLevel}`,
-        importance_level: subUnit.importance_level || '1' // 新增
+        importance_level: subUnit.importance_level || '1',
+        unit_label_ids: subUnit.unit_label_ids || [],
+        unit_labels: subUnit.unit_labels || [] // ⭐ 新增
       }))
       
       if (options.length > 0) {
@@ -414,7 +648,9 @@ const loadNextLayerOptions = async (nextLayerLevel, parentId) => {
           type: 'select',
           selectedId: '',
           inputValue: '',
-          importance_level: '1', // 新增：預設為普級
+          importance_level: '1',
+          unit_label_ids: [],
+          unit_labels: [], // ⭐ 新增
           options: options,
           isLoading: false,
           isLocked: false
@@ -424,7 +660,7 @@ const loadNextLayerOptions = async (nextLayerLevel, parentId) => {
       }
     }
   } catch (error) {
-    //console.error(`載入第 ${nextLayerLevel} 層選項失敗:`, error)
+    console.error(`載入第 ${nextLayerLevel} 層選項失敗:`, error)
   }
 }
 
@@ -433,17 +669,17 @@ const addInputLayer = (level) => {
   
   const existingLayer = formData.unitLayers.find(layer => layer.level === level)
   if (existingLayer) {
-    //console.log(`第 ${level} 層已存在，不重複添加`)
     return
   }
   
-  //console.log(`添加第 ${level} 層 input`)
   formData.unitLayers.push({
     level: level,
     type: 'input',
     selectedId: '',
     inputValue: '',
-    importance_level: '1', // 新增：預設為普級
+    importance_level: '1',
+    unit_label_ids: [],
+    unit_labels: [], // ⭐ 新增
     options: [],
     isLoading: false,
     isLocked: false
@@ -454,7 +690,6 @@ const toggleLayerType = async (layerIndex) => {
   const layer = formData.unitLayers[layerIndex]
   
   if (layer.isLocked) {
-    //console.log('此層級已鎖定，不允許切換類型')
     return
   }
   
@@ -462,7 +697,6 @@ const toggleLayerType = async (layerIndex) => {
     layer.type = 'input'
     layer.selectedId = ''
     layer.inputValue = ''
-    // 保留 importance_level
   } else {
     layer.type = 'select'
     layer.inputValue = ''
@@ -481,13 +715,15 @@ const toggleLayerType = async (layerIndex) => {
               id: subUnit.sub_unit_id,
               name: subUnit.sub_unit_name,
               layer: `L${layer.level}`,
-              importance_level: subUnit.importance_level || '1' // 新增
+              importance_level: subUnit.importance_level || '1',
+              unit_label_ids: subUnit.unit_label_ids || [],
+              unit_labels: subUnit.unit_labels || [] // ⭐ 新增
             }))
           }
         }
       }
     } catch (error) {
-      //console.error('載入選項失敗:', error)
+      console.error('載入選項失敗:', error)
       layer.options = []
     } finally {
       layer.isLoading = false
@@ -512,37 +748,17 @@ const loadUsers = async (unitId = null, forceReload = false) => {
     let response
     
     if (unitId) {
-      //console.log('🔄 載入單位用戶:', { 
-      //   unitId, 
-      //   forceReload,
-      //   isEditMode: isEditMode.value, 
-      //   editUnitId: editUnitData.value?.id,
-      //   unitName: editUnitData.value?.name,
-      //   timestamp: new Date().toLocaleTimeString()
-      // })
-      
-      //console.log('📡 發送 fetchUnitUsers API 請求...')
       if(isInsertMode.value){
         response = await unitStore.fetchEmptyUnitUsers(searchParams)
       } else {
         response = await unitStore.fetchUnitUsers(unitId, searchParams)
       }
-      //console.log('📡 fetchUnitUsers API 回應:', response)
     } else {
-      //console.log('🔄 載入所有有資格用戶:', { 
-      //   forceReload,
-      //   searchParams,
-      //   timestamp: new Date().toLocaleTimeString()
-      // })
-      
-      //console.log('📡 發送 fetchEmptyUnitUsers API 請求...')
       response = await unitStore.fetchEmptyUnitUsers(searchParams)
-      //console.log('📡 fetchEmptyUnitUsers API 回應:', response)
     }
     
     if (response.success && response.data && response.data.data) {
       const usersData = response.data.data
-      //console.log('📊 原始用戶資料:', usersData)
       
       let processedUsers
       
@@ -584,62 +800,26 @@ const loadUsers = async (unitId = null, forceReload = false) => {
           ...sortUsers(joinedUsers),
           ...sortUsers(notJoinedUsers)
         ]
-        
-        //console.log('🔝 用戶排序完成:', {
-        //   joinedCount: joinedUsers.length,
-        //   notJoinedCount: notJoinedUsers.length,
-        //   totalCount: processedUsers.length
-        // })
       }
       
-      //console.log('🔄 更新 availableUsers.value...')
       availableUsers.value = processedUsers
       
       totalUsers.value = usersData.total || 0
       totalPages.value = usersData.totalPages || 0
       currentPage.value = usersData.page || 1
-      
-      if (unitId) {
-        //console.log(`✅ 單位用戶載入完成:`, {
-        //   unitId,
-        //   unitName: editUnitData.value?.name,
-        //   totalUsers: availableUsers.value.length,
-        //   joinedUsers: availableUsers.value.filter(u => u.isSelected).length,
-        //   notJoinedUsers: availableUsers.value.filter(u => !u.isSelected).length,
-        //   timestamp: new Date().toLocaleTimeString()
-        // })
-        
-        if (isEditMode.value) {
-          //console.log('📊 編輯模式用戶狀態詳情（已按加入狀態排序）:')
-          availableUsers.value.forEach((user, index) => {
-            //console.log(`${index + 1}. ${user.name} (${user.account}): ${user.is_join ? '✅ 已加入' : '❌ 未加入'}`)
-          })
-        }
-      } else {
-        //console.log(`✅ 所有用戶載入完成:`, {
-        //   totalUsers: availableUsers.value.length,
-        //   allUsersAvailable: true,
-        //   timestamp: new Date().toLocaleTimeString()
-        // })
-      }
-      
-      //console.log('✅ availableUsers.value 更新完成，當前長度:', availableUsers.value.length)
     } else {
-      //console.log('⚠️ 無用戶資料返回或回應格式錯誤:', response)
       availableUsers.value = []
       totalUsers.value = 0
       totalPages.value = 0
     }
   } catch (error) {
-    //console.error('❌ 載入用戶失敗:', error)
-    //console.error('❌ 錯誤詳情:', error.stack)
+    console.error('❌ 載入用戶失敗:', error)
     availableUsers.value = []
     totalUsers.value = 0
     totalPages.value = 0
     alert('載入用戶資料失敗，請稍後再試')
   } finally {
     isLoadingUsers.value = false
-    //console.log('🏁 loadUsers 函數執行完成，isLoadingUsers:', isLoadingUsers.value)
   }
 }
 
@@ -671,15 +851,11 @@ watch(pageSize, async () => {
 })
 
 watch(currentUnitId, async (newUnitId, oldUnitId) => {
-  //console.log('單位變更監聽器觸發:', { newUnitId, oldUnitId, isEditMode: isEditMode.value })
-  
   if (isEditMode.value && oldUnitId === null && newUnitId === editUnitData.value?.id) {
-    //console.log('編輯模式初始化，跳過重複載入用戶')
     return
   }
   
   if (isEditMode.value && newUnitId === editUnitData.value?.id) {
-    //console.log('編輯模式：允許重新載入用戶資料')
     currentPage.value = 1
     searchKeyword.value = ''
     await loadUsers(newUnitId)
@@ -687,7 +863,6 @@ watch(currentUnitId, async (newUnitId, oldUnitId) => {
   }
   
   if (isEditMode.value && newUnitId !== editUnitData.value?.id) {
-    //console.warn('編輯模式下單位ID異常變更，保持原有單位ID')
     return
   }
   
@@ -735,7 +910,8 @@ const buildApiData = () => {
     if (currentLayer.type === 'input' && currentLayer.inputValue) {
       const unit = {
         name: currentLayer.inputValue,
-        importance_level: currentLayer.importance_level, // 新增：重要程度
+        importance_level: currentLayer.importance_level,
+        unit_label_ids: currentLayer.unit_label_ids || [], // ⭐ 標籤 IDs
         users: [],
         sub_units: buildNestedUnits(startIndex + 1)
       }
@@ -774,7 +950,6 @@ const addManualLayer = () => {
     return
   }
   
-  //console.log(`手動添加第 ${nextLevel} 層`)
   addInputLayer(nextLevel)
 }
 
@@ -782,37 +957,13 @@ const previewApiData = computed(() => {
   try {
     return buildApiData()
   } catch (error) {
-    //console.error('建構 API 資料時發生錯誤:', error)
+    console.error('建構 API 資料時發生錯誤:', error)
     return { parentId: null, units: [] }
   }
 })
 
 const cancel = () => {
   router.push('/settings/unit-management')
-}
-
-const testBuildData = () => {
-  //console.log('=== 測試建構 API 資料 ===')
-  
-  if (isEditMode.value) {
-    const targetLayer = formData.unitLayers.find(layer => layer.isTarget)
-    const editData = {
-      name: targetLayer?.inputValue,
-      importance_level: targetLayer?.importance_level, // 新增
-      updateUnitUsers: availableUsers.value.map(user => ({
-        user_id: user.id,
-        is_in_unit: user.isSelected
-      }))
-    }
-    
-    //console.log('編輯模式 API 資料:', editData)
-  } else {
-    //console.log('當前表單層級:', formData.unitLayers)
-    //console.log('選中的用戶:', selectedUsers.value)
-    //console.log('建構的 API 資料:', previewApiData.value)
-  }
-  
-  //console.log('=========================')
 }
 
 const saveForm = async () => {
@@ -828,26 +979,22 @@ const saveForm = async () => {
       
       const editData = {
         name: targetLayer.inputValue,
-        importance_level: targetLayer.importance_level, // 新增：重要程度
+        importance_level: targetLayer.importance_level,
+        unit_label_ids: targetLayer.unit_label_ids || [], // ⭐ 標籤 IDs
         updateUnitUsers: availableUsers.value.map(user => ({
           user_id: user.id,
           is_in_unit: user.isSelected
         }))
       }
       
-      //console.log('準備發送的編輯 API 資料:', editData)
-      
       const response = await unitStore.updateUnit(editUnitData.value.id, editData)
       
       if (response.success) {
-        //console.log('✅ 編輯 API 成功，開始重新載入資料...')
-        
         try {
           await reloadEditPageData()
-          //console.log('✅ 編輯完成，資料已重新載入')
           alert('編輯單位成功！')
         } catch (reloadError) {
-          //console.error('❌ 重新載入資料時發生錯誤:', reloadError)
+          console.error('❌ 重新載入資料時發生錯誤:', reloadError)
           alert('編輯成功，但重新載入資料失敗，請手動刷新頁面')
         }
       } else {
@@ -870,8 +1017,6 @@ const saveForm = async () => {
       
       const apiData = buildApiData()
       
-      //console.log('準備發送的 API 資料:', apiData)
-      
       const response = await unitStore.createUnit(apiData)
       
       if (response.success) {
@@ -883,13 +1028,14 @@ const saveForm = async () => {
     }
     
   } catch (error) {
-    //console.error('儲存失敗:', error)
+    console.error('儲存失敗:', error)
     alert('儲存失敗：' + (error.message || '請稍後再試'))
   } finally {
     isSaving.value = false
   }
 }
 
+// ⭐ 修改：編輯單位名稱切換
 const toggleEditUnitName = () => {
   if(!hasWriteUnitPermission.value){
     alert('您沒有權限編輯單位名稱')
@@ -897,12 +1043,12 @@ const toggleEditUnitName = () => {
   }
   
   if (!isEditingUnitName.value) {
-    //console.log('進入編輯模式，備份當前資料')
-    
     const targetLayer = formData.unitLayers.find(layer => layer.isTarget)
     if (targetLayer) {
       backupData.originalUnitName = targetLayer.inputValue
-      backupData.originalimportance_level = targetLayer.importance_level // 新增：備份重要程度
+      backupData.originalimportance_level = targetLayer.importance_level
+      backupData.originalUnitLabelIds = [...(targetLayer.unit_label_ids || [])]
+      backupData.originalUnitLabels = [...(targetLayer.unit_labels || [])] // ⭐ 新增：備份標籤名稱
     }
     
     backupData.originalUserSelections = availableUsers.value.map(user => ({
@@ -910,22 +1056,18 @@ const toggleEditUnitName = () => {
       isSelected: user.isSelected
     }))
     
-   
-    
     isEditingUnitName.value = true
     
     if (targetLayer) {
       targetLayer.isLocked = false
     }
   } else {
-    //console.log('取消編輯模式，恢復備份資料')
-    
     const targetLayer = formData.unitLayers.find(layer => layer.isTarget)
     if (targetLayer && backupData.originalUnitName !== '') {
       targetLayer.inputValue = backupData.originalUnitName
-      targetLayer.importance_level = backupData.originalimportance_level // 新增：恢復重要程度
-      //console.log('恢復單位名稱:', backupData.originalUnitName)
-      //console.log('恢復重要程度:', backupData.originalimportance_level) // 新增
+      targetLayer.importance_level = backupData.originalimportance_level
+      targetLayer.unit_label_ids = [...backupData.originalUnitLabelIds]
+      targetLayer.unit_labels = [...backupData.originalUnitLabels] // ⭐ 新增：恢復標籤名稱
     }
     
     if (backupData.originalUserSelections.length > 0) {
@@ -935,7 +1077,6 @@ const toggleEditUnitName = () => {
           user.isSelected = backup.isSelected
         }
       })
-      //console.log('恢復用戶選擇狀態完成')
     }
     
     isEditingUnitName.value = false
@@ -945,60 +1086,48 @@ const toggleEditUnitName = () => {
     }
     
     backupData.originalUnitName = ''
-    backupData.originalimportance_level = '' // 新增
+    backupData.originalimportance_level = ''
+    backupData.originalUnitLabelIds = []
+    backupData.originalUnitLabels = [] // ⭐ 新增
     backupData.originalUserSelections = []
   }
-  
-  //console.log('編輯模式狀態:', isEditingUnitName.value)
 }
 
+// ⭐ 修改：重新載入編輯頁面資料
 const reloadEditPageData = async () => {
   try {
-    //console.log('🔄 開始重新載入編輯頁面資料，當前時間:', new Date().toLocaleTimeString())
-    
     if (!editUnitData.value || !editUnitData.value.id) {
       throw new Error('editUnitData 或 editUnitData.id 不存在')
     }
     
-    //console.log('📡 重新獲取單位詳細資料，單位ID:', editUnitData.value.id)
-    
     const response = await unitStore.fetchUnitById(editUnitData.value.id)
     if (response.success && response.data) {
-      //console.log('✅ 單位詳細資料獲取成功:', response.data)
-      
       editUnitData.value = response.data
       originalUnitName.value = response.data.name
       unitUsersCount.value = response.data.users ? response.data.users.length : 0
       
-     
-      
       const targetLayer = formData.unitLayers.find(layer => layer.isTarget)
       if (targetLayer) {
         targetLayer.inputValue = response.data.name
-        targetLayer.importance_level = response.data.importance_level || '1' // 新增：更新重要程度
-        //console.log('📝 表單中的單位名稱已更新:', targetLayer.inputValue)
-        //console.log('📝 表單中的重要程度已更新:', targetLayer.importance_level) // 新增
+        targetLayer.importance_level = response.data.importance_level || '1'
+        targetLayer.unit_label_ids = response.data.unit_label_ids || []
+        targetLayer.unit_labels = response.data.unit_labels || [] // ⭐ 新增
       }
     } else {
       throw new Error('重新獲取單位資料失敗：' + (response.message || '未知錯誤'))
     }
     
-    //console.log('🔄 直接重新載入用戶資料，單位ID:', editUnitData.value.id)
     currentPage.value = 1
     searchKeyword.value = ''
     
     try {
       await loadUsers(editUnitData.value.id, true)
-      //console.log('✅ 用戶資料重新載入成功')
     } catch (userLoadError) {
-      //console.error('❌ 載入用戶資料時發生錯誤:', userLoadError)
+      console.error('❌ 載入用戶資料時發生錯誤:', userLoadError)
       throw new Error('載入用戶資料失敗：' + userLoadError.message)
     }
-    
-    //console.log('🎉 編輯頁面資料重新載入完成，時間:', new Date().toLocaleTimeString())
   } catch (error) {
-    //console.error('❌ 重新載入資料失敗:', error)
-    //console.error('錯誤詳情:', error.stack)
+    console.error('❌ 重新載入資料失敗:', error)
     throw error
   }
 }
@@ -1015,27 +1144,30 @@ const saveUnitNameChange = async () => {
     
     const editData = {
       name: targetLayer.inputValue,
-      importance_level: targetLayer.importance_level, // 新增：重要程度
+      importance_level: targetLayer.importance_level,
+      unit_label_ids: targetLayer.unit_label_ids || [], // ⭐ 標籤 IDs
       updateUnitUsers: availableUsers.value.map(user => ({
         user_id: user.id,
         is_in_unit: user.isSelected
       }))
     }
     
-    //console.log('單位名稱更新 API 資料:', editData)
-    
     const response = await unitStore.updateUnit(editUnitData.value.id, editData)
     
     if (response.success) {
       originalUnitName.value = targetLayer.inputValue
       editUnitData.value.name = targetLayer.inputValue
-      editUnitData.value.importance_level = targetLayer.importance_level // 新增
+      editUnitData.value.importance_level = targetLayer.importance_level
+      editUnitData.value.unit_label_ids = targetLayer.unit_label_ids || []
+      editUnitData.value.unit_labels = targetLayer.unit_labels || [] // ⭐ 新增
       
       isEditingUnitName.value = false
       targetLayer.isLocked = true
       
       backupData.originalUnitName = ''
-      backupData.originalimportance_level = '' // 新增
+      backupData.originalimportance_level = ''
+      backupData.originalUnitLabelIds = []
+      backupData.originalUnitLabels = [] // ⭐ 新增
       backupData.originalUserSelections = []
       
       alert('單位更新成功！')
@@ -1045,20 +1177,16 @@ const saveUnitNameChange = async () => {
       if (currentUser) {
         if (currentUser.isSelected) {
           authStore.user.repair_unit = targetLayer.inputValue
-          //console.log('用户仍在单位中，更新 repair_unit 为:', targetLayer.inputValue)
         } else {
           authStore.user.repair_unit = ''
-          //console.log('用户已被移除单位，清空 repair_unit')
         }
-      } else {
-        //console.log('当前用户不在此单位的用户列表中')
       }
       
     } else {
       alert('更新失敗：' + (response.message || '未知錯誤'))
     }
   } catch (error) {
-    //console.error('更新單位名稱失敗:', error)
+    console.error('更新單位名稱失敗:', error)
     alert('更新失敗：' + (error.message || '請稍後再試'))
   } finally {
     isSaving.value = false
@@ -1087,7 +1215,7 @@ const deleteUnit = async () => {
       alert('刪除失敗：' + (response.message || '未知錯誤'))
     }
   } catch (error) {
-    //console.error('刪除單位失敗:', error)
+    console.error('刪除單位失敗:', error)
     alert('刪除失敗：' + (error.message || '請稍後再試'))
   } finally {
     isSaving.value = false
@@ -1117,51 +1245,29 @@ const getimportance_levelLabel = (value) => {
   return option ? option.label : '普級'
 }
 
+// ⭐ 點擊外部關閉下拉選單
 onMounted(async () => {
   isLoading.value = true
   try {
-    // //console.log('🚀 onMounted: 路由模式:', { 
-    //   isCreateMode: isCreateMode.value, 
-    //   isInsertMode: isInsertMode.value,
-    //   isEditMode: isEditMode.value,
-    //   parentId: parentId.value,
-    //   editUnitId: editUnitId.value,
-    //   routeName: route.name 
-    // })
-    
     if (isEditMode.value && editUnitId.value) {
-      //console.log('🚀 編輯模式，建構編輯單位路徑')
       const editPath = await buildEditUnitPath(editUnitId.value)
       await initializeEditForm(editPath)
     } else if (isInsertMode.value && parentId.value) {
-      //console.log('🚀 插入模式，建構父層路徑')
       const parentPath = await buildParentPath(parentId.value)
       await initializeFormFromPath(parentPath)
     } else {
-      //console.log('🚀 創建模式，載入第一層選項')
       const firstLayerOptions = await loadLayerOptions(1)
       formData.unitLayers[0].options = firstLayerOptions
       formData.unitLayers[0].type = firstLayerOptions.length > 0 ? 'select' : 'input'
       formData.unitLayers[0].isLocked = false
-      // console.log('🚀 創建模式初始化完成，第一層:', { 
-      //   level: formData.unitLayers[0].level, 
-      //   type: formData.unitLayers[0].type, 
-      //   options: formData.unitLayers[0].options.length 
-      // })
       
-      //console.log('🚀 創建模式：載入所有有資格的用戶')
       await loadUsers(null)
     }
     
-    //console.log('🚀 初始化完成，最終層級狀態:', formData.unitLayers.map(l => ({ 
-    //   level: l.level, 
-    //   type: l.type, 
-    //   isLocked: l.isLocked,
-    //   isTarget: l.isTarget,
-    //   importance_level: l.importance_level // 新增
-    // })))
+    // ⭐ 監聽點擊外部事件
+    document.addEventListener('click', closeDropdownOnClickOutside)
   } catch (error) {
-    //console.error('❌ 初始化失敗:', error)
+    console.error('❌ 初始化失敗:', error)
     alert('初始化失敗：' + (error.message || '請稍後再試'))
     
     if (!isEditMode.value) {
@@ -1171,7 +1277,7 @@ onMounted(async () => {
       try {
         await loadUsers(null)
       } catch (userError) {
-        //console.error('❌ fallback 載入用戶失敗:', userError)
+        console.error('❌ fallback 載入用戶失敗:', userError)
       }
     }
   } finally {
@@ -1179,8 +1285,12 @@ onMounted(async () => {
   }
 })
 
-</script>
+// ⭐ 組件卸載時移除事件監聽
+onBeforeUnmount(() => {
+  document.removeEventListener('click', closeDropdownOnClickOutside)
+})
 
+</script>
 <template>
   <div class="create-unit-page">
     <!-- 頁面標題區域 - 響應式設計 -->
@@ -1205,7 +1315,6 @@ onMounted(async () => {
         
         <!-- 編輯模式的按鈕 -->
         <template v-else>
-          <!-- 編輯/儲存單位名稱按鈕 -->
           <button 
             v-if="!isEditingUnitName && hasWriteUnitPermission"
             class="edit-btn" 
@@ -1224,7 +1333,6 @@ onMounted(async () => {
             <span v-else>儲存</span>
           </button>
           
-          <!-- 刪除單位按鈕 -->
           <button 
             v-if="!isEditingUnitName && hasWriteUnitPermission"
             class="delete-btn" 
@@ -1233,7 +1341,7 @@ onMounted(async () => {
           >
             刪除單位
           </button>
-          <!-- 返回 -->
+          
           <button 
             v-if="!isEditingUnitName"
             class="cancel-btn" 
@@ -1256,7 +1364,6 @@ onMounted(async () => {
 
     <!-- 手機版專用的浮動按鈕 -->
     <div class="mobile-action-buttons">
-      <!-- 非編輯模式的按鈕 -->
       <template v-if="!isEditMode">
         <button class="mobile-save-btn" @click="saveForm" :disabled="isSaving">
           <span class="btn-icon">💾</span>
@@ -1264,7 +1371,6 @@ onMounted(async () => {
         </button>
       </template>
       
-      <!-- 編輯模式的按鈕 -->
       <template v-else>
         <button 
           v-if="!isEditingUnitName && hasWriteUnitPermission"
@@ -1296,7 +1402,6 @@ onMounted(async () => {
         </button>
       </template>
       
-      <!-- 返回按鈕 - 手機版固定顯示 -->
       <button 
         class="mobile-back-btn" 
         @click="isEditingUnitName ? toggleEditUnitName() : cancel()"
@@ -1316,13 +1421,13 @@ onMounted(async () => {
     <div v-else class="form-container">
       <!-- 單位階層選擇區域 -->
       <section class="unit-section">
-        <!-- 編輯模式單位資訊卡片 - 響應式 -->
+        <!-- 編輯模式單位資訊卡片 -->
         <div v-if="isEditMode" class="unit-info-card">
           <div class="unit-info-header">
             <h3>單位群組資訊</h3>
           </div>
           <div class="unit-info-content">
-            <!-- 桌面版和平板版 - 橫向佈局 -->
+            <!-- 桌面版和平板版 -->
             <div class="info-grid desktop-tablet-grid">
               <div class="info-row">
                 <label class="info-label">單位</label>
@@ -1346,7 +1451,7 @@ onMounted(async () => {
               </div>
             </div>
             
-            <!-- 手機版 - 縱向卡片式佈局 -->
+            <!-- 手機版 -->
             <div class="info-grid mobile-grid">
               <div class="info-card">
                 <div class="info-card-icon">🏢</div>
@@ -1389,7 +1494,7 @@ onMounted(async () => {
 
         <!-- 單位選擇表單 -->
         <div class="unit-form-section">
-          <!-- 桌面版和平板版 - 原有佈局 -->
+          <!-- 桌面版和平板版 -->
           <div class="desktop-tablet-form">
             <div class="form-row">
               <label class="form-label">單位</label>
@@ -1399,7 +1504,6 @@ onMounted(async () => {
                   :key="index"
                   class="layer-container"
                 >
-                  <!-- Select 模式 -->
                   <div v-if="layer.type === 'select'" class="layer-item">
                     <select 
                       v-model="layer.selectedId"
@@ -1428,7 +1532,6 @@ onMounted(async () => {
                     </button>
                   </div>
 
-                  <!-- Input 模式 -->
                   <div v-else class="layer-item">
                     <input 
                       v-model="layer.inputValue"
@@ -1454,13 +1557,12 @@ onMounted(async () => {
                     </button>
                   </div>
 
-                  <!-- 層級分隔符 -->
                   <span v-if="index < formData.unitLayers.length - 1" class="layer-separator">></span>
                 </div>
               </div>
             </div>
 
-            <!-- 新增：重要程度選擇 -->
+            <!-- 重要程度選擇 -->
             <div class="form-row importance-row">
               <label class="form-label">重要程度</label>
               <div class="importance-layers">
@@ -1492,6 +1594,95 @@ onMounted(async () => {
                   </select>
                   
                   <span v-if="index < formData.unitLayers.length - 1" class="importance-separator">></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 單位標籤選擇區域（桌面版） -->
+            <div class="form-row unit-label-row">
+              <label class="form-label">單位標籤</label>
+              <div class="unit-label-section">
+                <!-- 已選標籤顯示 -->
+                <div class="selected-labels-display">
+                  <div v-if="selectedLabels.length === 0" class="no-labels-hint">
+                    尚未選擇標籤
+                  </div>
+                  <div v-else class="selected-labels-list">
+                    <span 
+                      v-for="label in selectedLabels" 
+                      :key="label.id"
+                      class="selected-label-tag"
+                    >
+                      {{ label.name }}
+                      <button 
+                        class="remove-label-btn"
+                        @click="removeSelectedLabel(label.name)"
+                        :disabled="!canSelectLabelsInCreateMode"
+                        title="移除標籤"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  </div>
+                </div>
+
+                <!-- 選擇標籤按鈕 -->
+                <button 
+                  class="select-labels-btn"
+                  @click="toggleLabelDropdown"
+                  :disabled="!canSelectLabelsInCreateMode"
+                  type="button"
+                >
+                  <span class="btn-icon">🏷️</span>
+                  <span class="btn-text">選擇標籤</span>
+                </button>
+
+                <!-- 標籤下拉選單 -->
+                <div v-if="showLabelDropdown" class="label-dropdown">
+                  <div class="dropdown-header">
+                    <input 
+                      v-model="labelSearchKeyword"
+                      type="text"
+                      placeholder="搜尋標籤..."
+                      class="label-search-input"
+                      @input="loadUnitLabels"
+                    />
+                    <div class="dropdown-actions">
+                      <span class="selected-count">已選 {{ selectedLabels.length }} 個</span>
+                      <button 
+                        v-if="selectedLabels.length > 0"
+                        class="clear-all-btn"
+                        @click="clearAllLabels"
+                        type="button"
+                      >
+                        清空
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="dropdown-body">
+                    <div v-if="isLoadingLabels" class="loading-state">
+                      <div class="loading-spinner small">⟳</div>
+                      <span>載入標籤中...</span>
+                    </div>
+                    <div v-else-if="filteredUnitLabels.length === 0" class="empty-state">
+                      暫無標籤
+                    </div>
+                    <div v-else class="labels-list">
+                      <label 
+                        v-for="label in filteredUnitLabels"
+                        :key="label.id"
+                        class="label-checkbox-item"
+                      >
+                        <input 
+                          type="checkbox"
+                          :checked="isLabelSelected(label.id)"
+                          @change="toggleLabelSelection(label.id)"
+                        />
+                        <span class="label-name">{{ label.name }}</span>
+                      </label>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1539,7 +1730,6 @@ onMounted(async () => {
                 </div>
 
                 <div class="mobile-layer-content">
-                  <!-- Select 模式 -->
                   <div v-if="layer.type === 'select'" class="mobile-select-container">
                     <select 
                       v-model="layer.selectedId"
@@ -1558,7 +1748,6 @@ onMounted(async () => {
                     </select>
                   </div>
 
-                  <!-- Input 模式 -->
                   <div v-else class="mobile-input-container">
                     <input 
                       v-model="layer.inputValue"
@@ -1569,7 +1758,7 @@ onMounted(async () => {
                     />
                   </div>
 
-                  <!-- 新增：手機版重要程度選擇 -->
+                  <!-- 手機版重要程度選擇 -->
                   <div class="mobile-importance-container">
                     <label class="mobile-importance-label">重要程度</label>
                     <select 
@@ -1595,9 +1784,112 @@ onMounted(async () => {
                   </div>
                 </div>
 
-                <!-- 特殊狀態指示 -->
                 <div v-if="layer.isTarget" class="target-indicator">
                   <span class="target-badge">目標單位</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 手機版單位標籤選擇 -->
+            <div class="mobile-label-section">
+              <div class="mobile-label-header">
+                <h5>單位標籤</h5>
+                <button 
+                  class="mobile-select-labels-btn"
+                  @click="openMobileLabelModal"
+                  :disabled="!canSelectLabelsInCreateMode"
+                  type="button"
+                >
+                  選擇標籤
+                </button>
+              </div>
+
+              <!-- 已選標籤顯示 -->
+              <div class="mobile-selected-labels">
+                <div v-if="selectedLabels.length === 0" class="no-labels-hint">
+                  尚未選擇標籤
+                </div>
+                <div v-else class="mobile-labels-list">
+                  <span 
+                    v-for="label in selectedLabels" 
+                    :key="label.id"
+                    class="mobile-label-tag"
+                  >
+                    {{ label.name }}
+                    <button 
+                      class="remove-label-btn"
+                      @click="removeSelectedLabel(label.name)"
+                      :disabled="!canSelectLabelsInCreateMode"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                </div>
+              </div>
+
+              <!-- 手機版標籤選擇 Modal -->
+              <div v-if="showMobileLabelModal" class="mobile-label-modal">
+                <div class="modal-overlay" @click="closeMobileLabelModal"></div>
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5>選擇標籤</h5>
+                    <button class="close-modal-btn" @click="closeMobileLabelModal">✕</button>
+                  </div>
+
+                  <div class="modal-search">
+                    <input 
+                      v-model="labelSearchKeyword"
+                      type="text"
+                      placeholder="搜尋標籤..."
+                      class="modal-search-input"
+                      @input="loadUnitLabels"
+                    />
+                  </div>
+
+                  <div class="modal-body">
+                    <div v-if="isLoadingLabels" class="loading-state">
+                      <div class="loading-spinner">⟳</div>
+                      <span>載入標籤中...</span>
+                    </div>
+                    <div v-else-if="filteredUnitLabels.length === 0" class="empty-state">
+                      暫無標籤
+                    </div>
+                    <div v-else class="modal-labels-list">
+                      <label 
+                        v-for="label in filteredUnitLabels"
+                        :key="label.id"
+                        class="modal-label-item"
+                      >
+                        <input 
+                          type="checkbox"
+                          :checked="isLabelSelected(label.id)"
+                          @change="toggleLabelSelection(label.id)"
+                        />
+                        <span class="label-name">{{ label.name }}</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="modal-footer">
+                    <div class="selected-count">已選 {{ selectedLabels.length }} 個標籤</div>
+                    <div class="modal-actions">
+                      <button 
+                        v-if="selectedLabels.length > 0"
+                        class="clear-btn"
+                        @click="clearAllLabels"
+                        type="button"
+                      >
+                        清空
+                      </button>
+                      <button 
+                        class="confirm-btn"
+                        @click="closeMobileLabelModal"
+                        type="button"
+                      >
+                        確定
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1708,7 +2000,6 @@ onMounted(async () => {
               </tr>
             </thead>
             <tbody>
-              <!-- 載入狀態 -->
               <tr v-if="isLoadingUsers">
                 <td colspan="7" class="loading-cell">
                   <div class="loading-container">
@@ -1718,7 +2009,6 @@ onMounted(async () => {
                 </td>
               </tr>
               
-              <!-- 正常資料顯示 -->
               <tr v-else v-for="(user, index) in availableUsers" :key="user.id" 
                   :class="{ selected: user.isSelected, 'existing-member': user.is_join }">
                 <td v-if="hasWriteUnitPermission">
@@ -1741,7 +2031,6 @@ onMounted(async () => {
                 </td>
               </tr>
               
-              <!-- 無資料狀態 -->
               <tr v-if="!isLoadingUsers && availableUsers.length === 0">
                 <td colspan="7" class="no-data">
                   <span v-if="currentUnitId">此單位暫無有資格的用戶</span>
@@ -1754,7 +2043,6 @@ onMounted(async () => {
 
         <!-- 手機版用戶卡片列表 -->
         <div class="mobile-users-list">
-          <!-- 全選控制 -->
           <div v-if="hasWriteUnitPermission && availableUsers.length > 0" class="mobile-select-all">
             <label class="select-all-checkbox">
               <input 
@@ -1767,13 +2055,11 @@ onMounted(async () => {
             </label>
           </div>
 
-          <!-- 載入狀態 -->
           <div v-if="isLoadingUsers" class="mobile-loading">
             <div class="loading-spinner large">⟳</div>
             <div class="loading-text">載入用戶資料中...</div>
           </div>
           
-          <!-- 用戶卡片 -->
           <div v-else class="user-cards">
             <div 
               v-for="(user, index) in availableUsers" 
@@ -1786,7 +2072,6 @@ onMounted(async () => {
               }"
               @click="hasWriteUnitPermission && (!isEditMode || isEditingUnitName) && !isLoadingUsers ? toggleUserSelection(user.id) : null"
             >
-              <!-- 卡片標題 -->
               <div class="user-card-header">
                 <div class="user-basic-info">
                   <div class="user-name">{{ user.name }}</div>
@@ -1807,7 +2092,6 @@ onMounted(async () => {
                 </div>
               </div>
 
-              <!-- 卡片內容 -->
               <div class="user-card-content">
                 <div class="user-field">
                   <span class="field-label">暱稱</span>
@@ -1829,7 +2113,6 @@ onMounted(async () => {
             </div>
           </div>
           
-          <!-- 無資料狀態 -->
           <div v-if="!isLoadingUsers && availableUsers.length === 0" class="mobile-no-data">
             <div class="no-data-icon">👥</div>
             <div class="no-data-text">
@@ -1893,8 +2176,10 @@ onMounted(async () => {
     </div>
   </div>
 </template>
+
 <style lang="scss" scoped>
 @use 'sass:color';
+
 // 響應式斷點
 $breakpoint-mobile: 480px;
 $breakpoint-tablet: 768px;
@@ -1912,9 +2197,15 @@ $warning-bg: #fff3cd;
 $warning-text: #856404;
 
 // 重要程度顏色定義
-$importance-normal: #6c757d;      // 普級 - 灰色
-$importance-warranty: #ffc107;    // 保固級 - 黃色
-$importance-urgent: #dc3545;      // 急件 - 紅色
+$importance-normal: #6c757d;
+$importance-warranty: #ffc107;
+$importance-urgent: #dc3545;
+
+// 標籤相關顏色
+$label-gradient-start: #17a2b8;
+$label-gradient-end: #764ba2;
+$label-bg: #f8f9ff;
+$label-border: #e0e3ff;
 
 // 基礎樣式
 .create-unit-page {
@@ -1969,7 +2260,6 @@ $importance-urgent: #dc3545;      // 急件 - 紅色
     }
   }
 
-  // 桌面版和平板版按鈕群組
   .desktop-tablet-actions {
     display: none;
 
@@ -2161,6 +2451,11 @@ $importance-urgent: #dc3545;      // 急件 - 紅色
     &.large {
       font-size: 32px;
     }
+
+    &.small {
+      font-size: 16px;
+      margin-bottom: 0;
+    }
   }
 
   .loading-text {
@@ -2187,6 +2482,577 @@ $importance-urgent: #dc3545;      // 急件 - 紅色
     gap: 30px;
   }
 }
+
+// ⭐⭐單位標籤選擇區域樣式（桌面版） ⭐⭐⭐
+.unit-label-row {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e9ecef;
+
+  @media (min-width: $breakpoint-tablet) {
+    margin-top: 25px;
+    padding-top: 25px;
+  }
+}
+
+.unit-label-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1;
+  position: relative;
+
+  .selected-labels-display {
+    flex: 1;
+    min-height: 42px;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: white;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+
+    .no-labels-hint {
+      color: #999;
+      font-size: 14px;
+    }
+
+    .selected-labels-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      width: 100%;
+    }
+  }
+
+  .selected-label-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: $label-gradient-start;
+    color: white;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: 0 2px 4px rgba($label-gradient-start, 0.3);
+    transition: all 0.2s;
+    animation: slideIn 0.3s ease;
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba($label-gradient-start, 0.4);
+    }
+
+    .remove-label-btn {
+      background: rgba(255, 255, 255, 0.3);
+      border: none;
+      color: white;
+      border-radius: 50%;
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 10px;
+      line-height: 1;
+      transition: all 0.2s;
+      padding: 0;
+
+      &:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.5);
+        transform: scale(1.1);
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  .select-labels-btn {
+    background: $primary-color;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+
+    .btn-icon {
+      font-size: 16px;
+    }
+
+    &:hover:not(:disabled) {
+      background: $primary-hover;
+      transform: translateY(-1px);
+    }
+
+    &:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+  }
+
+  .label-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    width: 400px;
+    max-width: calc(100vw - 32px);
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+    animation: dropdownSlideIn 0.2s ease;
+
+    .dropdown-header {
+      padding: 12px;
+      border-bottom: 1px solid #f0f0f0;
+
+      .label-search-input {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+        margin-bottom: 8px;
+
+        &:focus {
+          outline: none;
+          border-color: $primary-color;
+          box-shadow: 0 0 0 2px rgba($primary-color, 0.1);
+        }
+      }
+
+      .dropdown-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        .selected-count {
+          font-size: 12px;
+          color: #666;
+        }
+
+        .clear-all-btn {
+          background: none;
+          border: none;
+          color: $danger-color;
+          font-size: 12px;
+          cursor: pointer;
+          padding: 4px 8px;
+          border-radius: 4px;
+          transition: all 0.2s;
+
+          &:hover {
+            background: rgba($danger-color, 0.1);
+          }
+        }
+      }
+    }
+
+    .dropdown-body {
+      max-height: 300px;
+      overflow-y: auto;
+      padding: 8px;
+
+      .loading-state,
+      .empty-state {
+        padding: 20px;
+        text-align: center;
+        color: #999;
+        font-size: 14px;
+      }
+
+      .loading-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .labels-list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+
+        .label-checkbox-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 12px;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.2s;
+
+          &:hover {
+            background: $label-bg;
+          }
+
+          input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+          }
+
+          .label-name {
+            flex: 1;
+            font-size: 14px;
+            color: #333;
+          }
+        }
+      }
+    }
+  }
+}
+
+// ⭐⭐手機版標籤選擇區域 ⭐⭐⭐
+.mobile-label-section {
+  margin-top: 16px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+
+  .mobile-label-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+
+    h5 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .mobile-select-labels-btn {
+      background: $primary-color;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s;
+
+      &:active:not(:disabled) {
+        transform: scale(0.95);
+      }
+
+      &:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+    }
+  }
+
+  .mobile-selected-labels {
+    .no-labels-hint {
+      color: #999;
+      font-size: 13px;
+      text-align: center;
+      padding: 12px;
+    }
+
+    .mobile-labels-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .mobile-label-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: linear-gradient(135deg, $label-gradient-start 0%, $label-gradient-end 100%);
+      color: white;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      box-shadow: 0 2px 4px rgba($label-gradient-start, 0.3);
+      animation: slideIn 0.3s ease;
+
+      .remove-label-btn {
+        background: rgba(255, 255, 255, 0.3);
+        border: none;
+        color: white;
+        border-radius: 50%;
+        width: 16px;
+        height: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 10px;
+        line-height: 1;
+        padding: 0;
+
+        &:active:not(:disabled) {
+          transform: scale(0.9);
+        }
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+      }
+    }
+  }
+}
+
+// ⭐⭐手機版標籤選擇 Modal ⭐⭐⭐
+.mobile-label-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+
+  .modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    animation: fadeIn 0.3s ease;
+  }
+
+  .modal-content {
+    position: relative;
+    width: 100%;
+    max-height: 80vh;
+    background: white;
+    border-radius: 16px 16px 0 0;
+    display: flex;
+    flex-direction: column;
+    animation: slideUp 0.3s ease;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      border-bottom: 1px solid #f0f0f0;
+
+      h5 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #333;
+      }
+
+      .close-modal-btn {
+        background: none;
+        border: none;
+        font-size: 24px;
+        color: #999;
+        cursor: pointer;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: all 0.2s;
+
+        &:active {
+          background: #f0f0f0;
+          transform: scale(0.9);
+        }
+      }
+    }
+
+    .modal-search {
+      padding: 12px 20px;
+      border-bottom: 1px solid #f0f0f0;
+
+      .modal-search-input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+
+        &:focus {
+          outline: none;
+          border-color: $primary-color;
+          box-shadow: 0 0 0 2px rgba($primary-color, 0.1);
+        }
+      }
+    }
+
+    .modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 20px;
+
+      .loading-state,
+      .empty-state {
+        padding: 40px 20px;
+        text-align: center;
+        color: #999;
+        font-size: 14px;
+      }
+
+      .loading-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .modal-labels-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+
+        .modal-label-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 16px;
+          background: #f8f9fa;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s;
+
+          &:active {
+            background: $label-bg;
+            transform: scale(0.98);
+          }
+
+          input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+          }
+
+          .label-name {
+            flex: 1;
+            font-size: 15px;
+            color: #333;
+          }
+        }
+      }
+    }
+
+    .modal-footer {
+      padding: 16px 20px;
+      border-top: 1px solid #f0f0f0;
+      background: #f8f9fa;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      .selected-count {
+        font-size: 13px;
+        color: #666;
+        font-weight: 500;
+      }
+
+      .modal-actions {
+        display: flex;
+        gap: 8px;
+
+        .clear-btn {
+          background: white;
+          color: $danger-color;
+          border: 1px solid $danger-color;
+          padding: 8px 16px;
+          border-radius: 6px;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+
+          &:active {
+            background: rgba($danger-color, 0.1);
+            transform: scale(0.95);
+          }
+        }
+
+        .confirm-btn {
+          background: $primary-color;
+          color: white;
+          border: none;
+          padding: 8px 20px;
+          border-radius: 6px;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+
+          &:active {
+            background: $primary-hover;
+            transform: scale(0.95);
+          }
+        }
+      }
+    }
+  }
+}
+
+// 動畫效果
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes dropdownSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// 接續 Part 1...
 
 // 單位選擇區域
 .unit-section {
@@ -2238,7 +3104,6 @@ $importance-urgent: #dc3545;      // 急件 - 紅色
         padding: 20px;
       }
 
-      // 桌面版和平板版 - 橫向佈局
       .desktop-tablet-grid {
         display: none;
 
@@ -2272,7 +3137,6 @@ $importance-urgent: #dc3545;      // 急件 - 紅色
         }
       }
 
-      // 手機版 - 縱向卡片式佈局
       .mobile-grid {
         display: flex;
         flex-direction: column;
@@ -2499,12 +3363,10 @@ $importance-urgent: #dc3545;      // 急件 - 紅色
             opacity: 0.7;
           }
 
-          // 根據選擇的重要程度改變邊框和背景色
           &.level-1 {
             border-color: $importance-normal;
-            background-color: color.adjust($importance-normal, $lightness: 45%)s;
+            background-color: color.adjust($importance-normal, $lightness: 45%);
             color: color.adjust($importance-normal, $lightness: -10%);
-
 
             &:not(:disabled):hover {
               border-color: color.adjust($importance-normal, $lightness: -10%);
@@ -2631,15 +3493,6 @@ $importance-urgent: #dc3545;      // 急件 - 紅色
               align-items: center;
               gap: 8px;
 
-              .layer-level {
-                background: $primary-color;
-                color: white;
-                padding: 2px 6px;
-                border-radius: 4px;
-                font-size: 12px;
-                font-weight: 500;
-              }
-
               .layer-type-badge {
                 padding: 2px 6px;
                 border-radius: 4px;
@@ -2670,7 +3523,7 @@ $importance-urgent: #dc3545;      // 急件 - 紅色
               cursor: pointer;
               transition: all 0.2s;
 
-              &:hover:not(:disabled) {
+              &:active:not(:disabled) {
                 background: #f8f9fa;
                 border-color: $primary-color;
               }
@@ -2714,7 +3567,6 @@ $importance-urgent: #dc3545;      // 急件 - 紅色
               }
             }
 
-            // 手機版重要程度選擇
             .mobile-importance-container {
               margin-top: 12px;
               padding-top: 12px;
@@ -2756,7 +3608,6 @@ $importance-urgent: #dc3545;      // 急件 - 紅色
                   opacity: 0.7;
                 }
 
-                // 根據選擇的重要程度改變樣式
                 &.level-1 {
                   border-color: $importance-normal;
                   background-color: color.adjust($importance-normal, $lightness: 47%);
@@ -2822,7 +3673,6 @@ $importance-urgent: #dc3545;      // 急件 - 紅色
     }
   }
 
-  // 添加層級按鈕
   .add-layer-section {
     margin: 20px 0;
     text-align: center;
@@ -2858,7 +3708,6 @@ $importance-urgent: #dc3545;      // 急件 - 紅色
     }
   }
 
-  // 單位路徑預覽
   .unit-path-preview {
     margin: 20px 0;
     padding: 15px;
@@ -2886,7 +3735,82 @@ $importance-urgent: #dc3545;      // 急件 - 紅色
   }
 }
 
-// 用戶管理區域
+// 重要程度 Badge 樣式
+.importance-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+
+  @media (max-width: $breakpoint-mobile) {
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+
+  @media (min-width: $breakpoint-tablet) {
+    padding: 5px 14px;
+    font-size: 13px;
+  }
+
+  &:hover {
+    transform: scale(1.05);
+  }
+
+  &.level-1 {
+    background: color.adjust($importance-normal, $lightness: 35%);
+    color: color.adjust($importance-normal, $lightness: -10%);
+    border: 1px solid color.adjust($importance-normal, $lightness: 15%);
+  }
+
+  &.level-2 {
+    background: color.adjust($importance-warranty, $lightness: 35%);
+    color: color.adjust($importance-warranty, $lightness: -30%);
+    border: 1px solid color.adjust($importance-warranty, $lightness: 15%);
+  }
+
+  &.level-3 {
+    background: color.adjust($importance-urgent, $lightness: 35%);
+    color: color.adjust($importance-urgent, $lightness: -10%);
+    border: 1px solid color.adjust($importance-urgent, $lightness: 15%);
+  }
+}
+
+// 手機版專用底部間距
+@media (max-width: calc($breakpoint-tablet - 1px)) {
+  .form-container {
+    padding-bottom: 100px;
+  }
+}
+
+// 響應式調整
+@media (max-width: $breakpoint-mobile) {
+  .desktop-tablet-form {
+    .importance-layers {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+
+      .importance-container {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+
+        .importance-select {
+          width: 100%;
+        }
+
+        .importance-separator {
+          display: none;
+        }
+      }
+    }
+  }
+}
+// ⭐⭐⭐ 用戶管理區域完整樣式 ⭐⭐⭐
 .users-section {
   background: white;
   border-radius: 8px;
@@ -3471,126 +4395,6 @@ $importance-urgent: #dc3545;      // 急件 - 紅色
   }
 }
 
-// 重要程度 Badge 樣式
-.importance-badge {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
-  text-align: center;
-  white-space: nowrap;
-  transition: all 0.2s ease;
-
-  @media (max-width: $breakpoint-mobile) {
-    padding: 3px 8px;
-    font-size: 11px;
-  }
-
-  @media (min-width: $breakpoint-tablet) {
-    padding: 5px 14px;
-    font-size: 13px;
-  }
-
-  &:hover {
-    transform: scale(1.05);
-  }
-
-  &.level-1 {
-    background: color.adjust($importance-normal, $lightness: 35%);
-    color: color.adjust($importance-normal, $lightness: -10%);
-    border: 1px solid color.adjust($importance-normal, $lightness: 15%);
-  }
-
-  &.level-2 {
-    background: color.adjust($importance-warranty, $lightness: 35%);
-    color: color.adjust($importance-warranty, $lightness: -30%);
-    border: 1px solid color.adjust($importance-warranty, $lightness: 15%);
-  }
-
-  &.level-3 {
-    background: color.adjust($importance-urgent, $lightness: 35%);
-    color: color.adjust($importance-urgent, $lightness: -10%);
-    border: 1px solid color.adjust($importance-urgent, $lightness: 15%);
-  }
-}
-
-// 手機版專用底部間距（避免被浮動按鈕遮蓋）
-@media (max-width: calc($breakpoint-tablet - 1px)) {
-  .form-container {
-    padding-bottom: 100px;
-  }
-}
-
-// 通用的表單輸入樣式
-.form-input {
-  padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 14px;
-  transition: border-color 0.3s;
-
-  &:focus {
-    outline: none;
-    border-color: $primary-color;
-    box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.1);
-  }
-
-  &.small {
-    max-width: 120px;
-  }
-
-  &:disabled {
-    background-color: #f8f9fa;
-    color: #999;
-    cursor: not-allowed;
-  }
-}
-
-// 響應式文字大小調整
-@media (max-width: $breakpoint-mobile) {
-  html {
-    font-size: 14px;
-  }
-}
-
-@media (min-width: $breakpoint-mobile) and (max-width: $breakpoint-tablet) {
-  html {
-    font-size: 15px;
-  }
-}
-
-@media (min-width: $breakpoint-tablet) {
-  html {
-    font-size: 16px;
-  }
-}
-
-// 響應式調整 - 確保在小螢幕上重要程度選擇器不會太擠
-@media (max-width: $breakpoint-mobile) {
-  .desktop-tablet-form {
-    .importance-layers {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 8px;
-
-      .importance-container {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 8px;
-
-        .importance-select {
-          width: 100%;
-        }
-
-        .importance-separator {
-          display: none;
-        }
-      }
-    }
-  }
-}
-
 // 滾動條美化（僅桌面版）
 @media (min-width: $breakpoint-desktop) {
   .users-table-container {
@@ -3611,105 +4415,6 @@ $importance-urgent: #dc3545;      // 急件 - 紅色
         background: #a8a8a8;
       }
     }
-  }
-}
-
-// 無障礙輔助
-@media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
-// 高對比度模式支援
-@media (prefers-contrast: high) {
-  .page-header,
-  .unit-section,
-  .users-section {
-    border: 2px solid #000;
-  }
-
-  .mobile-action-buttons button {
-    border: 2px solid #000;
-  }
-
-  .importance-badge {
-    border-width: 2px !important;
-    font-weight: 700 !important;
-  }
-
-  .importance-select,
-  .mobile-importance-select {
-    border-width: 2px !important;
-    
-    &:focus {
-      outline: 3px solid #000 !important;
-      outline-offset: 2px;
-    }
-  }
-}
-
-// 打印樣式
-@media print {
-  .mobile-action-buttons,
-  .desktop-tablet-actions,
-  .mobile-search-section,
-  .desktop-tablet-header {
-    display: none !important;
-  }
-
-  .create-unit-page {
-    background: white !important;
-    box-shadow: none !important;
-  }
-
-  .page-header,
-  .unit-section,
-  .users-section {
-    box-shadow: none !important;
-    border: 1px solid #000 !important;
-  }
-
-  .importance-badge {
-    border: 1px solid #000 !important;
-    background: white !important;
-    
-    &::before {
-      content: '【';
-    }
-    
-    &::after {
-      content: '】';
-    }
-  }
-
-  .importance-select,
-  .mobile-importance-select {
-    border: 1px solid #000 !important;
-    background: white !important;
-  }
-}
-
-// 動畫效果 - 重要程度變更時的過渡
-.importance-select,
-.mobile-importance-select {
-  transition: 
-    border-color 0.3s ease,
-    background-color 0.3s ease,
-    color 0.3s ease,
-    box-shadow 0.3s ease;
-}
-
-// 表單驗證狀態 - 重要程度必填時的樣式
-.importance-select.is-invalid,
-.mobile-importance-select.is-invalid {
-  border-color: #dc3545 !important;
-  background-color: #fff5f5 !important;
-  
-  &:focus {
-    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.15) !important;
   }
 }
 </style>

@@ -5,6 +5,40 @@ import axiosClient from '../axios' // 引入 axios 實例
 export const useReportStore = defineStore('report', () => {
     const isLoading = ref(false)
 
+    // ⭐ 新增：搜尋單位
+    const searchUnits = async (keyword) => {
+        try {
+            const response = await axiosClient.get(`/backend/report/unit/${keyword}`)
+
+            console.log(response);
+            
+
+            if (response.data && response.data.data) {
+                return {
+                    success: true,
+                    data: response.data.data,
+                    message: response.data.message || '查詢成功'
+                }
+            }
+
+            return {
+                success: false,
+                data: [],
+                message: '查無資料'
+            }
+        } catch (error) {
+            console.error('搜尋單位失敗:', error)
+            
+            let errorMessage = '搜尋單位失敗，請稍後再試'
+            
+            if (error.response && error.response.data) {
+                errorMessage = error.response.data.message || errorMessage
+            }
+            
+            throw new Error(errorMessage)
+        }
+    }
+
     // 下載報修進度綜合表
     const downloadRepairProgressSummary = async (params = {}) => {
         try {
@@ -19,6 +53,7 @@ export const useReportStore = defineStore('report', () => {
             if (params.emergencyLevel) queryParams.emergencyLevel = params.emergencyLevel
             if (params.importanceLevel) queryParams.importanceLevel = params.importanceLevel
             if (params.overdueDays) queryParams.overdueDays = params.overdueDays
+            if (params.unitLabelId) queryParams.unitLabelId = params.unitLabelId // ⭐ null 會被過濾掉
 
             if (params.startAt) {
                 const startDate = new Date(params.startAt);
@@ -34,9 +69,9 @@ export const useReportStore = defineStore('report', () => {
             if (params.repairUnit) queryParams.repairUnit = params.repairUnit
             if (params.assignUserName) queryParams.assignUserName = params.assignUserName
 
-            //console.log('下載報修進度綜合表參數:', queryParams)
+            console.log('下載報修進度綜合表參數:', queryParams)
 
-            const response = await axiosClient.get('/backend/report/repair-progress-summary', {
+            const response = await axiosClient.get('/backend/report/dl/repair-progress-summary', {
                 params: queryParams,
                 responseType: 'blob', // 重要：設置響應類型為 blob
                 headers: {
@@ -84,7 +119,7 @@ export const useReportStore = defineStore('report', () => {
                     filename = decodeURIComponent(filename)
                 } catch (e) {
                     // 如果解碼失敗，使用原始檔案名
-                    //console.warn('檔案名解碼失敗:', e)
+                    console.warn('檔案名解碼失敗:', e)
                 }
             }
             
@@ -102,7 +137,7 @@ export const useReportStore = defineStore('report', () => {
             }
 
         } catch (error) {
-            //console.error('下載報修進度綜合表失敗:', error)
+            console.error('下載報修進度綜合表失敗:', error)
             
             // 提取後端錯誤訊息
             let errorMessage = '下載報修進度綜合表失敗，請稍後再試'
@@ -115,7 +150,7 @@ export const useReportStore = defineStore('report', () => {
                         const errorData = JSON.parse(errorText)
                         errorMessage = errorData.message || errorMessage
                     } catch (parseError) {
-                        //console.error('解析錯誤訊息失敗:', parseError)
+                        console.error('解析錯誤訊息失敗:', parseError)
                     }
                 } else if (error.response.data.message) {
                     errorMessage = error.response.data.message
@@ -150,7 +185,7 @@ export const useReportStore = defineStore('report', () => {
 
             //console.log('下載帳號管理報表參數:', queryParams)
 
-            const response = await axiosClient.get('/backend/report/account-management', {
+            const response = await axiosClient.get('/backend/report/dl/account-management', {
                 params: queryParams,
                 responseType: 'blob', // 重要：設置響應類型為 blob
                 headers: {
@@ -265,7 +300,7 @@ export const useReportStore = defineStore('report', () => {
 
             //console.log('下載完修記錄報表參數:', queryParams)
 
-            const response = await axiosClient.get('/backend/report/complete-repair-record', {
+            const response = await axiosClient.get('/backend/report/dl/complete-repair-record', {
                 params: queryParams,
                 responseType: 'blob', // 重要：設置響應類型為 blob
                 headers: {
@@ -382,7 +417,7 @@ export const useReportStore = defineStore('report', () => {
 
             //console.log('下載問卷滿意度報表參數:', queryParams)
 
-            const response = await axiosClient.get('/backend/report/satisfaction-survey', {
+            const response = await axiosClient.get('/backend/report/dl/satisfaction-survey', {
                 params: queryParams,
                 responseType: 'blob', // 重要：設置響應類型為 blob
                 headers: {
@@ -473,9 +508,42 @@ export const useReportStore = defineStore('report', () => {
             isLoading.value = false
         }
     }
+    // ⭐ 新增：查詢單位標籤
+    const fetchUnitLabels = async (keyword = '') => {
+        try {
+            const params = keyword ? { name: keyword } : {}
+            const response = await axiosClient.get('/backend/report/unit/unit-label', { params })
+
+            if (response.data && response.data.data) {
+                return {
+                    success: true,
+                    data: response.data.data,
+                    message: response.data.message || '查詢成功'
+                }
+            }
+
+            return {
+                success: false,
+                data: [],
+                message: '查無資料'
+            }
+        } catch (error) {
+            console.error('查詢單位標籤失敗:', error)
+            
+            let errorMessage = '查詢單位標籤失敗，請稍後再試'
+            
+            if (error.response && error.response.data) {
+                errorMessage = error.response.data.message || errorMessage
+            }
+            
+            throw new Error(errorMessage)
+        }
+    }
 
     return {
         isLoading,
+        searchUnits,
+        fetchUnitLabels,
         downloadRepairProgressSummary,
         downloadAccountManagement,
         downloadCompleteRepairRecord,

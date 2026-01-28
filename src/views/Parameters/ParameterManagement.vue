@@ -8,6 +8,7 @@ const authStore = useAuthStore()
 const hasReadMailPermission = computed(() => authStore.canAccessPage(PERMISSIONS.MAIL_MANAGEMENT))
 const hasReadRepairCategoryPermission = computed(() => authStore.canAccessPage(PERMISSIONS.REPAIR_CATEGORY_MANAGEMENT))
 const hasReadRepairStatusPermission = computed(() => authStore.canAccessPage(PERMISSIONS.REPAIR_STATUS_MANAGEMENT))
+const hasReadUnitTagPermission = computed(() => authStore.canAccessPage(PERMISSIONS.UNIT_TAG_MANAGEMENT))
 // 搜尋表單
 const searchForm = reactive({
   keyword: '',
@@ -41,6 +42,12 @@ const allParameterData = ref([
     id: 3,
     parameterName: '系統信箱',
     url: '/settings/parameter/mail-management',
+    read: hasReadMailPermission.value,
+  },
+  {
+    id: 4,
+    parameterName: '單位標籤',
+    url: '/settings/parameter/unit-tag-management',
     read: hasReadMailPermission.value,
   },
 ])
