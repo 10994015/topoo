@@ -696,7 +696,7 @@ onUnmounted(() => {
                 <span class="sort-icon neutral" v-else>⇅</span>
               </th>
               <th 
-                width="150"
+                width="350"
               >
                 單位標籤
               </th>
