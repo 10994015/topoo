@@ -593,6 +593,14 @@ const unitPath = computed(() => {
 //   從編輯單位 ID 建構完整路徑並初始化表單
 const buildEditUnitPath = async (targetUnitId) => {
   try {
+    // 先載入標籤和類別列表
+    if (availableUnitLabels.value.length === 0) {
+      await loadUnitLabels()
+    }
+    if (availableRepairCategories.value.length === 0) {
+      await loadRepairCategories()
+    }
+    
     const response = await unitStore.fetchUnitById(targetUnitId)
     if (!response.success || !response.data) {
       throw new Error('無法取得單位資料')
@@ -608,16 +616,28 @@ const buildEditUnitPath = async (targetUnitId) => {
     const buildPath = async (unit) => {
       const levelNumber = parseInt(unit.layer.substring(1))
       
+      // 從名稱重建 ID 陣列
+      const labelNames = normalizeLabels(unit.unit_labels)
+      const categoryNames = normalizeCategories(unit.unit_repair_categories)
+      
+      const unit_label_ids = availableUnitLabels.value
+        .filter(label => labelNames.includes(label.name))
+        .map(label => label.id)
+      
+      const unit_repair_category_ids = availableRepairCategories.value
+        .filter(category => categoryNames.includes(category.name))
+        .map(category => category.id)
+      
       path.unshift({
         id: unit.id,
         name: unit.name,
         layer: unit.layer,
         level: levelNumber,
         importance_level: unit.importance_level || '1',
-        unit_label_ids: unit.unit_label_ids || [],
-        unit_labels: normalizeLabels(unit.unit_labels),
-        unit_repair_category_ids: unit.unit_repair_category_ids || [],
-        unit_repair_categories: normalizeCategories(unit.unit_repair_categories),
+        unit_label_ids: unit_label_ids,
+        unit_labels: labelNames,
+        unit_repair_category_ids: unit_repair_category_ids,
+        unit_repair_categories: categoryNames,
         isTarget: unit.id === targetUnitId
       })
       
@@ -630,6 +650,9 @@ const buildEditUnitPath = async (targetUnitId) => {
     }
     
     await buildPath(targetUnit)
+    
+    console.log('✅ 編輯路徑構建完成:', path)
+    
     return path
   } catch (error) {
     console.error('建構編輯單位路徑失敗:', error)
@@ -641,6 +664,14 @@ const buildEditUnitPath = async (targetUnitId) => {
 const initializeEditForm = async (path) => {
   try {
     formData.unitLayers = []
+    
+    // 預先載入標籤和類別列表
+    if (availableUnitLabels.value.length === 0) {
+      await loadUnitLabels()
+    }
+    if (availableRepairCategories.value.length === 0) {
+      await loadRepairCategories()
+    }
     
     for (let i = 0; i < path.length; i++) {
       const pathItem = path[i]
@@ -1338,6 +1369,18 @@ const reloadEditPageData = async () => {
       throw new Error('editUnitData 或 editUnitData.id 不存在')
     }
     
+    // 先確保標籤和類別列表已載入
+    const loadLabelsPromise = availableUnitLabels.value.length === 0 
+      ? loadUnitLabels() 
+      : Promise.resolve()
+    
+    const loadCategoriesPromise = availableRepairCategories.value.length === 0 
+      ? loadRepairCategories() 
+      : Promise.resolve()
+    
+    // 同時執行載入
+    await Promise.all([loadLabelsPromise, loadCategoriesPromise])
+    
     const response = await unitStore.fetchUnitById(editUnitData.value.id)
     if (response.success && response.data) {
       editUnitData.value = response.data
@@ -1348,10 +1391,41 @@ const reloadEditPageData = async () => {
       if (targetLayer) {
         targetLayer.inputValue = response.data.name
         targetLayer.importance_level = response.data.importance_level || '1'
-        targetLayer.unit_label_ids = response.data.unit_label_ids || []
-        targetLayer.unit_labels = normalizeLabels(response.data.unit_labels)
-        targetLayer.unit_repair_category_ids = response.data.unit_repair_category_ids || []
-        targetLayer.unit_repair_categories = normalizeCategories(response.data.unit_repair_categories)
+        
+        // 處理單位標籤
+        const labelNames = normalizeLabels(response.data.unit_labels)
+        targetLayer.unit_labels = labelNames
+        
+        // 從 labelNames 重建 unit_label_ids
+        if (labelNames.length > 0 && availableUnitLabels.value.length > 0) {
+          targetLayer.unit_label_ids = availableUnitLabels.value
+            .filter(label => labelNames.includes(label.name))
+            .map(label => label.id)
+        } else {
+          // 使用後端返回的 ID（如果有）
+          targetLayer.unit_label_ids = response.data.unit_label_ids || []
+        }
+        
+        // 處理報修類別
+        const categoryNames = normalizeCategories(response.data.unit_repair_categories)
+        targetLayer.unit_repair_categories = categoryNames
+        
+        // 從 categoryNames 重建 unit_repair_category_ids
+        if (categoryNames.length > 0 && availableRepairCategories.value.length > 0) {
+          targetLayer.unit_repair_category_ids = availableRepairCategories.value
+            .filter(category => categoryNames.includes(category.name))
+            .map(category => category.id)
+        } else {
+          // 使用後端返回的 ID（如果有）
+          targetLayer.unit_repair_category_ids = response.data.unit_repair_category_ids || []
+        }
+        
+        console.log('✅ 重新載入後的資料:', {
+          標籤名稱: targetLayer.unit_labels,
+          標籤ID: targetLayer.unit_label_ids,
+          類別名稱: targetLayer.unit_repair_categories,
+          類別ID: targetLayer.unit_repair_category_ids
+        })
       }
     } else {
       throw new Error('重新獲取單位資料失敗：' + (response.message || '未知錯誤'))
@@ -1371,7 +1445,6 @@ const reloadEditPageData = async () => {
     throw error
   }
 }
-
 const saveUnitNameChange = async () => {
   const targetLayer = formData.unitLayers.find(layer => layer.isTarget)
   if (!targetLayer || !targetLayer.inputValue) {
@@ -1381,6 +1454,14 @@ const saveUnitNameChange = async () => {
   
   try {
     isSaving.value = true
+    
+    // 確保送出前檢查 ID 陣列
+    console.log('📤 準備送出的資料:', {
+      unit_label_ids: targetLayer.unit_label_ids,
+      unit_labels: targetLayer.unit_labels,
+      unit_repair_category_ids: targetLayer.unit_repair_category_ids,
+      unit_repair_categories: targetLayer.unit_repair_categories
+    })
     
     const editData = {
       name: targetLayer.inputValue,
@@ -1416,6 +1497,15 @@ const saveUnitNameChange = async () => {
       backupData.originalUserSelections = []
       
       alert('單位更新成功！')
+      
+      // 重新載入前先確保標籤和類別列表已載入
+      if (availableUnitLabels.value.length === 0) {
+        await loadUnitLabels()
+      }
+      if (availableRepairCategories.value.length === 0) {
+        await loadRepairCategories()
+      }
+      
       await reloadEditPageData()
       
       const currentUser = availableUsers.value.find(user => user.id === authStore.user.id)
@@ -1437,7 +1527,6 @@ const saveUnitNameChange = async () => {
     isSaving.value = false
   }
 }
-
 const deleteUnit = async () => {
   if (!hasWriteUnitPermission.value) {
     alert('您沒有權限刪除單位')
@@ -1490,11 +1579,16 @@ const getimportance_levelLabel = (value) => {
   return option ? option.label : '普級'
 }
 
-//   點擊外部關閉下拉選單
 onMounted(async () => {
   isLoading.value = true
   try {
     if (isEditMode.value && editUnitId.value) {
+      // 先載入標籤和類別列表
+      await Promise.all([
+        loadUnitLabels(),
+        loadRepairCategories()
+      ])
+      
       const editPath = await buildEditUnitPath(editUnitId.value)
       await initializeEditForm(editPath)
     } else if (isInsertMode.value && parentId.value) {
@@ -1509,7 +1603,6 @@ onMounted(async () => {
       await loadUsers(null)
     }
     
-    //   監聽點擊外部事件
     document.addEventListener('click', closeDropdownOnClickOutside)
   } catch (error) {
     console.error('❌ 初始化失敗:', error)
