@@ -5,7 +5,7 @@ import axiosClient from '../axios' // 引入 axios 實例
 export const useReportStore = defineStore('report', () => {
     const isLoading = ref(false)
 
-    // ⭐ 新增：搜尋單位
+    // 搜尋單位
     const searchUnits = async (keyword) => {
         try {
             const response = await axiosClient.get(`/backend/report/unit/${keyword}`)
@@ -53,7 +53,7 @@ export const useReportStore = defineStore('report', () => {
             if (params.emergencyLevel) queryParams.emergencyLevel = params.emergencyLevel
             if (params.importanceLevel) queryParams.importanceLevel = params.importanceLevel
             if (params.overdueDays) queryParams.overdueDays = params.overdueDays
-            if (params.unitLabelId) queryParams.unitLabelId = params.unitLabelId // ⭐ null 會被過濾掉
+            if (params.unitLabelId) queryParams.unitLabelId = params.unitLabelId // null 會被過濾掉
 
             if (params.startAt) {
                 const startDate = new Date(params.startAt);
@@ -508,7 +508,7 @@ export const useReportStore = defineStore('report', () => {
             isLoading.value = false
         }
     }
-    // ⭐ 新增：查詢單位標籤
+    // 查詢單位標籤
     const fetchUnitLabels = async (keyword = '') => {
         try {
             const params = keyword ? { name: keyword } : {}

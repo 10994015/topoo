@@ -125,7 +125,7 @@ export const useUnitStore = defineStore('unit', () => {
                 layer: unit.layer,
                 level: parseInt(unit.layer.substring(1)),
                 importance_level: unit.importance_level || '1',
-                unit_labels: unit.unit_labels || [], // ⭐⭐⭐ 新增這行
+                unit_labels: unit.unit_labels || [],
                 created_at: unit.created_at,
                 updated_at: unit.updated_at,
                 deleted_at: unit.deleted_at,
@@ -159,7 +159,7 @@ export const useUnitStore = defineStore('unit', () => {
         const unitsWithChildren = []
         
         for (const unit of parentUnits) {
-            // ⭐ 新增：檢查原始資料
+            // 檢查原始資料
             console.log('🔍 buildUnitTree - 原始單位資料:', {
                 id: unit.id,
                 name: unit.name,
@@ -172,7 +172,7 @@ export const useUnitStore = defineStore('unit', () => {
                 layer: unit.layer,
                 level: parseInt(unit.layer.substring(1)),
                 importance_level: unit.importance_level || '1',
-                unit_labels: unit.unit_labels || [], // ⭐⭐⭐ 關鍵：新增這行！
+                unit_labels: unit.unit_labels || [], 
                 created_at: unit.created_at,
                 updated_at: unit.updated_at,
                 deleted_at: unit.deleted_at,
@@ -183,7 +183,7 @@ export const useUnitStore = defineStore('unit', () => {
                 children: []
             }
             
-            // ⭐ 新增：檢查處理後的資料
+            // 檢查處理後的資料
             console.log('✅ buildUnitTree - 處理後的資料:', {
                 id: unitWithChildren.id,
                 name: unitWithChildren.name,
@@ -219,7 +219,7 @@ export const useUnitStore = defineStore('unit', () => {
                             layer: `L${parseInt(unitData.layer.substring(1)) + 1}`,
                             level: parseInt(unitData.layer.substring(1)) + 1,
                             importance_level: subUnit.importance_level || '1',
-                            unit_labels: subUnit.unit_labels || [], // ⭐⭐⭐ 新增這行
+                            unit_labels: subUnit.unit_labels || [],
                             created_at: unitData.created_at,
                             updated_at: unitData.updated_at,
                             deleted_at: null,
@@ -678,17 +678,30 @@ export const useUnitStore = defineStore('unit', () => {
     }
 
     const fetchUnitLabels = async (searchName = '') => {
-    try {
-        const params = searchName ? { name: searchName } : {}
-        const response = await axiosClient.get('/backend/unit/unit-label', { params })
-        return { 
-        success: true, 
-        data: response.data.data || [] 
+        try {
+            const params = searchName ? { name: searchName } : {}
+            const response = await axiosClient.get('/backend/unit/unit-label', { params })
+            return { 
+            success: true, 
+            data: response.data.data || [] 
+            }
+        } catch (error) {
+            console.error('載入單位標籤失敗:', error)
+            return { success: false, data: [] }
         }
-    } catch (error) {
-        console.error('載入單位標籤失敗:', error)
-        return { success: false, data: [] }
     }
+    const fetchRepairCategories = async (searchName = '') => {
+        try {
+            const params = searchName ? { name: searchName } : {}
+            const response = await axiosClient.get('/backend/unit/repair-category', { params })
+            return { 
+                success: true, 
+                data: response.data.data || [] 
+            }
+        } catch (error) {
+            console.error('載入報修類別失敗:', error)
+            return { success: false, data: [] }
+        }
     }
 
   
@@ -717,6 +730,7 @@ export const useUnitStore = defineStore('unit', () => {
         fetchEmptyUnitUsers,
         downloadImportTemplate, 
         importUnits,
-        fetchUnitLabels  
+        fetchUnitLabels,
+        fetchRepairCategories,
     }
 })

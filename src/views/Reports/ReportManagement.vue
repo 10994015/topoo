@@ -4,7 +4,7 @@ import { useReportStore } from '@/stores/report'
 import { useRepairStore } from '@/stores/repair'
 import { useAuthStore } from '@/stores/auth'
 import { checkPermission, PERMISSIONS } from '@/utils/permissions'
-import axiosClient from '@/axios' // ⭐ 新增：引入 axios
+import axiosClient from '@/axios' // 引入 axios
 
 const reportStore = useReportStore()
 const repairStore = useRepairStore()
@@ -214,7 +214,7 @@ const searchUnits = async (keyword) => {
   }
 }
 
-// ⭐ 新增：防抖處理（使用者輸入時延遲搜尋）
+// 防抖處理（使用者輸入時延遲搜尋）
 const handleUnitSearch = (keyword) => {
   // 清除之前的計時器
   if (unitSearchDebounceTimer.value) {
@@ -227,7 +227,7 @@ const handleUnitSearch = (keyword) => {
   }, 500)
 }
 
-// ⭐ 新增：選擇單位
+// 選擇單位
 const selectUnit = (unitName) => {
   repairProgressForm.repairUnit = unitName
   unitSearchKeyword.value = unitName
@@ -235,7 +235,7 @@ const selectUnit = (unitName) => {
   unitSearchResults.value = []
 }
 
-// ⭐ 新增：清空單位選擇
+// 清空單位選擇
 const clearUnitSelection = () => {
   repairProgressForm.repairUnit = ''
   unitSearchKeyword.value = ''
@@ -243,12 +243,12 @@ const clearUnitSelection = () => {
   showUnitDropdown.value = false
 }
 
-// ⭐ 新增：監聽輸入框變化
+// 監聽輸入框變化
 watch(unitSearchKeyword, (newValue) => {
   handleUnitSearch(newValue)
 })
 
-// ⭐ 新增：點擊外部關閉下拉選單
+// 點擊外部關閉下拉選單
 const handleClickOutside = (event) => {
   const dropdown = document.querySelector('.unit-search-dropdown')
   const input = document.querySelector('.unit-search-input')
@@ -259,7 +259,7 @@ const handleClickOutside = (event) => {
     showUnitDropdown.value = false
   }
 }
-// ⭐ 新增：載入單位標籤
+// 載入單位標籤
 const loadUnitLabels = async () => {
   try {
     isLoadingUnitLabels.value = true
@@ -514,11 +514,11 @@ onMounted(async () => {
     isLoading.value = false
   }
   
-  // ⭐ 新增：監聽點擊外部事件
+  // 監聽點擊外部事件
   document.addEventListener('click', handleClickOutside)
 })
 
-// ⭐ 新增：清理函數
+// 清理函數
 onUnmounted(() => {
   // 移除監聽
   document.removeEventListener('click', handleClickOutside)
@@ -641,7 +641,6 @@ onUnmounted(() => {
                 @focus="unitSearchKeyword && searchUnits(unitSearchKeyword)"
               />
               
-              <!-- ⭐ 修改：已選擇的單位資訊（移到這裡） -->
               <div v-if="repairProgressForm.repairUnit" class="selected-unit-badge">
                 已選擇：{{ repairProgressForm.repairUnit }}
               </div>
@@ -1132,20 +1131,20 @@ onUnmounted(() => {
       display: flex;
       gap: 20px;
       align-items: end;
-      margin-bottom: 30px; // ⭐ 從 20px 改為 30px，給 badge 留空間
+      margin-bottom: 30px; //  從 20px 改為 30px，給 badge 留空間
 
       // 1600px 以下
       @media (max-width: 1600px) and (min-width: 1025px) {
         gap: 16px;
         flex-wrap: wrap;
         align-items: stretch;
-        margin-bottom: 32px; // ⭐ 增加間距
+        margin-bottom: 32px; 
       }
 
       // 平板
       @media (max-width: 1024px) and (min-width: 769px) {
         gap: 16px;
-        margin-bottom: 34px; // ⭐ 增加間距
+        margin-bottom: 34px; 
         flex-wrap: wrap;
       }
 
@@ -1154,13 +1153,13 @@ onUnmounted(() => {
         flex-direction: column;
         gap: 14px;
         align-items: stretch;
-        margin-bottom: 36px; // ⭐ 增加間距
+        margin-bottom: 36px; 
       }
 
       // 小手機
       @media (max-width: 480px) {
         gap: 12px;
-        margin-bottom: 34px; // ⭐ 增加間距
+        margin-bottom: 34px; 
       }
 
       &:last-child {
@@ -1789,7 +1788,7 @@ onUnmounted(() => {
     }
   }
 }
-// ⭐ 單位搜尋容器
+// 單位搜尋容器
 .unit-search-container {
   position: relative;
   
@@ -1800,7 +1799,7 @@ onUnmounted(() => {
       padding-right: 70px; // 為搜尋圖標和清除按鈕留空間
     }
     
-    // ⭐ 新增：已選擇的單位 Badge（使用 absolute 定位）
+    // 已選擇的單位 Badge（使用 absolute 定位）
     .selected-unit-badge {
       position: absolute;
       left: 12px;

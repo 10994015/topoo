@@ -24,22 +24,33 @@ export const useRepairStore = defineStore('repair', () => {
         }
     }
 
-    const fetchReasons = async (categoryId) => {
-        //console.log(categoryId);
+    const fetchReasons = async (categoryId, searchName = '') => {
+        // 如果沒有 categoryId 或是 '-'，直接返回空陣列
+        if (!categoryId || categoryId === '-') {
+            reasons.value = { data: [] };
+            return;
+        }
         
         try {
-            const response = await axiosClient.get('/enum/repair-reason', {
-                params: {
-                    parentId: categoryId
-                }
-            })
-            //console.log(response.data);
+            const params = {};
+            if (searchName) {
+            params.name = searchName;
+            }
             
+            //   改用新的 API 路徑
+            const response = await axiosClient.get(`/enum/repair-category/${categoryId}/repair-reason`, {
+            params
+            });
+            
+            console.log('故障原因回應:', response.data);
             reasons.value = response.data;
         } catch (error) {
-            //console.error('獲取類別失敗:', error);
+            console.error('獲取故障原因失敗:', error);
+            reasons.value = { data: [] };
+            throw error;
         }
     }
+
     
     const fetchStatuses = async () => {
         try {

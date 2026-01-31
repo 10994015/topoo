@@ -36,8 +36,10 @@ const formData = reactive({
       selectedId: '', 
       inputValue: '', 
       importance_level: '1',
-      unit_label_ids: [], // ⭐ 單位標籤 IDs
-      unit_labels: [], // ⭐ 單位標籤名稱（用於顯示）
+      unit_label_ids: [],
+      unit_labels: [],
+      unit_repair_category_ids: [],
+      unit_repair_categories: [],
       options: [], 
       isLoading: false, 
       isLocked: false 
@@ -49,17 +51,26 @@ const formData = reactive({
 const backupData = reactive({
   originalUnitName: '',
   originalimportance_level: '',
-  originalUnitLabelIds: [], // ⭐ 備份標籤 IDs
-  originalUnitLabels: [], // ⭐ 備份標籤名稱
+  originalUnitLabelIds: [],
+  originalUnitLabels: [],
+  originalRepairCategoryIds: [],
+  originalRepairCategories: [],
   originalUserSelections: []
 })
 
-// ⭐ 單位標籤相關狀態
+//   單位標籤相關狀態
 const availableUnitLabels = ref([])
 const isLoadingLabels = ref(false)
 const labelSearchKeyword = ref('')
 const showLabelDropdown = ref(false)
 const showMobileLabelModal = ref(false)
+
+//   報修類別相關狀態
+const availableRepairCategories = ref([])
+const isLoadingCategories = ref(false)
+const categorySearchKeyword = ref('')
+const showCategoryDropdown = ref(false)
+const showMobileCategoryModal = ref(false)
 
 // 編輯模式專用資料
 const editUnitData = ref(null)
@@ -83,65 +94,83 @@ const availableUsers = ref([])
 const totalUsers = ref(0)
 const totalPages = ref(0)
 
-// ⭐ 修改：獲取當前層的標籤（用於顯示）
+//     輔助函數：標準化報修類別資料    
+const normalizeCategories = (categories) => {
+  if (!Array.isArray(categories)) return []
+  
+  return categories.map(cat => {
+    if (typeof cat === 'string') return cat
+    if (typeof cat === 'object' && cat !== null) {
+      return cat.enum_name || cat.name || ''
+    }
+    return ''
+  }).filter(Boolean)
+}
+
+//     輔助函數：標準化單位標籤資料    
+const normalizeLabels = (labels) => {
+  if (!Array.isArray(labels)) return []
+  
+  return labels.map(label => {
+    if (typeof label === 'string') return label
+    if (typeof label === 'object' && label !== null) {
+      return label.name || ''
+    }
+    return ''
+  }).filter(Boolean)
+}
+
+//   獲取當前層的標籤（用於顯示）
 const getCurrentLayerLabels = () => {
-  // 編輯模式：取目標層的標籤
   if (isEditMode.value) {
     const targetLayer = formData.unitLayers.find(layer => layer.isTarget)
-    return targetLayer?.unit_labels || []
+    return normalizeLabels(targetLayer?.unit_labels)
   }
   
-  // 新增模式：取最後一個 input 層的標籤
   for (let i = formData.unitLayers.length - 1; i >= 0; i--) {
     const layer = formData.unitLayers[i]
     if (layer.type === 'input' && layer.inputValue) {
-      return layer.unit_labels || []
+      return normalizeLabels(layer.unit_labels)
     }
   }
   
   return []
 }
 
-// ⭐ 修改：當前層已選標籤（字串陣列）
+//   當前層已選標籤（字串陣列）
 const currentLayerLabels = computed(() => getCurrentLayerLabels())
 
-// ⭐ 修改：已選標籤物件（用於顯示）
+//   已選標籤物件（用於顯示）
 const selectedLabels = computed(() => {
   const labelNames = currentLayerLabels.value
   
-  // 如果沒有標籤名稱，返回空陣列
   if (!labelNames || labelNames.length === 0) {
     return []
   }
   
-  // 如果 availableUnitLabels 還沒載入，直接用標籤名稱建立暫時物件
   if (availableUnitLabels.value.length === 0) {
     return labelNames.map((name, index) => ({
-      id: `temp-${index}`, // 暫時 ID
+      id: `temp-${index}`,
       name: name
     }))
   }
   
-  // 從 availableUnitLabels 中找到對應的標籤物件
   const matched = availableUnitLabels.value.filter(label => 
     labelNames.includes(label.name)
   )
   
-  // 如果有些標籤在 availableUnitLabels 中找不到（可能是舊標籤），也顯示出來
   const matchedNames = matched.map(l => l.name)
   const unmatchedNames = labelNames.filter(name => !matchedNames.includes(name))
   
   const unmatchedLabels = unmatchedNames.map((name, index) => ({
-    id: `unmatched-${index}`, // 暫時 ID
+    id: `unmatched-${index}`,
     name: name
   }))
   
   return [...matched, ...unmatchedLabels]
 })
 
-
-
-// ⭐ 過濾後的標籤列表
+//   過濾後的標籤列表
 const filteredUnitLabels = computed(() => {
   if (!labelSearchKeyword.value) {
     return availableUnitLabels.value
@@ -153,23 +182,81 @@ const filteredUnitLabels = computed(() => {
   )
 })
 
-// ⭐ 判斷是否可以選擇標籤
+//   獲取當前層的報修類別（用於顯示）
+const getCurrentLayerCategories = () => {
+  if (isEditMode.value) {
+    const targetLayer = formData.unitLayers.find(layer => layer.isTarget)
+    return normalizeCategories(targetLayer?.unit_repair_categories)
+  }
+  
+  for (let i = formData.unitLayers.length - 1; i >= 0; i--) {
+    const layer = formData.unitLayers[i]
+    if (layer.type === 'input' && layer.inputValue) {
+      return normalizeCategories(layer.unit_repair_categories)
+    }
+  }
+  
+  return []
+}
+
+//   當前層已選報修類別（字串陣列）
+const currentLayerCategories = computed(() => getCurrentLayerCategories())
+
+//   已選報修類別物件（用於顯示）
+const selectedCategories = computed(() => {
+  const categoryNames = currentLayerCategories.value
+  
+  if (!categoryNames || categoryNames.length === 0) {
+    return []
+  }
+  
+  if (availableRepairCategories.value.length === 0) {
+    return categoryNames.map((name, index) => ({
+      id: `temp-${index}`,
+      name: name
+    }))
+  }
+  
+  const matched = availableRepairCategories.value.filter(category => 
+    categoryNames.includes(category.name)
+  )
+  
+  const matchedNames = matched.map(c => c.name)
+  const unmatchedNames = categoryNames.filter(name => !matchedNames.includes(name))
+  
+  const unmatchedCategories = unmatchedNames.map((name, index) => ({
+    id: `unmatched-${index}`,
+    name: name
+  }))
+  
+  return [...matched, ...unmatchedCategories]
+})
+
+//   過濾後的報修類別列表
+const filteredRepairCategories = computed(() => {
+  if (!categorySearchKeyword.value) {
+    return availableRepairCategories.value
+  }
+  
+  const keyword = categorySearchKeyword.value.toLowerCase()
+  return availableRepairCategories.value.filter(category => 
+    category.name.toLowerCase().includes(keyword)
+  )
+})
+
+//   判斷是否可以選擇標籤和類別
 const canSelectLabelsInCreateMode = computed(() => {
-  // 編輯模式：看是否在編輯狀態
   if (isEditMode.value) {
     return isEditingUnitName.value
   }
   
-  // 新增模式：檢查當前層是否有輸入內容
   const currentLayer = getCurrentLayer()
   if (!currentLayer) return false
   
-  // 如果是 input 類型，檢查是否有輸入值
   if (currentLayer.type === 'input') {
     return currentLayer.inputValue && currentLayer.inputValue.trim().length > 0
   }
   
-  // 如果是 select 類型，檢查是否有選擇
   if (currentLayer.type === 'select') {
     return !!currentLayer.selectedId
   }
@@ -177,7 +264,7 @@ const canSelectLabelsInCreateMode = computed(() => {
   return false
 })
 
-// ⭐ 載入單位標籤
+//   載入單位標籤
 const loadUnitLabels = async () => {
   try {
     isLoadingLabels.value = true
@@ -196,12 +283,30 @@ const loadUnitLabels = async () => {
   }
 }
 
-// ⭐ 修改：切換標籤選擇
+//   載入報修類別
+const loadRepairCategories = async () => {
+  try {
+    isLoadingCategories.value = true
+    const response = await unitStore.fetchRepairCategories(categorySearchKeyword.value)
+    
+    if (response.success && response.data) {
+      availableRepairCategories.value = response.data
+    } else {
+      availableRepairCategories.value = []
+    }
+  } catch (error) {
+    console.error('載入報修類別失敗:', error)
+    availableRepairCategories.value = []
+  } finally {
+    isLoadingCategories.value = false
+  }
+}
+
+//   切換標籤選擇
 const toggleLabelSelection = (labelId) => {
   const targetLayer = getCurrentLayer()
   if (!targetLayer) return
   
-  // 初始化陣列
   if (!targetLayer.unit_label_ids) {
     targetLayer.unit_label_ids = []
   }
@@ -209,28 +314,24 @@ const toggleLabelSelection = (labelId) => {
     targetLayer.unit_labels = []
   }
   
-  // 找到對應的標籤物件
   const label = availableUnitLabels.value.find(l => l.id === labelId)
   if (!label) return
   
-  // 切換選擇狀態
   const idIndex = targetLayer.unit_label_ids.indexOf(labelId)
   const nameIndex = targetLayer.unit_labels.indexOf(label.name)
   
   if (idIndex > -1) {
-    // 取消選擇
     targetLayer.unit_label_ids.splice(idIndex, 1)
     if (nameIndex > -1) {
       targetLayer.unit_labels.splice(nameIndex, 1)
     }
   } else {
-    // 新增選擇
     targetLayer.unit_label_ids.push(labelId)
     targetLayer.unit_labels.push(label.name)
   }
 }
 
-// ⭐ 修改：判斷標籤是否已選
+//   判斷標籤是否已選
 const isLabelSelected = (labelId) => {
   const label = availableUnitLabels.value.find(l => l.id === labelId)
   if (!label) return false
@@ -238,29 +339,33 @@ const isLabelSelected = (labelId) => {
   return currentLayerLabels.value.includes(label.name)
 }
 
-// ⭐ 修改：移除單個標籤（接收標籤名稱）
+//   移除單個標籤
 const removeSelectedLabel = (labelName) => {
   const targetLayer = getCurrentLayer()
   if (!targetLayer) return
   
-  // 找到對應的標籤物件
   const label = availableUnitLabels.value.find(l => l.name === labelName)
-  if (!label) return
+  if (!label) {
+    // 如果找不到對應的標籤物件，直接從陣列中移除名稱
+    const nameIndex = targetLayer.unit_labels?.indexOf(labelName)
+    if (nameIndex !== undefined && nameIndex > -1) {
+      targetLayer.unit_labels.splice(nameIndex, 1)
+    }
+    return
+  }
   
-  // 移除 ID
   const idIndex = targetLayer.unit_label_ids?.indexOf(label.id)
   if (idIndex !== undefined && idIndex > -1) {
     targetLayer.unit_label_ids.splice(idIndex, 1)
   }
   
-  // 移除名稱
   const nameIndex = targetLayer.unit_labels?.indexOf(labelName)
   if (nameIndex !== undefined && nameIndex > -1) {
     targetLayer.unit_labels.splice(nameIndex, 1)
   }
 }
 
-// ⭐ 修改：清空所有標籤
+//   清空所有標籤
 const clearAllLabels = () => {
   const targetLayer = getCurrentLayer()
   if (targetLayer) {
@@ -269,7 +374,79 @@ const clearAllLabels = () => {
   }
 }
 
-// ⭐ 獲取當前操作的層級
+//   切換報修類別選擇
+const toggleCategorySelection = (categoryId) => {
+  const targetLayer = getCurrentLayer()
+  if (!targetLayer) return
+  
+  if (!targetLayer.unit_repair_category_ids) {
+    targetLayer.unit_repair_category_ids = []
+  }
+  if (!targetLayer.unit_repair_categories) {
+    targetLayer.unit_repair_categories = []
+  }
+  
+  const category = availableRepairCategories.value.find(c => c.id === categoryId)
+  if (!category) return
+  
+  const idIndex = targetLayer.unit_repair_category_ids.indexOf(categoryId)
+  const nameIndex = targetLayer.unit_repair_categories.indexOf(category.name)
+  
+  if (idIndex > -1) {
+    targetLayer.unit_repair_category_ids.splice(idIndex, 1)
+    if (nameIndex > -1) {
+      targetLayer.unit_repair_categories.splice(nameIndex, 1)
+    }
+  } else {
+    targetLayer.unit_repair_category_ids.push(categoryId)
+    targetLayer.unit_repair_categories.push(category.name)
+  }
+}
+
+//   判斷報修類別是否已選
+const isCategorySelected = (categoryId) => {
+  const category = availableRepairCategories.value.find(c => c.id === categoryId)
+  if (!category) return false
+  
+  return currentLayerCategories.value.includes(category.name)
+}
+
+//   移除單個報修類別
+const removeSelectedCategory = (categoryName) => {
+  const targetLayer = getCurrentLayer()
+  if (!targetLayer) return
+  
+  const category = availableRepairCategories.value.find(c => c.name === categoryName)
+  if (!category) {
+    // 如果找不到對應的類別物件，直接從陣列中移除名稱
+    const nameIndex = targetLayer.unit_repair_categories?.indexOf(categoryName)
+    if (nameIndex !== undefined && nameIndex > -1) {
+      targetLayer.unit_repair_categories.splice(nameIndex, 1)
+    }
+    return
+  }
+  
+  const idIndex = targetLayer.unit_repair_category_ids?.indexOf(category.id)
+  if (idIndex !== undefined && idIndex > -1) {
+    targetLayer.unit_repair_category_ids.splice(idIndex, 1)
+  }
+  
+  const nameIndex = targetLayer.unit_repair_categories?.indexOf(categoryName)
+  if (nameIndex !== undefined && nameIndex > -1) {
+    targetLayer.unit_repair_categories.splice(nameIndex, 1)
+  }
+}
+
+//   清空所有報修類別
+const clearAllCategories = () => {
+  const targetLayer = getCurrentLayer()
+  if (targetLayer) {
+    targetLayer.unit_repair_category_ids = []
+    targetLayer.unit_repair_categories = []
+  }
+}
+
+//   獲取當前操作的層級
 const getCurrentLayer = () => {
   if (isEditMode.value) {
     return formData.unitLayers.find(layer => layer.isTarget)
@@ -285,7 +462,7 @@ const getCurrentLayer = () => {
   return formData.unitLayers[formData.unitLayers.length - 1]
 }
 
-// ⭐ 桌面版切換下拉選單
+//   桌面版切換下拉選單
 const toggleLabelDropdown = () => {
   showLabelDropdown.value = !showLabelDropdown.value
   if (showLabelDropdown.value && availableUnitLabels.value.length === 0) {
@@ -293,7 +470,15 @@ const toggleLabelDropdown = () => {
   }
 }
 
-// ⭐ 手機版開啟/關閉標籤選擇 Modal
+//   桌面版切換報修類別下拉選單
+const toggleCategoryDropdown = () => {
+  showCategoryDropdown.value = !showCategoryDropdown.value
+  if (showCategoryDropdown.value && availableRepairCategories.value.length === 0) {
+    loadRepairCategories()
+  }
+}
+
+//   手機版開啟/關閉標籤選擇 Modal
 const openMobileLabelModal = () => {
   showMobileLabelModal.value = true
   if (availableUnitLabels.value.length === 0) {
@@ -306,14 +491,35 @@ const closeMobileLabelModal = () => {
   labelSearchKeyword.value = ''
 }
 
-// ⭐ 關閉桌面版下拉選單（點擊外部時）
+//   手機版開啟/關閉報修類別 Modal
+const openMobileCategoryModal = () => {
+  showMobileCategoryModal.value = true
+  if (availableRepairCategories.value.length === 0) {
+    loadRepairCategories()
+  }
+}
+
+const closeMobileCategoryModal = () => {
+  showMobileCategoryModal.value = false
+  categorySearchKeyword.value = ''
+}
+
+//   關閉桌面版下拉選單（點擊外部時）
 const closeDropdownOnClickOutside = (event) => {
-  const dropdown = document.querySelector('.label-dropdown')
-  const button = document.querySelector('.select-labels-btn')
+  const labelDropdown = document.querySelector('.label-dropdown')
+  const labelButton = document.querySelector('.select-labels-btn')
   
-  if (dropdown && !dropdown.contains(event.target) && 
-      button && !button.contains(event.target)) {
+  if (labelDropdown && !labelDropdown.contains(event.target) && 
+      labelButton && !labelButton.contains(event.target)) {
     showLabelDropdown.value = false
+  }
+
+  const categoryDropdown = document.querySelector('.category-dropdown')
+  const categoryButton = document.querySelector('.select-categories-btn')
+  
+  if (categoryDropdown && !categoryDropdown.contains(event.target) && 
+      categoryButton && !categoryButton.contains(event.target)) {
+    showCategoryDropdown.value = false
   }
 }
 
@@ -384,7 +590,7 @@ const unitPath = computed(() => {
     .join(' > ')
 })
 
-// ⭐ 修改：從編輯單位 ID 建構完整路徑並初始化表單
+//   從編輯單位 ID 建構完整路徑並初始化表單
 const buildEditUnitPath = async (targetUnitId) => {
   try {
     const response = await unitStore.fetchUnitById(targetUnitId)
@@ -408,8 +614,10 @@ const buildEditUnitPath = async (targetUnitId) => {
         layer: unit.layer,
         level: levelNumber,
         importance_level: unit.importance_level || '1',
-        unit_label_ids: unit.unit_label_ids || [], // ⭐ 保持這個用於提交
-        unit_labels: unit.unit_labels || [], // ⭐ 新增：用於顯示的標籤名稱陣列
+        unit_label_ids: unit.unit_label_ids || [],
+        unit_labels: normalizeLabels(unit.unit_labels),
+        unit_repair_category_ids: unit.unit_repair_category_ids || [],
+        unit_repair_categories: normalizeCategories(unit.unit_repair_categories),
         isTarget: unit.id === targetUnitId
       })
       
@@ -429,7 +637,7 @@ const buildEditUnitPath = async (targetUnitId) => {
   }
 }
 
-// ⭐ 修改：根據編輯模式路徑初始化表單
+//   根據編輯模式路徑初始化表單
 const initializeEditForm = async (path) => {
   try {
     formData.unitLayers = []
@@ -450,7 +658,9 @@ const initializeEditForm = async (path) => {
             layer: `L${i + 1}`,
             importance_level: subUnit.importance_level || '1',
             unit_label_ids: subUnit.unit_label_ids || [],
-            unit_labels: subUnit.unit_labels || [] // ⭐ 新增
+            unit_labels: normalizeLabels(subUnit.unit_labels),
+            unit_repair_category_ids: subUnit.unit_repair_category_ids || [],
+            unit_repair_categories: normalizeCategories(subUnit.unit_repair_categories)
           }))
         }
       }
@@ -462,7 +672,9 @@ const initializeEditForm = async (path) => {
         inputValue: pathItem.isTarget ? pathItem.name : '',
         importance_level: pathItem.importance_level,
         unit_label_ids: pathItem.unit_label_ids || [],
-        unit_labels: pathItem.unit_labels || [], // ⭐ 新增：用於顯示
+        unit_labels: normalizeLabels(pathItem.unit_labels),
+        unit_repair_category_ids: pathItem.unit_repair_category_ids || [],
+        unit_repair_categories: normalizeCategories(pathItem.unit_repair_categories),
         options: options,
         isLoading: false,
         isLocked: !pathItem.isTarget,
@@ -507,7 +719,9 @@ const buildParentPath = async (targetParentId) => {
         level: levelNumber,
         importance_level: unit.importance_level || '1',
         unit_label_ids: unit.unit_label_ids || [],
-        unit_labels: unit.unit_labels || [] // ⭐ 新增
+        unit_labels: normalizeLabels(unit.unit_labels),
+        unit_repair_category_ids: unit.unit_repair_category_ids || [],
+        unit_repair_categories: normalizeCategories(unit.unit_repair_categories)
       })
       
       if (unit.parent_id) {
@@ -547,7 +761,9 @@ const initializeFormFromPath = async (path) => {
             layer: `L${i + 1}`,
             importance_level: subUnit.importance_level || '1',
             unit_label_ids: subUnit.unit_label_ids || [],
-            unit_labels: subUnit.unit_labels || [] // ⭐ 新增
+            unit_labels: normalizeLabels(subUnit.unit_labels),
+            unit_repair_category_ids: subUnit.unit_repair_category_ids || [],
+            unit_repair_categories: normalizeCategories(subUnit.unit_repair_categories)
           }))
         }
       }
@@ -559,7 +775,9 @@ const initializeFormFromPath = async (path) => {
         inputValue: '',
         importance_level: pathItem.importance_level,
         unit_label_ids: pathItem.unit_label_ids || [],
-        unit_labels: pathItem.unit_labels || [], // ⭐ 新增
+        unit_labels: normalizeLabels(pathItem.unit_labels),
+        unit_repair_category_ids: pathItem.unit_repair_category_ids || [],
+        unit_repair_categories: normalizeCategories(pathItem.unit_repair_categories),
         options: options,
         isLoading: false,
         isLocked: true
@@ -577,7 +795,9 @@ const initializeFormFromPath = async (path) => {
         inputValue: '',
         importance_level: '1',
         unit_label_ids: [],
-        unit_labels: [], // ⭐ 新增
+        unit_labels: [],
+        unit_repair_category_ids: [],
+        unit_repair_categories: [],
         options: [],
         isLoading: false,
         isLocked: false
@@ -615,7 +835,9 @@ const loadLayerOptions = async (layerNumber) => {
         layer: unit.layer,
         importance_level: unit.importance_level || '1',
         unit_label_ids: unit.unit_label_ids || [],
-        unit_labels: unit.unit_labels || [] // ⭐ 新增
+        unit_labels: normalizeLabels(unit.unit_labels),
+        unit_repair_category_ids: unit.unit_repair_category_ids || [],
+        unit_repair_categories: normalizeCategories(unit.unit_repair_categories)
       }))
     }
     
@@ -639,7 +861,9 @@ const loadNextLayerOptions = async (nextLayerLevel, parentId) => {
         layer: `L${nextLayerLevel}`,
         importance_level: subUnit.importance_level || '1',
         unit_label_ids: subUnit.unit_label_ids || [],
-        unit_labels: subUnit.unit_labels || [] // ⭐ 新增
+        unit_labels: normalizeLabels(subUnit.unit_labels),
+        unit_repair_category_ids: subUnit.unit_repair_category_ids || [],
+        unit_repair_categories: normalizeCategories(subUnit.unit_repair_categories)
       }))
       
       if (options.length > 0) {
@@ -650,7 +874,9 @@ const loadNextLayerOptions = async (nextLayerLevel, parentId) => {
           inputValue: '',
           importance_level: '1',
           unit_label_ids: [],
-          unit_labels: [], // ⭐ 新增
+          unit_labels: [],
+          unit_repair_category_ids: [],
+          unit_repair_categories: [],
           options: options,
           isLoading: false,
           isLocked: false
@@ -679,7 +905,9 @@ const addInputLayer = (level) => {
     inputValue: '',
     importance_level: '1',
     unit_label_ids: [],
-    unit_labels: [], // ⭐ 新增
+    unit_labels: [],
+    unit_repair_category_ids: [],
+    unit_repair_categories: [],
     options: [],
     isLoading: false,
     isLocked: false
@@ -717,7 +945,9 @@ const toggleLayerType = async (layerIndex) => {
               layer: `L${layer.level}`,
               importance_level: subUnit.importance_level || '1',
               unit_label_ids: subUnit.unit_label_ids || [],
-              unit_labels: subUnit.unit_labels || [] // ⭐ 新增
+              unit_labels: normalizeLabels(subUnit.unit_labels),
+              unit_repair_category_ids: subUnit.unit_repair_category_ids || [],
+              unit_repair_categories: normalizeCategories(subUnit.unit_repair_categories)
             }))
           }
         }
@@ -911,7 +1141,8 @@ const buildApiData = () => {
       const unit = {
         name: currentLayer.inputValue,
         importance_level: currentLayer.importance_level,
-        unit_label_ids: currentLayer.unit_label_ids || [], // ⭐ 標籤 IDs
+        unit_label_ids: currentLayer.unit_label_ids || [],
+        unit_repair_category_ids: currentLayer.unit_repair_category_ids || [],
         users: [],
         sub_units: buildNestedUnits(startIndex + 1)
       }
@@ -980,7 +1211,8 @@ const saveForm = async () => {
       const editData = {
         name: targetLayer.inputValue,
         importance_level: targetLayer.importance_level,
-        unit_label_ids: targetLayer.unit_label_ids || [], // ⭐ 標籤 IDs
+        unit_label_ids: targetLayer.unit_label_ids || [],
+        unit_repair_category_ids: targetLayer.unit_repair_category_ids || [],
         updateUnitUsers: availableUsers.value.map(user => ({
           user_id: user.id,
           is_in_unit: user.isSelected
@@ -1035,7 +1267,7 @@ const saveForm = async () => {
   }
 }
 
-// ⭐ 修改：編輯單位名稱切換
+//   編輯單位名稱切換
 const toggleEditUnitName = () => {
   if(!hasWriteUnitPermission.value){
     alert('您沒有權限編輯單位名稱')
@@ -1048,7 +1280,9 @@ const toggleEditUnitName = () => {
       backupData.originalUnitName = targetLayer.inputValue
       backupData.originalimportance_level = targetLayer.importance_level
       backupData.originalUnitLabelIds = [...(targetLayer.unit_label_ids || [])]
-      backupData.originalUnitLabels = [...(targetLayer.unit_labels || [])] // ⭐ 新增：備份標籤名稱
+      backupData.originalUnitLabels = [...normalizeLabels(targetLayer.unit_labels)]
+      backupData.originalRepairCategoryIds = [...(targetLayer.unit_repair_category_ids || [])]
+      backupData.originalRepairCategories = [...normalizeCategories(targetLayer.unit_repair_categories)]
     }
     
     backupData.originalUserSelections = availableUsers.value.map(user => ({
@@ -1067,7 +1301,9 @@ const toggleEditUnitName = () => {
       targetLayer.inputValue = backupData.originalUnitName
       targetLayer.importance_level = backupData.originalimportance_level
       targetLayer.unit_label_ids = [...backupData.originalUnitLabelIds]
-      targetLayer.unit_labels = [...backupData.originalUnitLabels] // ⭐ 新增：恢復標籤名稱
+      targetLayer.unit_labels = [...backupData.originalUnitLabels]
+      targetLayer.unit_repair_category_ids = [...backupData.originalRepairCategoryIds]
+      targetLayer.unit_repair_categories = [...backupData.originalRepairCategories]
     }
     
     if (backupData.originalUserSelections.length > 0) {
@@ -1088,12 +1324,14 @@ const toggleEditUnitName = () => {
     backupData.originalUnitName = ''
     backupData.originalimportance_level = ''
     backupData.originalUnitLabelIds = []
-    backupData.originalUnitLabels = [] // ⭐ 新增
+    backupData.originalUnitLabels = []
+    backupData.originalRepairCategoryIds = []
+    backupData.originalRepairCategories = []
     backupData.originalUserSelections = []
   }
 }
 
-// ⭐ 修改：重新載入編輯頁面資料
+//   重新載入編輯頁面資料
 const reloadEditPageData = async () => {
   try {
     if (!editUnitData.value || !editUnitData.value.id) {
@@ -1111,7 +1349,9 @@ const reloadEditPageData = async () => {
         targetLayer.inputValue = response.data.name
         targetLayer.importance_level = response.data.importance_level || '1'
         targetLayer.unit_label_ids = response.data.unit_label_ids || []
-        targetLayer.unit_labels = response.data.unit_labels || [] // ⭐ 新增
+        targetLayer.unit_labels = normalizeLabels(response.data.unit_labels)
+        targetLayer.unit_repair_category_ids = response.data.unit_repair_category_ids || []
+        targetLayer.unit_repair_categories = normalizeCategories(response.data.unit_repair_categories)
       }
     } else {
       throw new Error('重新獲取單位資料失敗：' + (response.message || '未知錯誤'))
@@ -1145,7 +1385,8 @@ const saveUnitNameChange = async () => {
     const editData = {
       name: targetLayer.inputValue,
       importance_level: targetLayer.importance_level,
-      unit_label_ids: targetLayer.unit_label_ids || [], // ⭐ 標籤 IDs
+      unit_label_ids: targetLayer.unit_label_ids || [],
+      unit_repair_category_ids: targetLayer.unit_repair_category_ids || [],
       updateUnitUsers: availableUsers.value.map(user => ({
         user_id: user.id,
         is_in_unit: user.isSelected
@@ -1159,7 +1400,9 @@ const saveUnitNameChange = async () => {
       editUnitData.value.name = targetLayer.inputValue
       editUnitData.value.importance_level = targetLayer.importance_level
       editUnitData.value.unit_label_ids = targetLayer.unit_label_ids || []
-      editUnitData.value.unit_labels = targetLayer.unit_labels || [] // ⭐ 新增
+      editUnitData.value.unit_labels = normalizeLabels(targetLayer.unit_labels)
+      editUnitData.value.unit_repair_category_ids = targetLayer.unit_repair_category_ids || []
+      editUnitData.value.unit_repair_categories = normalizeCategories(targetLayer.unit_repair_categories)
       
       isEditingUnitName.value = false
       targetLayer.isLocked = true
@@ -1167,7 +1410,9 @@ const saveUnitNameChange = async () => {
       backupData.originalUnitName = ''
       backupData.originalimportance_level = ''
       backupData.originalUnitLabelIds = []
-      backupData.originalUnitLabels = [] // ⭐ 新增
+      backupData.originalUnitLabels = []
+      backupData.originalRepairCategoryIds = []
+      backupData.originalRepairCategories = []
       backupData.originalUserSelections = []
       
       alert('單位更新成功！')
@@ -1245,7 +1490,7 @@ const getimportance_levelLabel = (value) => {
   return option ? option.label : '普級'
 }
 
-// ⭐ 點擊外部關閉下拉選單
+//   點擊外部關閉下拉選單
 onMounted(async () => {
   isLoading.value = true
   try {
@@ -1264,7 +1509,7 @@ onMounted(async () => {
       await loadUsers(null)
     }
     
-    // ⭐ 監聽點擊外部事件
+    //   監聽點擊外部事件
     document.addEventListener('click', closeDropdownOnClickOutside)
   } catch (error) {
     console.error('❌ 初始化失敗:', error)
@@ -1285,7 +1530,7 @@ onMounted(async () => {
   }
 })
 
-// ⭐ 組件卸載時移除事件監聽
+//   組件卸載時移除事件監聽
 onBeforeUnmount(() => {
   document.removeEventListener('click', closeDropdownOnClickOutside)
 })
@@ -1598,6 +1843,94 @@ onBeforeUnmount(() => {
               </div>
             </div>
 
+            <!--     報修類別選擇區域（桌面版）     -->
+            <div class="form-row unit-category-row">
+              <label class="form-label">報修類別</label>
+              <div class="unit-category-section">
+                <!-- 已選報修類別顯示 -->
+                <div class="selected-categories-display">
+                  <div v-if="selectedCategories.length === 0" class="no-categories-hint">
+                    尚未選擇報修類別
+                  </div>
+                  <div v-else class="selected-categories-list">
+                    <span 
+                      v-for="category in selectedCategories" 
+                      :key="category.id"
+                      class="selected-category-tag"
+                    >
+                      {{ category.name }}
+                      <button 
+                        class="remove-category-btn"
+                        @click="removeSelectedCategory(category.name)"
+                        :disabled="!canSelectLabelsInCreateMode"
+                        title="移除類別"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  </div>
+                </div>
+
+                <!-- 選擇報修類別按鈕 -->
+                <button 
+                  class="select-categories-btn"
+                  @click="toggleCategoryDropdown"
+                  :disabled="!canSelectLabelsInCreateMode"
+                  type="button"
+                >
+                  <span class="btn-text">選擇類別</span>
+                </button>
+
+                <!-- 報修類別下拉選單 -->
+                <div v-if="showCategoryDropdown" class="category-dropdown">
+                  <div class="dropdown-header">
+                    <input 
+                      v-model="categorySearchKeyword"
+                      type="text"
+                      placeholder="搜尋報修類別..."
+                      class="category-search-input"
+                      @input="loadRepairCategories"
+                    />
+                    <div class="dropdown-actions">
+                      <span class="selected-count">已選 {{ selectedCategories.length }} 個</span>
+                      <button 
+                        v-if="selectedCategories.length > 0"
+                        class="clear-all-btn"
+                        @click="clearAllCategories"
+                        type="button"
+                      >
+                        清空
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="dropdown-body">
+                    <div v-if="isLoadingCategories" class="loading-state">
+                      <div class="loading-spinner small">⟳</div>
+                      <span>載入報修類別中...</span>
+                    </div>
+                    <div v-else-if="filteredRepairCategories.length === 0" class="empty-state">
+                      暫無報修類別
+                    </div>
+                    <div v-else class="categories-list">
+                      <label 
+                        v-for="category in filteredRepairCategories"
+                        :key="category.id"
+                        class="category-checkbox-item"
+                      >
+                        <input 
+                          type="checkbox"
+                          :checked="isCategorySelected(category.id)"
+                          @change="toggleCategorySelection(category.id)"
+                        />
+                        <span class="category-name">{{ category.name }}</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- 單位標籤選擇區域（桌面版） -->
             <div class="form-row unit-label-row">
               <label class="form-label">單位標籤</label>
@@ -1633,7 +1966,6 @@ onBeforeUnmount(() => {
                   :disabled="!canSelectLabelsInCreateMode"
                   type="button"
                 >
-                  <span class="btn-icon">🏷️</span>
                   <span class="btn-text">選擇標籤</span>
                 </button>
 
@@ -1786,6 +2118,110 @@ onBeforeUnmount(() => {
 
                 <div v-if="layer.isTarget" class="target-indicator">
                   <span class="target-badge">目標單位</span>
+                </div>
+              </div>
+            </div>
+
+            <!--     手機版報修類別選擇     -->
+            <div class="mobile-category-section">
+              <div class="mobile-category-header">
+                <h5>報修類別</h5>
+                <button 
+                  class="mobile-select-categories-btn"
+                  @click="openMobileCategoryModal"
+                  :disabled="!canSelectLabelsInCreateMode"
+                  type="button"
+                >
+                  選擇類別
+                </button>
+              </div>
+
+              <!-- 已選報修類別顯示 -->
+              <div class="mobile-selected-categories">
+                <div v-if="selectedCategories.length === 0" class="no-categories-hint">
+                  尚未選擇報修類別
+                </div>
+                <div v-else class="mobile-categories-list">
+                  <span 
+                    v-for="category in selectedCategories" 
+                    :key="category.id"
+                    class="mobile-category-tag"
+                  >
+                    {{ category.name }}
+                    <button 
+                      class="remove-category-btn"
+                      @click="removeSelectedCategory(category.name)"
+                      :disabled="!canSelectLabelsInCreateMode"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                </div>
+              </div>
+
+              <!-- 手機版報修類別選擇 Modal -->
+              <div v-if="showMobileCategoryModal" class="mobile-category-modal">
+                <div class="modal-overlay" @click="closeMobileCategoryModal"></div>
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5>選擇報修類別</h5>
+                    <button class="close-modal-btn" @click="closeMobileCategoryModal">✕</button>
+                  </div>
+
+                  <div class="modal-search">
+                    <input 
+                      v-model="categorySearchKeyword"
+                      type="text"
+                      placeholder="搜尋報修類別..."
+                      class="modal-search-input"
+                      @input="loadRepairCategories"
+                    />
+                  </div>
+
+                  <div class="modal-body">
+                    <div v-if="isLoadingCategories" class="loading-state">
+                      <div class="loading-spinner">⟳</div>
+                      <span>載入報修類別中...</span>
+                    </div>
+                    <div v-else-if="filteredRepairCategories.length === 0" class="empty-state">
+                      暫無報修類別
+                    </div>
+                    <div v-else class="modal-categories-list">
+                      <label 
+                        v-for="category in filteredRepairCategories"
+                        :key="category.id"
+                        class="modal-category-item"
+                      >
+                        <input 
+                          type="checkbox"
+                          :checked="isCategorySelected(category.id)"
+                          @change="toggleCategorySelection(category.id)"
+                        />
+                        <span class="category-name">{{ category.name }}</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="modal-footer">
+                    <div class="selected-count">已選 {{ selectedCategories.length }} 個類別</div>
+                    <div class="modal-actions">
+                      <button 
+                        v-if="selectedCategories.length > 0"
+                        class="clear-btn"
+                        @click="clearAllCategories"
+                        type="button"
+                      >
+                        清空
+                      </button>
+                      <button 
+                        class="confirm-btn"
+                        @click="closeMobileCategoryModal"
+                        type="button"
+                      >
+                        確定
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -2207,6 +2643,12 @@ $label-gradient-end: #764ba2;
 $label-bg: #f8f9ff;
 $label-border: #e0e3ff;
 
+//   報修類別相關顏色
+$category-gradient-start: #ff6b6b;
+$category-gradient-end: #ee5a24;
+$category-bg: #fff5f5;
+$category-border: #ffe0e0;
+
 // 基礎樣式
 .create-unit-page {
   padding: 16px;
@@ -2483,7 +2925,244 @@ $label-border: #e0e3ff;
   }
 }
 
-// ⭐⭐單位標籤選擇區域樣式（桌面版） ⭐⭐⭐
+//     報修類別選擇區域樣式（桌面版）    
+.unit-category-row {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e9ecef;
+
+  @media (min-width: $breakpoint-tablet) {
+    margin-top: 25px;
+    padding-top: 25px;
+  }
+}
+
+.unit-category-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1;
+  position: relative;
+
+  .selected-categories-display {
+    flex: 1;
+    min-height: 42px;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: white;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+
+    .no-categories-hint {
+      color: #999;
+      font-size: 14px;
+    }
+
+    .selected-categories-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      width: 100%;
+    }
+  }
+
+  .selected-category-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: linear-gradient(135deg, $category-gradient-start 0%, $category-gradient-end 100%);
+    color: white;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: 0 2px 4px rgba($category-gradient-start, 0.3);
+    transition: all 0.2s;
+    animation: slideIn 0.3s ease;
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba($category-gradient-start, 0.4);
+    }
+
+    .remove-category-btn {
+      background: rgba(255, 255, 255, 0.3);
+      border: none;
+      color: white;
+      border-radius: 50%;
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 10px;
+      line-height: 1;
+      transition: all 0.2s;
+      padding: 0;
+
+      &:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.5);
+        transform: scale(1.1);
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  .select-categories-btn {
+    background: $category-gradient-start;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+
+    .btn-icon {
+      font-size: 16px;
+    }
+
+    &:hover:not(:disabled) {
+      background: $category-gradient-end;
+      transform: translateY(-1px);
+    }
+
+    &:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+  }
+
+  .category-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    width: 400px;
+    max-width: calc(100vw - 32px);
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+    animation: dropdownSlideIn 0.2s ease;
+
+    .dropdown-header {
+      padding: 12px;
+      border-bottom: 1px solid #f0f0f0;
+
+      .category-search-input {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+        margin-bottom: 8px;
+
+        &:focus {
+          outline: none;
+          border-color: $category-gradient-start;
+          box-shadow: 0 0 0 2px rgba($category-gradient-start, 0.1);
+        }
+      }
+
+      .dropdown-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        .selected-count {
+          font-size: 12px;
+          color: #666;
+        }
+
+        .clear-all-btn {
+          background: none;
+          border: none;
+          color: $danger-color;
+          font-size: 12px;
+          cursor: pointer;
+          padding: 4px 8px;
+          border-radius: 4px;
+          transition: all 0.2s;
+
+          &:hover {
+            background: rgba($danger-color, 0.1);
+          }
+        }
+      }
+    }
+
+    .dropdown-body {
+      max-height: 300px;
+      overflow-y: auto;
+      padding: 8px;
+
+      .loading-state,
+      .empty-state {
+        padding: 20px;
+        text-align: center;
+        color: #999;
+        font-size: 14px;
+      }
+
+      .loading-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .categories-list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+
+        .category-checkbox-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 12px;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.2s;
+
+          &:hover {
+            background: $category-bg;
+          }
+
+          input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+          }
+
+          .category-name {
+            flex: 1;
+            font-size: 14px;
+            color: #333;
+          }
+        }
+      }
+    }
+  }
+}
+
+//     單位標籤選擇區域樣式（桌面版）    
 .unit-label-row {
   margin-top: 20px;
   padding-top: 20px;
@@ -2720,7 +3399,298 @@ $label-border: #e0e3ff;
   }
 }
 
-// ⭐⭐手機版標籤選擇區域 ⭐⭐⭐
+//     手機版報修類別選擇區域    
+.mobile-category-section {
+  margin-top: 16px;
+  padding: 16px;
+  background: #fff8f5;
+  border-radius: 8px;
+  border: 1px solid $category-border;
+
+  .mobile-category-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+
+    h5 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .mobile-select-categories-btn {
+      background: $category-gradient-start;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s;
+
+      &:active:not(:disabled) {
+        transform: scale(0.95);
+      }
+
+      &:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+    }
+  }
+
+  .mobile-selected-categories {
+    .no-categories-hint {
+      color: #999;
+      font-size: 13px;
+      text-align: center;
+      padding: 12px;
+    }
+
+    .mobile-categories-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .mobile-category-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: linear-gradient(135deg, $category-gradient-start 0%, $category-gradient-end 100%);
+      color: white;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      box-shadow: 0 2px 4px rgba($category-gradient-start, 0.3);
+      animation: slideIn 0.3s ease;
+
+      .remove-category-btn {
+        background: rgba(255, 255, 255, 0.3);
+        border: none;
+        color: white;
+        border-radius: 50%;
+        width: 16px;
+        height: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 10px;
+        line-height: 1;
+        padding: 0;
+
+        &:active:not(:disabled) {
+          transform: scale(0.9);
+        }
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+      }
+    }
+  }
+}
+
+//     手機版報修類別選擇 Modal    
+.mobile-category-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+
+  .modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    animation: fadeIn 0.3s ease;
+  }
+
+  .modal-content {
+    position: relative;
+    width: 100%;
+    max-height: 80vh;
+    background: white;
+    border-radius: 16px 16px 0 0;
+    display: flex;
+    flex-direction: column;
+    animation: slideUp 0.3s ease;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      border-bottom: 1px solid #f0f0f0;
+
+      h5 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #333;
+      }
+
+      .close-modal-btn {
+        background: none;
+        border: none;
+        font-size: 24px;
+        color: #999;
+        cursor: pointer;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: all 0.2s;
+
+        &:active {
+          background: #f0f0f0;
+          transform: scale(0.9);
+        }
+      }
+    }
+
+    .modal-search {
+      padding: 12px 20px;
+      border-bottom: 1px solid #f0f0f0;
+
+      .modal-search-input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+
+        &:focus {
+          outline: none;
+          border-color: $category-gradient-start;
+          box-shadow: 0 0 0 2px rgba($category-gradient-start, 0.1);
+        }
+      }
+    }
+
+    .modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 20px;
+
+      .loading-state,
+      .empty-state {
+        padding: 40px 20px;
+        text-align: center;
+        color: #999;
+        font-size: 14px;
+      }
+
+      .loading-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .modal-categories-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+
+        .modal-category-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 16px;
+          background: $category-bg;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s;
+
+          &:active {
+            background: #ffe5e5;
+            transform: scale(0.98);
+          }
+
+          input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+          }
+
+          .category-name {
+            flex: 1;
+            font-size: 15px;
+            color: #333;
+          }
+        }
+      }
+    }
+
+    .modal-footer {
+      padding: 16px 20px;
+      border-top: 1px solid #f0f0f0;
+      background: #f8f9fa;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      .selected-count {
+        font-size: 13px;
+        color: #666;
+        font-weight: 500;
+      }
+
+      .modal-actions {
+        display: flex;
+        gap: 8px;
+
+        .clear-btn {
+          background: white;
+          color: $danger-color;
+          border: 1px solid $danger-color;
+          padding: 8px 16px;
+          border-radius: 6px;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+
+          &:active {
+            background: rgba($danger-color, 0.1);
+            transform: scale(0.95);
+          }
+        }
+
+        .confirm-btn {
+          background: $category-gradient-start;
+          color: white;
+          border: none;
+          padding: 8px 20px;
+          border-radius: 6px;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+
+          &:active {
+            background: $category-gradient-end;
+            transform: scale(0.95);
+          }
+        }
+      }
+    }
+  }
+}
+
+//     手機版標籤選擇區域    
 .mobile-label-section {
   margin-top: 16px;
   padding: 16px;
@@ -2819,7 +3789,7 @@ $label-border: #e0e3ff;
   }
 }
 
-// ⭐⭐手機版標籤選擇 Modal ⭐⭐⭐
+//     手機版標籤選擇 Modal    
 .mobile-label-modal {
   position: fixed;
   inset: 0;
@@ -3051,8 +4021,6 @@ $label-border: #e0e3ff;
     transform: translateY(0);
   }
 }
-
-// 接續 Part 1...
 
 // 單位選擇區域
 .unit-section {
@@ -3810,7 +4778,8 @@ $label-border: #e0e3ff;
     }
   }
 }
-// ⭐⭐⭐ 用戶管理區域完整樣式 ⭐⭐⭐
+
+// 用戶管理區域樣式（保持原樣）
 .users-section {
   background: white;
   border-radius: 8px;

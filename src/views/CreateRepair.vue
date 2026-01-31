@@ -64,12 +64,6 @@ const isSubmitting = ref(false)
 const categories = ref([])
 const reasons = ref([])
 
-// 是否為軟硬體
-const isHardwareOrSoftware = ref({
-  value: false,
-  type: '',
-})
-
 // 當前用戶資訊
 const currentUser = computed(() => authStore.user)
 
@@ -428,24 +422,30 @@ const handleCancel = () => {
 }
 
 const isReasonLoading = ref(false);
-watch(() => repairForm.repairCategoryId, (newId) => {
-  isReasonLoading.value = true;
-  const category = categories.value.find(cat => cat.id === newId)
-  const type = category?.name
-  const targetTypes = ['軟體', '硬體']
-
-  isHardwareOrSoftware.value = {
-    value: targetTypes.includes(type),
-    type: targetTypes.includes(type) ? type : ''
+watch(() => repairForm.repairCategoryId, async (newId, oldId) => {
+  // 清空故障原因選擇
+  repairForm.repairReasonId = ''
+  
+  // 如果沒有選擇類別，清空故障原因列表
+  if (!newId) {
+    reasons.value = []
+    return
   }
-
-  repairStore.fetchReasons(newId || '-').then(() => {
+  
+  // 載入對應的故障原因
+  isReasonLoading.value = true
+  
+  try {
+    await repairStore.fetchReasons(newId)
     reasons.value = repairStore.reasons?.data || []
-  }).finally(() => {
+  } catch (error) {
+    console.error('載入故障原因失敗:', error)
+    reasons.value = []
+  } finally {
     isReasonLoading.value = false
-    repairForm.repairReasonId = ''
-  })
+  }
 })
+
 
 // 載入枚舉資料
 onMounted(async () => {
@@ -453,22 +453,19 @@ onMounted(async () => {
   window.addEventListener('resize', handleResize)
   
   initializeDateTime()
-  isReasonLoading.value = true
+  
   try {
+    // 只載入故障類別，不載入故障原因
     await repairStore.fetchCategories()
-    await repairStore.fetchReasons(repairForm.repairCategoryId || '-')
-    
     categories.value = repairStore.categories?.data || []
-    //console.log(categories.value);
     
-    reasons.value = repairStore.reasons?.data || []
+    //   初始化時故障原因設為空陣列
+    reasons.value = []
+    
   } catch (error) {
-    //console.error('載入枚舉資料失敗:', error)
-  } finally {
-    isReasonLoading.value = false
+    console.error('載入枚舉資料失敗:', error)
   }
 })
-
 // 清理函數
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
@@ -527,9 +524,11 @@ onUnmounted(() => {
                 v-model="repairForm.repairReasonId"
                 class="form-select"
                 :class="{ error: errors.repairReasonId }"
-                :disabled="isReasonLoading"
+                :disabled="isReasonLoading || !repairForm.repairCategoryId"
               >
-                <option value="">選擇故障原因</option>
+                <option value="">
+                  {{ repairForm.repairCategoryId ? '選擇故障原因' : '請先選擇故障類別' }}
+                </option>
                 <option 
                   v-for="reason in reasons" 
                   :key="reason.id" 
@@ -544,7 +543,7 @@ onUnmounted(() => {
           
           <div class="form-row">
             <!-- 設備位置 -->
-            <div class="form-group" v-if="isHardwareOrSoftware.value">
+            <div class="form-group">
               <label class="form-label">設備位置</label>
               <input
                 type="text"
@@ -578,13 +577,13 @@ onUnmounted(() => {
         </div>
 
         <!-- 設備項目 -->
-        <div class="form-row-2" v-if="isHardwareOrSoftware.value">
+        <div class="form-row-2">
           <div class="form-group">
-            <label class="form-label">{{ isHardwareOrSoftware.type==='軟體' ? '功能項目' : '設備項目' }}</label>
+            <label class="form-label">設備/功能項目</label>
             <input
               type="text"
               v-model="repairForm.repairItem"
-              placeholder="請輸入設備或項目名稱"
+              placeholder="請輸入設備或功能項目名稱"
               class="form-input"
             />
           </div>

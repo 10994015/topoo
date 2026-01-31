@@ -29,7 +29,7 @@ const responseInfo = computed(() => {
     repairTitle: responseDetail.value.repair_title || '',
     name: responseDetail.value.name || '',
     repairUnit: responseDetail.value.repair_unit || '',
-    unitLabels: responseDetail.value.unit_labels || [], // ⭐ 新增：單位標籤
+    unitLabels: responseDetail.value.unit_labels || [], // 單位標籤
     created_at: responseDetail.value.created_at || ''
   }
 })
@@ -194,7 +194,7 @@ onMounted(() => {
               <span class="info-label">填寫時間：</span>
               <span class="info-value">{{ formatDateTime(responseInfo.created_at) }}</span>
             </div>
-            <!-- ⭐ 新增：單位標籤顯示 -->
+            <!-- 單位標籤顯示 -->
             <div class="info-item full-width" v-if="responseInfo.unitLabels && responseInfo.unitLabels.length > 0">
               <svg width="16" height="16" viewBox="0 0 24 24" class="info-icon">
                 <path :d="mdiTag" fill="currentColor"></path>
@@ -483,7 +483,7 @@ onMounted(() => {
         border-radius: 8px;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
-        // ⭐ 新增：單位標籤佔滿整行
+        // 單位標籤佔滿整行
         &.full-width {
           grid-column: 1 / -1;
           flex-wrap: wrap;
@@ -507,7 +507,7 @@ onMounted(() => {
           font-weight: 600;
         }
 
-        // ⭐ 新增：單位標籤容器
+        // 單位標籤容器
         .unit-labels-container {
           display: flex;
           flex-wrap: wrap;
@@ -897,7 +897,7 @@ onMounted(() => {
         font-size: 13px;
       }
 
-      // ⭐ 手機版單位標籤調整
+      // 手機版單位標籤調整
       .unit-labels-container {
         width: 100%;
         margin-top: 8px;
@@ -975,7 +975,7 @@ onMounted(() => {
         font-size: 12px;
       }
 
-      // ⭐ 小手機單位標籤調整
+      // 小手機單位標籤調整
       .unit-labels-container {
         .unit-label-badge {
           font-size: 10px;
